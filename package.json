@@ -1,0 +1,1 @@
+{"name":"cadgpt","private":true,"version":"0.1.0","workspaces":["apps/*"],"engines":{"node":">=24.0.0 <25"},"scripts":{"build":"npm run build -w api && npm run build -w web","test":"npm test -w api && npm test -w web -- --watch=false","start":"npm start -w api","dev:api":"npm run dev -w api","dev:web":"npm start -w web"}}

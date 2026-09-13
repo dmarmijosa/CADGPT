@@ -1,0 +1,66 @@
+{
+  "realm": "cadgpt",
+  "enabled": true,
+  "registrationAllowed": true,
+  "resetPasswordAllowed": true,
+  "rememberMe": false,
+  "sslRequired": "external",
+  "clients": [
+    {
+      "clientId": "cadgpt-web",
+      "name": "CADGPT Dashboard",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://localhost:3000/callback",
+        "http://localhost:4200/callback"
+      ],
+      "webOrigins": [
+        "http://localhost:3000",
+        "http://localhost:4200"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:3000##http://localhost:4200"
+      },
+      "defaultClientScopes": [
+        "profile",
+        "email",
+        "cad:read",
+        "cad:write"
+      ],
+      "protocolMappers": [
+        {
+          "name": "cadgpt-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "cadgpt-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "clientScopes": [
+    {
+      "name": "cad:read",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true"
+      }
+    },
+    {
+      "name": "cad:write",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true"
+      }
+    }
+  ]
+}
