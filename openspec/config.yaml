@@ -1,0 +1,45 @@
+# openspec/config.yaml
+schema: spec-driven
+
+context: |
+  Tech stack: Angular 22.1 (apps/web, TypeScript ~6.0.2, Vitest via @angular/build:unit-test,
+    oidc-client-ts, no ESLint, prettier configured); NestJS 12 + Express 5 shell (apps/api,
+    TypeScript ESM, node:sqlite DatabaseSync, @modelcontextprotocol/sdk 1.30.0, Keycloak OIDC
+    auth via jose, helmet, express-rate-limit); Python 3.11+ agent package cadgpt_agent
+    (agent/, setuptools build, console script cadgpt-agent, ships freecad_worker.py as
+    package data).
+  Architecture: npm workspaces ["apps/*"] (apps/api, apps/web only); agent/ is a separate
+    Python ecosystem not covered by root npm scripts. Root npm test runs apps/api then
+    apps/web; agent/ requires an independent python -m unittest invocation (CI runs them
+    as separate steps). No single workspace-wide command spans all three projects.
+  Testing: apps/api unit via tsx --test (test/*.test.ts); apps/web unit via Vitest
+    (ng test / @angular/build:unit-test); agent unit via python -m unittest discover
+    -s agent/tests. No integration/E2E tooling in any project. No coverage tooling wired
+    into any script.
+  Style: apps/web has .prettierrc (no root or apps/api formatter config); no ESLint/Biome
+    anywhere in the repo; no Python lint/type-check config for agent/.
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+    - Keep each PR slice to at most 400 changed lines (additions + deletions); split oversized slices into a/b halves
+  apply:
+    guidelines:
+      - Follow existing code patterns
+    tdd: false           # No single workspace-wide test command spans apps/api + apps/web + agent/; see sdd/cadgpt/testing-capabilities
+    test_command: "npm test && python -m unittest discover -s agent/tests -v"
+  verify:
+    test_command: "npm test && python -m unittest discover -s agent/tests -v"
+    build_command: "npm run build"
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas

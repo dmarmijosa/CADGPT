@@ -1,0 +1,38 @@
+schema: gentle-ai.sdd-preproposal/v1
+revision: 2
+change: cadgpt-phase2-cad-assistant
+project: cadgpt
+artifact_store: engram
+exploration:
+  outcome: done
+  reference: engram:sdd/cadgpt-phase2-cad-assistant/explore (obs 125)
+research:
+  selected: true
+  request_id: rsr-cadgpt-p2-20260913-01
+  revision: 1
+  source_classes: [documentation, open-web]
+  admission: granted (documentation, open-web; no denial)
+  outcome: done
+  evidence_reference: engram:sdd/cadgpt-phase2-cad-assistant/research (obs 128)
+  key_findings:
+    - FreeCAD headless glTF/GLB export not viable (empty 252-byte output on 1.1.3; GUI-gated upstream) → mesh preview format = STL via MeshPart
+    - FreeCAD headless open/read/modify/save .FCStd verified on remote 1.1.3
+    - AutoCAD STLOUT excluded from Core Console and LT; EXPORT/3DPRINT headless STL unproven; AutoLISP in LT only ≥2024
+    - three 0.186.0; loaders from three/addons/loaders/*
+product_decisions:
+  status: confirmed
+  reference: engram:sdd/cadgpt-phase2-cad-assistant/product-decisions (obs 126)
+  items:
+    - mcp_tool_granularity: many-small-allowlisted-tools
+    - mesh_transport: agent-direct-upload-to-api
+    - mesh_format: STL (binary) primary; GLB optional only if converted outside FreeCAD
+    - modify_state_model: minimal-documents-registry
+    - identity: from-oidc-sub-no-username-prompt; MCP selects target device/CAD
+    - autocad_scope: execution adapter (accoreconsole + .scr/.lsp, full AutoCAD; LT ≥2024 AutoLISP-limited) IN phase 2; AutoCAD 3D preview CONDITIONAL on a Windows spike (EXPORT/3DPRINT STL); fallback = DWG artifact downloadable, no viewer
+    - dashboard: redesign with frontend-design skill; routing from scratch; chained PRs expected (400-line budget)
+    - post_pairing_step: guided "connect your MCP client (Claude/ChatGPT)" step
+  open_items_for_design:
+    - Autodesk EULA review on unattended Core Console automation (flag, not blocker)
+    - Angular 22 zoneless/SSR + three.js guard pattern (spike during design/apply)
+    - AutoCAD registry-based edition detection (verify empirically on Windows)
+proposal_ready: true

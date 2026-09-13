@@ -1,0 +1,44 @@
+change: cadgpt-phase2-cad-assistant
+project: cadgpt
+artifact_store: hybrid
+chain_strategy: stacked-to-main
+execution_mode: auto
+delivery_strategy: ask-on-risk
+review_budget_lines: 400
+phases:
+  explore: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/explore", obs: 125 }
+  research: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/research", obs: 128 }
+  preproposal: { status: confirmed, revision: 2, ref: "sdd/cadgpt-phase2-cad-assistant/preproposal", obs: 127 }
+  propose: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/proposal", obs: 129 }
+  spec: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/spec", obs: 131 }
+  design: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/design", obs: 133 }
+  tasks: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/tasks", obs: 134 }
+  apply: { status: pending }
+  verify: { status: pending }
+  archive: { status: pending }
+next_recommended: [sdd-apply]
+delivery_forecast: chained PRs expected; 19 slices, ~4,100 total changed lines, three slices (2b ~340, 5 ~300, 13a ~320) near the 400-line budget; 400-line budget risk Medium; chain strategy not yet chosen (pending) — orchestrator must ask the user before sdd-apply starts slice 1 (ask-on-risk => Decision needed before apply: Yes)
+open_items_for_design:
+  - Autodesk EULA on unattended Core Console automation
+  - Angular 22 zoneless/SSR + three.js guard pattern
+  - AutoCAD registry-based edition detection (verify on Windows)
+  - AutoCAD headless STL spike (EXPORT/3DPRINT) gates slice 14 and the mesh-preview scenario in autocad-execution-adapter
+spec_notes:
+  - 11 capability specs written (8 new, 3 modified): document-registry, mcp-cad-operations, mesh-preview-upload, mesh-viewer, dashboard-routing, mcp-client-onboarding, expert-design-guidance, autocad-execution-adapter (new); job-lifecycle, freecad-execution, cad-discovery (modified)
+  - Spec artifact exceeds the generic 650-word skill guideline by design — 11 capabilities each need explicit security/identity requirements per task brief; flagged as accepted tradeoff, not an oversight
+  - If design runs/ran in parallel, merge its phases.design entry into this document rather than overwriting this file
+design_notes:
+  - 17 ADR-style decisions (D1-D17); open items resolved as decisions with fallbacks: D12 AutoCAD opt-in flag (EULA), D13 slice 14 conditional (STL spike), D14 registry + glob + manual path (detection), D15 CSR + zoneless confirmed, afterNextRender + dynamic import (three.js)
+  - Column naming follows existing store convention (owner, created, updated) instead of proposal literals (owner_sub, *_at)
+  - Paths never cross the wire: agent derives root/documents/<document_id>/design.<ext> from validated UUIDs
+  - Threat matrix has 4 applicable rows (executable classification, subprocess argv, caller-controlled paths, upload boundary) that must propagate unchanged to tasks as RED tests
+  - Design artifact exceeds the 800-word skill guideline because the task brief mandates 10 documented areas including the full tool catalog; accepted tradeoff
+tasks_notes:
+  - 19 slices, one work unit per slice, dependency order documented in the tasks artifact's Dependency Graph
+  - Every applicable threat-matrix row (executable classification, subprocess argv composition, caller-controlled paths, upload boundary) has an explicit RED-test task placed before its corresponding production task in the owning slice
+  - Slice 14 (AutoCAD STL preview) is conditional on task 14.0, a Windows EXPORT/3DPRINT headless spike with an explicit pass/fail criterion; a failed spike is a valid outcome that skips 14.1-14.3
+  - Shared ops-allowlist.json fixture lands at the repo root (task 4b.4) so both apps/api/test (tsx --test) and agent/tests (unittest) read the same file by relative path (closes design risk 4)
+  - Chain strategy is left as "pending" — delivery_strategy ask-on-risk requires the orchestrator to ask the user which chain strategy (stacked-to-main / feature-branch-chain / size:exception) to use before sdd-apply starts slice 1
+  - Tasks artifact exceeds the 530-word skill guideline by design, consistent with the spec/design precedent already recorded above — 19 slices each need explicit files/tests/acceptance/estimate per the task brief
+updated: 2026-09-13
+openspec_mirrored_at: 2026-09-13
