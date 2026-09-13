@@ -81,12 +81,12 @@ Acceptance: `migrate()` is idempotent and non-destructive on an existing phase-1
 
 ## Slice 2a — `CadStrategy` protocol + `FreeCadStrategy` refactor (PR 2, depends on: —)
 
-- [ ] 2a.1 (RED) Add `agent/tests/test_strategies.py` asserting today's FreeCAD job argv/env/`shell=False` baseline (Subprocess argv composition threat row — applicable), captured **before** the refactor lands.
-- [ ] 2a.2 Define `CadStrategy` Protocol in `agent/cadgpt_agent/strategies/base.py` (`supports`, `build_argv`, `env`, `artifacts`) per design.
-- [ ] 2a.3 Implement `FreeCadStrategy` in `agent/cadgpt_agent/strategies/freecad.py`, wrapping the current single-op pipeline unchanged — no new ops yet, behavior-preserving.
-- [ ] 2a.4 (RED) Add the "Caller-controlled paths" guard test (applicable threat row) to `agent/tests/test_strategies.py`: `document_id` not a UUID is rejected; a UUID with path separators is rejected; symlinked `doc_dir` is rejected via `resolve().is_relative_to(root)`.
-- [ ] 2a.5 Update `agent/cadgpt_agent/executor.py`: select the FreeCAD strategy by `cad.name`; add `uuid.UUID(...)` round-trip validation and `doc_dir = root/documents/<document_id>` containment check before any `Popen`; preserve exclusive job-dir `mkdir`, sanitized env, `shell=False`, fixed argv.
-- [ ] 2a.6 Confirm `agent/tests/test_strategies.py` passes against the refactored `executor.py`/`strategies/freecad.py` with byte-identical argv to the 2a.1 baseline.
+- [x] 2a.1 (RED) Add `agent/tests/test_strategies.py` asserting today's FreeCAD job argv/env/`shell=False` baseline (Subprocess argv composition threat row — applicable), captured **before** the refactor lands.
+- [x] 2a.2 Define `CadStrategy` Protocol in `agent/cadgpt_agent/strategies/base.py` (`supports`, `build_argv`, `env`, `artifacts`) per design.
+- [x] 2a.3 Implement `FreeCadStrategy` in `agent/cadgpt_agent/strategies/freecad.py`, wrapping the current single-op pipeline unchanged — no new ops yet, behavior-preserving.
+- [x] 2a.4 (RED) Add the "Caller-controlled paths" guard test (applicable threat row) to `agent/tests/test_strategies.py`: `document_id` not a UUID is rejected; a UUID with path separators is rejected; symlinked `doc_dir` is rejected via `resolve().is_relative_to(root)`.
+- [x] 2a.5 Update `agent/cadgpt_agent/executor.py`: select the FreeCAD strategy by `cad.name`; add `uuid.UUID(...)` round-trip validation and `doc_dir = root/documents/<document_id>` containment check before any `Popen`; preserve exclusive job-dir `mkdir`, sanitized env, `shell=False`, fixed argv.
+- [x] 2a.6 Confirm `agent/tests/test_strategies.py` passes against the refactored `executor.py`/`strategies/freecad.py` with byte-identical argv to the 2a.1 baseline.
 
 Acceptance: the existing phase-1 `create_box` job produces byte-identical argv/env after the refactor; a malformed or path-shaped `document_id` is rejected before any subprocess spawns. ~150 changed lines.
 

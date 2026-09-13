@@ -55,3 +55,53 @@ npm test        → api: 15/15 pass; web (Vitest via `ng test`): 1/1 pass
 
 ### Status
 6/6 slice-1 tasks complete (tasks.md 1.1-1.6 marked `[x]`). Ready for `sdd-verify` on slice 1, or `sdd-apply` again to continue with slice 2a.
+
+## Slice 2a — `CadStrategy` protocol + `FreeCadStrategy` refactor (PR 2)
+
+**Status**: done (tasks 2a.1-2a.6 complete). 17/19 slices remain (2b onward).
+
+### Completed Tasks
+- [x] 2a.1 (RED) Added `agent/tests/test_strategies.py::BaselineArgvEnvTests` capturing today's FreeCAD job argv/env/`shell=False` baseline. Verified independently: ran this test against the pre-refactor `executor.py` (via `git show HEAD:...`) — passed — then restored the refactor and re-ran — passed again, confirming a true byte-identical characterization rather than a test coupled to the new code.
+- [x] 2a.2 Defined `CadStrategy` Protocol in `agent/cadgpt_agent/strategies/base.py`: `kind`, `supports(op)`, `build_argv(cad_path, job_dir, doc_dir)`, `env(base)`, `artifacts(op, job_dir, doc_dir)` returning a `TypedDict` (`native`, `mesh`, `scene`), matching design's Agent Strategy section verbatim.
+- [x] 2a.3 Implemented `FreeCadStrategy` in `agent/cadgpt_agent/strategies/freecad.py`: `supports` only accepts `"create_box"` (no new ops yet); `build_argv` returns `[cad_path, worker_path]` unchanged; `env` adds only `QT_QPA_PLATFORM=offscreen` on top of the executor's sanitized base; `artifacts` returns `job_dir/"box.FCStd"` as `native` (worker output filename unchanged — `freecad_worker.py` itself is untouched in this slice, per task scope).
+- [x] 2a.4 (RED) Added `agent/tests/test_strategies.py::CallerControlledPathTests`: non-UUID `document_id` rejected; four path-shaped-but-invalid variants (`../../etc/passwd`, UUID+`/../../etc`, leading `/`, UUID with trailing `/`) rejected; a pre-existing symlink at `documents/<uuid>` pointing outside root rejected via `resolve().is_relative_to(root)` (asserts the target directory stays empty — no write-through). Added a fifth "happy path" test confirming a valid `document_id` is accepted, creates `doc_dir`, and sets `CADGPT_DOC_DIR`.
+- [x] 2a.5 Updated `agent/cadgpt_agent/executor.py`: added `STRATEGIES = {"FreeCAD": FreeCadStrategy()}` keyed by `cad["name"]`; added `resolve_document_dir(root, document_id)` doing the `uuid.UUID(...)` round-trip check then `doc_dir.resolve().is_relative_to(root_resolved)` containment check, called **before** the job directory is created and before any `Popen` — so a malformed/path-shaped `document_id` never leaves an orphaned job dir or spawns a process; `strategy.supports(op)` gate added (op defaults to `job.get("type") or "create_box"`, matching slice 1's `heartbeat()` null-mapping); exclusive job-dir `mkdir(mode=0o700, parents=False, exist_ok=False)`, sanitized env construction, `shell=False`, and fixed 2-element argv all preserved unchanged; `doc_dir` (when present) is `mkdir(mode=0o700, parents=True, exist_ok=True)` and exposed to the strategy/worker via `CADGPT_DOC_DIR`, additive and absent when no `documentId` is on the job.
+- [x] 2a.6 Confirmed `agent/tests/test_strategies.py` (10 assertions across both classes) passes against the refactored `executor.py`/`strategies/freecad.py`, and re-confirmed the 2a.1 baseline is byte-identical to the pre-refactor version by running it against both revisions of the file (see 2a.1 evidence above). Full suite: `agent/tests/test_agent.py` (5) + `agent/tests/test_strategies.py` (5) = 10/10 pass, including the untouched phase-1 `test_subprocess_is_fixed_and_replay_refused` and `test_unknown_cad_rejected`.
+
+### Files Changed
+| File | Action | What Was Done |
+|------|--------|---------------|
+| `agent/cadgpt_agent/strategies/__init__.py` | Created | Package marker for the new `strategies` subpackage. |
+| `agent/cadgpt_agent/strategies/base.py` | Created | `CadStrategy` Protocol + `Artifacts` TypedDict per design's Agent Strategy section. |
+| `agent/cadgpt_agent/strategies/freecad.py` | Created | `FreeCadStrategy`: behavior-preserving wrap of the current single-op (`create_box`) pipeline. |
+| `agent/cadgpt_agent/executor.py` | Modified | Strategy dispatch by `cad.name`; `resolve_document_dir()` guard (UUID round-trip + symlink-safe containment) run before job-dir creation and before `Popen`; `CADGPT_DOC_DIR` env var added only when a document is present; job-dir creation, env sanitization, `shell=False`, fixed argv, 120 s timeout, 4 KB tail all unchanged. |
+| `agent/pyproject.toml` | Modified | Added `[tool.setuptools.packages.find] include = ["cadgpt_agent*"]` so the new `strategies` subpackage (and any future ones) is explicitly included in real (non-editable) builds, not left to auto-discovery heuristics. |
+| `agent/tests/test_strategies.py` | Created | `BaselineArgvEnvTests` (2a.1) + `CallerControlledPathTests` (2a.4), 5 test methods total. |
+
+### Deviations from Design
+None — implementation matches design D3 (path handling) and D10 (`CadStrategy` protocol) exactly, including the Agent Strategy section's method signatures. One clarification made explicit in code, not a deviation: `doc_dir` is computed relative to the same `root` parameter `execute()` already receives (the agent's local jobs root, matching current `main.py` call sites), so `documents/` lands as a sibling of individual job directories under that same root — consistent with the literal `doc_dir = root/documents/<document_id>` in task 2a.5 and design's Agent Strategy pseudocode, and requires no change to `main.py`'s call convention.
+
+### Issues Found
+None.
+
+### Remaining Tasks
+- [ ] 2b.1-2b.9 (Slice 2b — Worker `OPS` dispatch + STL export + scene, PR 3)
+- [ ] 3a.1-3a.7 through 15.1-15.2 (Slices 3a-15, PRs 4-19; see tasks.md Dependency Graph)
+
+### Workload / PR Boundary
+- Mode: stacked-to-main chained PR slice (per session `chain_strategy: stacked-to-main`)
+- Current work unit: Slice 2a — `CadStrategy` protocol + `FreeCadStrategy` refactor
+- Boundary: starts at the phase-1 hardcoded `executor.execute()` (single FreeCAD pipeline, no strategy seam, no document identity); ends with a `CadStrategy` protocol, one `FreeCadStrategy` implementation wrapping the unchanged pipeline, and a caller-controlled-paths guard wired into `executor.py` ahead of every `Popen`. No new CAD operations, no STL export, no upload, no AutoCAD — all out of scope for this slice (2b+).
+- Estimated review budget impact: 226 insertions + 7 deletions = 233 changed lines across 6 files — under the 400-line hard cap; above the task's ~150-line estimate because the RED test file covers both threat-matrix rows explicitly (baseline + 4 malformed-id shapes + symlink + happy path) rather than the minimum one-test-per-row; not shrunk to hit the estimate per the review-workload guard's no-code-golf rule.
+- Rollback boundary: revert `agent/cadgpt_agent/executor.py` and `agent/pyproject.toml`, delete `agent/cadgpt_agent/strategies/` and `agent/tests/test_strategies.py`; slice 1 (`documents` table, `store.ts`) is untouched and unaffected by this rollback.
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command and exact result | `<scratch-venv>/bin/python -m unittest discover -s agent/tests -v` → `Ran 10 tests in 0.005s` / `OK` (5 pre-existing `test_agent.py` + 5 new `test_strategies.py`, all passing). |
+| Runtime harness command/scenario and exact result | N/A — no live FreeCADCmd/AutoCAD process or dashboard involved in this slice; `Popen` is mocked in every test per the existing `test_agent.py` pattern (no real subprocess boundary changed, only argv/env construction and a pre-`Popen` validation guard). |
+| Rollback boundary | See "Workload / PR Boundary" above — revert `executor.py`/`pyproject.toml`, delete the two new paths; no `apps/**` file was touched by this slice. |
+
+### Status
+6/6 slice-2a tasks complete (tasks.md 2a.1-2a.6 marked `[x]`). Cumulative: 12/? tasks complete across slices 1-2a. Ready for `sdd-verify` on slices 1-2a, or `sdd-apply` again to continue with slice 2b.

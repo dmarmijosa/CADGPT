@@ -13,7 +13,7 @@ phases:
   spec: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/spec", obs: 131 }
   design: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/design", obs: 133 }
   tasks: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/tasks", obs: 134 }
-  apply: { status: in_progress, ref: "sdd/cadgpt-phase2-cad-assistant/apply-progress", slice: "1/19", tasks_done: "1.1-1.6" }
+  apply: { status: in_progress, ref: "sdd/cadgpt-phase2-cad-assistant/apply-progress", slice: "2/19", tasks_done: "1.1-1.6, 2a.1-2a.6" }
   verify: { status: pending }
   archive: { status: pending }
 next_recommended: [sdd-apply]
@@ -40,5 +40,5 @@ tasks_notes:
   - Shared ops-allowlist.json fixture lands at the repo root (task 4b.4) so both apps/api/test (tsx --test) and agent/tests (unittest) read the same file by relative path (closes design risk 4)
   - Chain strategy is left as "pending" — delivery_strategy ask-on-risk requires the orchestrator to ask the user which chain strategy (stacked-to-main / feature-branch-chain / size:exception) to use before sdd-apply starts slice 1
   - Tasks artifact exceeds the 530-word skill guideline by design, consistent with the spec/design precedent already recorded above — 19 slices each need explicit files/tests/acceptance/estimate per the task brief
-updated: 2026-09-13
-openspec_mirrored_at: 2026-09-13
+updated: 2026-09-14
+openspec_mirrored_at: 2026-09-14
