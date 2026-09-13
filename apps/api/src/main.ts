@@ -11,6 +11,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { Store, DomainError, cadSchema, boxSchema } from './store.js';
 import { registerTools } from './tools.js';
+import { registerGuidance, SERVER_INSTRUCTIONS } from './guidance.js';
 import { authenticator } from './auth.js';
 import { browserSecurityPolicy } from './security.js';
 import { envs } from './config/envs.js';
@@ -147,8 +148,12 @@ http.post(
   '/mcp',
   wrap(async (q, r) => {
     const owner = await auth(q.headers.authorization);
-    const server = new McpServer({ name: 'cadgpt', version: '0.1.0' });
+    const server = new McpServer(
+      { name: 'cadgpt', version: '0.1.0' },
+      { instructions: SERVER_INSTRUCTIONS },
+    );
     registerTools(server, store, owner, () => auth(q.headers.authorization, 'cad:write'));
+    registerGuidance(server);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,
