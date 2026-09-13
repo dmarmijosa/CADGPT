@@ -1,0 +1,87 @@
+# Production stack for https://cadengine.danny-armijos.com
+#
+# No ports are published: Easypanel's Traefik reaches every service by
+# container name over the external "easypanel" overlay network. Traefik's
+# own dynamic routing lives in traefik-cadgpt.yml (deployed separately to
+# /etc/easypanel/traefik/config/cadgpt.yml).
+#
+# ${CADGPT_IMAGE_TAG}, ${KC_BOOTSTRAP_ADMIN_PASSWORD} and ${KC_DB_PASSWORD}
+# are read from a sibling .env file (mode 600, never committed).
+
+services:
+  cadgpt-api:
+    image: ghcr.io/dmarmijosa/cadgpt:${CADGPT_IMAGE_TAG:-latest}
+    container_name: cadgpt-api
+    restart: unless-stopped
+    environment:
+      PUBLIC_ORIGIN: https://cadengine.danny-armijos.com
+      # Keycloak is exposed on the same host under /auth (see KC_HTTP_RELATIVE_PATH
+      # below); apps/api/src/security.ts only validates issuer scheme/host, not
+      # same-origin, so a same-host issuer under a different path is accepted.
+      OIDC_ISSUER: https://cadengine.danny-armijos.com/auth/realms/cadgpt
+      OIDC_AUDIENCE: cadgpt-api
+      HOST: "0.0.0.0"
+      PORT: "3000"
+      DATA_DIR: /data
+    volumes:
+      - cadgpt-data:/data
+    networks:
+      - easypanel
+      - cadgpt
+    depends_on:
+      - keycloak
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4.7
+    container_name: cadgpt-keycloak
+    restart: unless-stopped
+    # Plain "start" (not "--optimized"): the stock image is not pre-built
+    # with `kc.sh build`, so --optimized would skip augmentation it needs.
+    command: start --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+      KC_HOSTNAME: https://cadengine.danny-armijos.com/auth
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+    volumes:
+      # --import-realm only imports on first boot (realm does not exist yet);
+      # see docs/deployment.md for how to apply later realm changes.
+      - ./cadgpt-realm.prod.json:/opt/keycloak/data/import/cadgpt-realm.json:ro
+    networks:
+      - easypanel
+      - cadgpt
+    depends_on:
+      - keycloak-db
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+  keycloak-db:
+    image: postgres:16-alpine
+    container_name: cadgpt-keycloak-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${KC_DB_PASSWORD}
+    volumes:
+      - keycloak-db-data:/var/lib/postgresql/data
+    networks:
+      - cadgpt
+
+networks:
+  easypanel:
+    external: true
+  cadgpt:
+    driver: bridge
+
+volumes:
+  cadgpt-data:
+  keycloak-db-data:

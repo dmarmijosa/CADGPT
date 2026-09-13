@@ -1,0 +1,36 @@
+# Traefik dynamic (file provider) config for CADGPT.
+# Installed by the deploy workflow at /etc/easypanel/traefik/config/cadgpt.yml.
+http:
+  routers:
+    cadgpt-redirect:
+      entryPoints: [http]
+      rule: "Host(`cadengine.danny-armijos.com`)"
+      middlewares: [cadgpt-to-https]
+      service: cadgpt-api
+
+    # Keycloak already serves under /auth (KC_HTTP_RELATIVE_PATH), so no
+    # stripPrefix middleware is needed. Higher priority than cadgpt-web so
+    # /auth/* is never captured by the catch-all router below.
+    cadgpt-auth:
+      entryPoints: [https]
+      rule: "Host(`cadengine.danny-armijos.com`) && PathPrefix(`/auth`)"
+      priority: 200
+      service: cadgpt-keycloak
+      tls: { certResolver: letsencrypt }
+
+    cadgpt-web:
+      entryPoints: [https]
+      rule: "Host(`cadengine.danny-armijos.com`)"
+      priority: 100
+      service: cadgpt-api
+      tls: { certResolver: letsencrypt }
+
+  middlewares:
+    cadgpt-to-https:
+      redirectScheme: { scheme: https, permanent: true }
+
+  services:
+    cadgpt-api:
+      loadBalancer: { servers: [{ url: "http://cadgpt-api:3000" }] }
+    cadgpt-keycloak:
+      loadBalancer: { servers: [{ url: "http://cadgpt-keycloak:8080" }] }

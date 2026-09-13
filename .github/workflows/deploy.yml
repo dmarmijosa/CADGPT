@@ -1,0 +1,147 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to deploy (defaults to this run's sha-<short> tag). Use for rollback, e.g. sha-abc1234."
+        required: false
+        type: string
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: dmarmijosa/cadgpt
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    outputs:
+      image_tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # One tag computed once and reused by both jobs, so the pushed image
+      # and the deployed image can never drift apart.
+      - id: tag
+        run: echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.tag.outputs.tag }}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve image tag
+        id: image
+        run: |
+          TAG="${{ inputs.image_tag }}"
+          if [ -z "$TAG" ]; then
+            TAG="${{ needs.build.outputs.image_tag }}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      # webfactory/ssh-agent has no major-version tag beyond v0.x; pinned to
+      # the exact release instead.
+      - name: Install deploy SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      # Host key is fetched at run time instead of stored as a secret: the
+      # only input is DEPLOY_HOST (already a secret), ssh-keyscan output is
+      # public key material (not sensitive), and this avoids the maintenance
+      # burden of rotating a pinned known_hosts secret if the VPS is ever
+      # rebuilt. Trade-off: no protection against a MITM on the very first
+      # connection from a given runner; acceptable for a single static VPS.
+      - name: Trust VPS host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Ensure remote deploy directory
+        run: |
+          ssh "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "sudo mkdir -p /opt/cadgpt && sudo chown ${{ secrets.DEPLOY_USER }}:${{ secrets.DEPLOY_USER }} /opt/cadgpt"
+
+      - name: Upload compose and Keycloak realm
+        run: |
+          scp deploy/prod/compose.yaml "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/cadgpt/compose.yaml"
+          scp deploy/prod/cadgpt-realm.prod.json "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/cadgpt/cadgpt-realm.prod.json"
+          scp deploy/prod/traefik-cadgpt.yml "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/tmp/cadgpt-traefik.yml"
+
+      - name: Write environment file
+        run: |
+          ssh "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "cat > /opt/cadgpt/.env && chmod 600 /opt/cadgpt/.env" <<'EOF'
+          CADGPT_IMAGE_TAG=${{ steps.image.outputs.tag }}
+          KC_BOOTSTRAP_ADMIN_PASSWORD=${{ secrets.KC_BOOTSTRAP_ADMIN_PASSWORD }}
+          KC_DB_PASSWORD=${{ secrets.KC_DB_PASSWORD }}
+          EOF
+
+      - name: Install Traefik dynamic config
+        run: |
+          ssh "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "sudo install -m 644 /tmp/cadgpt-traefik.yml /etc/easypanel/traefik/config/cadgpt.yml && rm -f /tmp/cadgpt-traefik.yml"
+
+      - name: Log in to GHCR on the VPS
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ssh "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "sudo docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin" <<< "$GHCR_TOKEN"
+
+      - name: Pull and start services
+        run: |
+          ssh "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "cd /opt/cadgpt && sudo docker compose -f compose.yaml pull && sudo docker compose -f compose.yaml up -d --remove-orphans"
+
+      - name: Health probe
+        run: |
+          for i in 1 2 3 4 5 6; do
+            if curl -fsS https://cadengine.danny-armijos.com/ >/dev/null; then
+              echo "Health probe succeeded."
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying in 15s..."
+            sleep 15
+          done
+          echo "::warning::Health probe did not succeed after 6 attempts. On a first deploy this is expected while DNS and ACME certificate issuance propagate; verify manually if it persists."
