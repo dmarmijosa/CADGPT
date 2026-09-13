@@ -24,7 +24,11 @@ for (const address of [origin, issuer]) {
   if (u.protocol !== 'https:' && !['localhost', '127.0.0.1', '[::1]'].includes(u.hostname))
     throw new Error('Non-loopback URLs require HTTPS.');
 }
-const auth = authenticator(issuer, envs.oidcAudience, envs.oidcJwksUrl ?? issuer + '/protocol/openid-connect/certs');
+const auth = authenticator(
+  issuer,
+  envs.oidcAudience,
+  envs.oidcJwksUrl ?? issuer + '/protocol/openid-connect/certs',
+);
 const data = envs.dataDir ?? resolve('../../data');
 mkdirSync(data, { recursive: true, mode: 0o700 });
 const store = new Store(resolve(data, 'cadgpt.db'));

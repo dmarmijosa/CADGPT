@@ -3,27 +3,40 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
 export const cadSchema = z.object({
-  id: z.string().min(1).max(64), name: z.enum(['FreeCAD', 'AutoCAD']),
-  path: z.string().min(1).max(1024), version: z.string().max(120),
+  id: z.string().min(1).max(64),
+  name: z.enum(['FreeCAD', 'AutoCAD']),
+  path: z.string().min(1).max(1024),
+  version: z.string().max(120),
   executable: z.boolean(),
 });
-export const boxSchema = z.object({
-  deviceId: z.uuid(), cadId: z.string().min(1).max(64),
-  length: z.number().finite().positive().max(10000),
-  width: z.number().finite().positive().max(10000),
-  height: z.number().finite().positive().max(10000),
-  confirmed: z.literal(true),
-}).strict();
+export const boxSchema = z
+  .object({
+    deviceId: z.uuid(),
+    cadId: z.string().min(1).max(64),
+    length: z.number().finite().positive().max(10000),
+    width: z.number().finite().positive().max(10000),
+    height: z.number().finite().positive().max(10000),
+    confirmed: z.literal(true),
+  })
+  .strict();
 export type Box = z.infer<typeof boxSchema>;
 type Row = Record<string, any>;
 const hash = (s: string) => createHash('sha256').update(s).digest('hex');
 const secret = () => randomBytes(32).toString('base64url');
 export class DomainError extends Error {
-  constructor(public status: number, message: string) { super(message); }
+  constructor(
+    public status: number,
+    message: string,
+  ) {
+    super(message);
+  }
 }
 export class Store {
   db: DatabaseSync;
-  constructor(path: string, private now = () => Date.now()) {
+  constructor(
+    path: string,
+    private now = () => Date.now(),
+  ) {
     this.db = new DatabaseSync(path);
     this.db.exec(`
       PRAGMA journal_mode=WAL;
@@ -53,125 +66,220 @@ export class Store {
   migrate() {
     const columns = (this.db.prepare('PRAGMA table_info(jobs)').all() as Row[]).map((c) => c.name);
     if (!columns.includes('type')) this.db.exec('ALTER TABLE jobs ADD COLUMN type TEXT');
-    if (!columns.includes('document_id')) this.db.exec('ALTER TABLE jobs ADD COLUMN document_id TEXT');
+    if (!columns.includes('document_id'))
+      this.db.exec('ALTER TABLE jobs ADD COLUMN document_id TEXT');
   }
   begin(name: string, cads: unknown) {
     this.db.prepare('DELETE FROM pairings WHERE expires < ?').run(this.now() - 60000);
     const token = secret();
     const code = randomBytes(6).toString('hex').toUpperCase();
-    this.db.prepare('INSERT INTO pairings(secret_hash,code,name,cads,expires) VALUES(?,?,?,?,?)')
+    this.db
+      .prepare('INSERT INTO pairings(secret_hash,code,name,cads,expires) VALUES(?,?,?,?,?)')
       .run(hash(token), code, name, JSON.stringify(cads), this.now() + 600000);
     return { deviceSecret: token, userCode: code, expiresIn: 600, interval: 5 };
   }
   approve(owner: string, code: string) {
-    const changed = this.db.prepare('UPDATE pairings SET owner=? WHERE code=? AND owner IS NULL AND expires>? AND consumed=0')
+    const changed = this.db
+      .prepare(
+        'UPDATE pairings SET owner=? WHERE code=? AND owner IS NULL AND expires>? AND consumed=0',
+      )
       .run(owner, code.toUpperCase(), this.now()).changes;
     if (!changed) throw new DomainError(409, 'Code expired, already used, or unavailable.');
     return { approved: true };
   }
   poll(token: string) {
-    const row = this.db.prepare('SELECT * FROM pairings WHERE secret_hash=?').get(hash(token)) as Row | undefined;
+    const row = this.db.prepare('SELECT * FROM pairings WHERE secret_hash=?').get(hash(token)) as
+      Row | undefined;
     if (!row || row.expires <= this.now() || row.consumed || row.polls >= 125)
       throw new DomainError(410, 'Pairing expired or consumed. Start pairing again.');
     this.db.prepare('UPDATE pairings SET polls=polls+1 WHERE secret_hash=?').run(hash(token));
     if (!row.owner) return { pending: true };
-    const id = randomUUID(), credential = secret();
+    const id = randomUUID(),
+      credential = secret();
     this.db.exec('BEGIN IMMEDIATE');
     try {
       this.db.prepare('UPDATE pairings SET consumed=1 WHERE secret_hash=?').run(hash(token));
-      this.db.prepare('INSERT INTO devices VALUES(?,?,?,?,?,?,0)')
+      this.db
+        .prepare('INSERT INTO devices VALUES(?,?,?,?,?,?,0)')
         .run(id, row.owner, row.name, hash(credential), row.cads, 0);
       this.db.exec('COMMIT');
-    } catch (e) { this.db.exec('ROLLBACK'); throw e; }
+    } catch (e) {
+      this.db.exec('ROLLBACK');
+      throw e;
+    }
     return { pending: false, deviceId: id, credential };
   }
   device(token: string): Row {
-    const row = this.db.prepare('SELECT * FROM devices WHERE token_hash=? AND revoked=0').get(hash(token)) as Row | undefined;
+    const row = this.db
+      .prepare('SELECT * FROM devices WHERE token_hash=? AND revoked=0')
+      .get(hash(token)) as Row | undefined;
     if (!row) throw new DomainError(401, 'Device credential invalid or revoked.');
     return row;
   }
   devices(owner: string) {
-    return (this.db.prepare('SELECT id,name,cads,last_seen,revoked FROM devices WHERE owner=?').all(owner) as Row[])
-      .map(d => ({ id: d.id, name: d.name, cads: JSON.parse(d.cads), lastSeen: d.last_seen, revoked: !!d.revoked, online: !d.revoked && this.now() - d.last_seen < 30000 }));
+    return (
+      this.db
+        .prepare('SELECT id,name,cads,last_seen,revoked FROM devices WHERE owner=?')
+        .all(owner) as Row[]
+    ).map((d) => ({
+      id: d.id,
+      name: d.name,
+      cads: JSON.parse(d.cads),
+      lastSeen: d.last_seen,
+      revoked: !!d.revoked,
+      online: !d.revoked && this.now() - d.last_seen < 30000,
+    }));
   }
   revoke(owner: string, id: string) {
-    if (!this.db.prepare('UPDATE devices SET revoked=1 WHERE owner=? AND id=?').run(owner, id).changes)
+    if (
+      !this.db.prepare('UPDATE devices SET revoked=1 WHERE owner=? AND id=?').run(owner, id).changes
+    )
       throw new DomainError(404, 'Device not found.');
-    this.db.prepare("UPDATE jobs SET status='cancelled' WHERE device_id=? AND status='queued'").run(id);
+    this.db
+      .prepare("UPDATE jobs SET status='cancelled' WHERE device_id=? AND status='queued'")
+      .run(id);
     return { revoked: true };
   }
   enqueue(owner: string, input: Box, type = 'create_box', documentId: string | null = null) {
     const p = boxSchema.parse(input);
-    const device = this.devices(owner).find(d => d.id === p.deviceId && !d.revoked);
+    const device = this.devices(owner).find((d) => d.id === p.deviceId && !d.revoked);
     if (!device) throw new DomainError(404, 'Device not found.');
     if (!device.online) throw new DomainError(409, 'Device is offline. No job was queued.');
     if (!device.cads.some((c: Row) => c.id === p.cadId && c.name === 'FreeCAD' && c.executable))
       throw new DomainError(400, 'Select a detected FreeCAD command-line installation.');
     // D17: at most one queued|running job per document — reopen/mutate/save cannot overlap safely.
     if (documentId) {
-      const locked = this.db.prepare("SELECT count(*) AS n FROM jobs WHERE document_id=? AND status IN ('queued','running')").get(documentId) as Row;
+      const locked = this.db
+        .prepare(
+          "SELECT count(*) AS n FROM jobs WHERE document_id=? AND status IN ('queued','running')",
+        )
+        .get(documentId) as Row;
       if (locked.n > 0) throw new DomainError(409, 'Document already has an active job.');
     }
-    const active = this.db.prepare("SELECT count(*) AS n FROM jobs WHERE device_id=? AND status IN ('queued','running')").get(p.deviceId) as Row;
+    const active = this.db
+      .prepare(
+        "SELECT count(*) AS n FROM jobs WHERE device_id=? AND status IN ('queued','running')",
+      )
+      .get(p.deviceId) as Row;
     if (active.n >= 5) throw new DomainError(429, 'Device job limit reached.');
     const id = randomUUID();
-    this.db.prepare('INSERT INTO jobs(id,device_id,owner,payload,status,expires,created,result,type,document_id) VALUES(?,?,?,?,?,?,?,NULL,?,?)')
-      .run(id, p.deviceId, owner, JSON.stringify(p), 'queued', this.now() + 60000, this.now(), type, documentId);
+    this.db
+      .prepare(
+        'INSERT INTO jobs(id,device_id,owner,payload,status,expires,created,result,type,document_id) VALUES(?,?,?,?,?,?,?,NULL,?,?)',
+      )
+      .run(
+        id,
+        p.deviceId,
+        owner,
+        JSON.stringify(p),
+        'queued',
+        this.now() + 60000,
+        this.now(),
+        type,
+        documentId,
+      );
     return { id };
   }
   createDocument(owner: string, deviceId: string, cadKind: 'FreeCAD' | 'AutoCAD', name: string) {
     const id = randomUUID();
     const created = this.now();
-    this.db.prepare('INSERT INTO documents(id,owner,device_id,cad_kind,name,native_path,created,updated,latest_job_id) VALUES(?,?,?,?,?,NULL,?,?,NULL)')
+    this.db
+      .prepare(
+        'INSERT INTO documents(id,owner,device_id,cad_kind,name,native_path,created,updated,latest_job_id) VALUES(?,?,?,?,?,NULL,?,?,NULL)',
+      )
       .run(id, owner, deviceId, cadKind, name, created, created);
     return { id };
   }
   getDocument(id: string, owner: string) {
-    const row = this.db.prepare('SELECT * FROM documents WHERE id=? AND owner=?').get(id, owner) as Row | undefined;
+    const row = this.db.prepare('SELECT * FROM documents WHERE id=? AND owner=?').get(id, owner) as
+      Row | undefined;
     if (!row) throw new DomainError(404, 'Document not found.');
     return {
-      id: row.id, owner: row.owner, deviceId: row.device_id, cadKind: row.cad_kind, name: row.name,
-      nativePath: row.native_path, created: row.created, updated: row.updated, latestJobId: row.latest_job_id,
+      id: row.id,
+      owner: row.owner,
+      deviceId: row.device_id,
+      cadKind: row.cad_kind,
+      name: row.name,
+      nativePath: row.native_path,
+      created: row.created,
+      updated: row.updated,
+      latestJobId: row.latest_job_id,
     };
   }
   listDocuments(owner: string) {
-    return (this.db.prepare(
-      'SELECT id,device_id AS deviceId,cad_kind AS cadKind,name,native_path AS nativePath,created,updated,latest_job_id AS latestJobId FROM documents WHERE owner=? ORDER BY updated DESC',
-    ).all(owner) as Row[]);
+    return this.db
+      .prepare(
+        'SELECT id,device_id AS deviceId,cad_kind AS cadKind,name,native_path AS nativePath,created,updated,latest_job_id AS latestJobId FROM documents WHERE owner=? ORDER BY updated DESC',
+      )
+      .all(owner) as Row[];
   }
   jobs(owner: string) {
     this.expire();
-    return this.db.prepare('SELECT id,device_id AS deviceId,status,created,result FROM jobs WHERE owner=? ORDER BY created DESC LIMIT 100').all(owner);
+    return this.db
+      .prepare(
+        'SELECT id,device_id AS deviceId,status,created,result FROM jobs WHERE owner=? ORDER BY created DESC LIMIT 100',
+      )
+      .all(owner);
   }
   private expire() {
-    this.db.prepare("UPDATE jobs SET status='expired' WHERE status='queued' AND expires<=?").run(this.now());
+    this.db
+      .prepare("UPDATE jobs SET status='expired' WHERE status='queued' AND expires<=?")
+      .run(this.now());
     // Never requeue a claimed job: a lost result has an unknown outcome.
-    this.db.prepare("UPDATE jobs SET status='unknown' WHERE status='running' AND expires+180000<=?").run(this.now());
+    this.db
+      .prepare("UPDATE jobs SET status='unknown' WHERE status='running' AND expires+180000<=?")
+      .run(this.now());
   }
   heartbeat(token: string, cads: unknown) {
     const d = this.device(token);
-    this.db.prepare('UPDATE devices SET last_seen=?,cads=? WHERE id=?').run(this.now(), JSON.stringify(cads), d.id);
+    this.db
+      .prepare('UPDATE devices SET last_seen=?,cads=? WHERE id=?')
+      .run(this.now(), JSON.stringify(cads), d.id);
     this.expire();
-    const row = this.db.prepare("UPDATE jobs SET status='running' WHERE id=(SELECT id FROM jobs WHERE device_id=? AND status='queued' AND expires>? ORDER BY created LIMIT 1) RETURNING *")
+    const row = this.db
+      .prepare(
+        "UPDATE jobs SET status='running' WHERE id=(SELECT id FROM jobs WHERE device_id=? AND status='queued' AND expires>? ORDER BY created LIMIT 1) RETURNING *",
+      )
       .get(d.id, this.now()) as Row | undefined;
     // Phase 1 rows predate `type`/`document_id`: map type=null to the only op that existed then.
     return row
-      ? { job: { id: row.id, expires: row.expires, type: row.type ?? 'create_box', documentId: row.document_id ?? null, ...JSON.parse(row.payload) } }
+      ? {
+          job: {
+            id: row.id,
+            expires: row.expires,
+            type: row.type ?? 'create_box',
+            documentId: row.document_id ?? null,
+            ...JSON.parse(row.payload),
+          },
+        }
       : { job: null };
   }
   complete(token: string, id: string, result: string, ok: boolean, nativePath?: string) {
     const d = this.device(token);
     this.db.exec('BEGIN IMMEDIATE');
     try {
-      const job = this.db.prepare("SELECT document_id AS documentId FROM jobs WHERE id=? AND device_id=? AND status='running'").get(id, d.id) as Row | undefined;
+      const job = this.db
+        .prepare(
+          "SELECT document_id AS documentId FROM jobs WHERE id=? AND device_id=? AND status='running'",
+        )
+        .get(id, d.id) as Row | undefined;
       if (!job) throw new DomainError(409, 'Job is not running on this device.');
-      this.db.prepare("UPDATE jobs SET status=?,result=? WHERE id=? AND device_id=? AND status='running'")
+      this.db
+        .prepare(
+          "UPDATE jobs SET status=?,result=? WHERE id=? AND device_id=? AND status='running'",
+        )
         .run(ok ? 'succeeded' : 'failed', result, id, d.id);
       if (ok && job.documentId)
-        this.db.prepare('UPDATE documents SET updated=?,latest_job_id=?,native_path=COALESCE(?,native_path) WHERE id=?')
+        this.db
+          .prepare(
+            'UPDATE documents SET updated=?,latest_job_id=?,native_path=COALESCE(?,native_path) WHERE id=?',
+          )
           .run(this.now(), id, nativePath ?? null, job.documentId);
       this.db.exec('COMMIT');
-    } catch (e) { this.db.exec('ROLLBACK'); throw e; }
+    } catch (e) {
+      this.db.exec('ROLLBACK');
+      throw e;
+    }
     return { accepted: true };
   }
 }

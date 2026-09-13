@@ -13,22 +13,13 @@
       "publicClient": true,
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
-      "redirectUris": [
-        "https://cadengine.danny-armijos.com/callback"
-      ],
-      "webOrigins": [
-        "https://cadengine.danny-armijos.com"
-      ],
+      "redirectUris": ["https://cadengine.danny-armijos.com/callback"],
+      "webOrigins": ["https://cadengine.danny-armijos.com"],
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "post.logout.redirect.uris": "https://cadengine.danny-armijos.com"
       },
-      "defaultClientScopes": [
-        "profile",
-        "email",
-        "cad:read",
-        "cad:write"
-      ],
+      "defaultClientScopes": ["profile", "email", "cad:read", "cad:write"],
       "protocolMappers": [
         {
           "name": "cadgpt-audience",

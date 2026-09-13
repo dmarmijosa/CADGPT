@@ -4,7 +4,7 @@ http:
   routers:
     cadgpt-redirect:
       entryPoints: [http]
-      rule: "Host(`cadengine.danny-armijos.com`)"
+      rule: 'Host(`cadengine.danny-armijos.com`)'
       middlewares: [cadgpt-to-https]
       service: cadgpt-api
 
@@ -13,14 +13,14 @@ http:
     # /auth/* is never captured by the catch-all router below.
     cadgpt-auth:
       entryPoints: [https]
-      rule: "Host(`cadengine.danny-armijos.com`) && PathPrefix(`/auth`)"
+      rule: 'Host(`cadengine.danny-armijos.com`) && PathPrefix(`/auth`)'
       priority: 200
       service: cadgpt-keycloak
       tls: { certResolver: letsencrypt }
 
     cadgpt-web:
       entryPoints: [https]
-      rule: "Host(`cadengine.danny-armijos.com`)"
+      rule: 'Host(`cadengine.danny-armijos.com`)'
       priority: 100
       service: cadgpt-api
       tls: { certResolver: letsencrypt }
@@ -31,6 +31,6 @@ http:
 
   services:
     cadgpt-api:
-      loadBalancer: { servers: [{ url: "http://cadgpt-api:3000" }] }
+      loadBalancer: { servers: [{ url: 'http://cadgpt-api:3000' }] }
     cadgpt-keycloak:
-      loadBalancer: { servers: [{ url: "http://cadgpt-keycloak:8080" }] }
+      loadBalancer: { servers: [{ url: 'http://cadgpt-keycloak:8080' }] }

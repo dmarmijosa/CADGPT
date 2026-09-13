@@ -20,8 +20,8 @@ services:
       # same-origin, so a same-host issuer under a different path is accepted.
       OIDC_ISSUER: https://cadengine.danny-armijos.com/auth/realms/cadgpt
       OIDC_AUDIENCE: cadgpt-api
-      HOST: "0.0.0.0"
-      PORT: "3000"
+      HOST: '0.0.0.0'
+      PORT: '3000'
       DATA_DIR: /data
     volumes:
       - cadgpt-data:/data
@@ -45,7 +45,7 @@ services:
       KC_DB_PASSWORD: ${KC_DB_PASSWORD}
       KC_HOSTNAME: https://cadengine.danny-armijos.com/auth
       KC_HTTP_RELATIVE_PATH: /auth
-      KC_HTTP_ENABLED: "true"
+      KC_HTTP_ENABLED: 'true'
       KC_PROXY_HEADERS: xforwarded
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
