@@ -1,14 +1,15 @@
-"""Wraps the existing single-op FreeCAD pipeline; behavior-preserving for phase 1."""
+"""Wraps the FreeCAD worker's per-op pipeline (see `freecad_worker.OPS`)."""
 from pathlib import Path
 
 from .base import Artifacts
+from ..freecad_worker import OPS
 
 
 class FreeCadStrategy:
     kind = "FreeCAD"
 
     def supports(self, op: str) -> bool:
-        return op == "create_box"
+        return op in OPS
 
     def build_argv(self, cad_path: Path, job_dir: Path, doc_dir: Path | None) -> list[str]:
         worker = Path(__file__).resolve().parent.parent / "freecad_worker.py"
@@ -20,4 +21,9 @@ class FreeCadStrategy:
         return environment
 
     def artifacts(self, op: str, job_dir: Path, doc_dir: Path | None) -> Artifacts:
-        return {"native": job_dir / "box.FCStd", "mesh": None, "scene": None}
+        design_dir = doc_dir if doc_dir is not None else job_dir
+        return {
+            "native": design_dir / "design.FCStd",
+            "mesh": job_dir / "preview.stl",
+            "scene": job_dir / "scene.json" if op == "read_scene" else None,
+        }

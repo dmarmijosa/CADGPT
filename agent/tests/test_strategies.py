@@ -30,7 +30,7 @@ class BaselineArgvEnvTests(unittest.TestCase):
             process.stdout = io.BytesIO(b"done")
 
             def finish(timeout):
-                (Path(d) / job["id"] / "box.FCStd").write_bytes(b"test")
+                (Path(d) / job["id"] / "design.FCStd").write_bytes(b"test")
                 return 0
 
             process.wait.side_effect = finish
@@ -110,7 +110,7 @@ class CallerControlledPathTests(unittest.TestCase):
                 process.stdout = io.BytesIO(b"done")
 
                 def finish(timeout):
-                    (Path(d) / job["id"] / "box.FCStd").write_bytes(b"test")
+                    (Path(d) / "documents" / document_id / "design.FCStd").write_bytes(b"test")
                     return 0
 
                 process.wait.side_effect = finish

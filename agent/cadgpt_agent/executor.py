@@ -18,10 +18,15 @@ def validate(job):
         raise ValueError("Invalid job identifier")
     if job["expires"] <= time.time() * 1000:
         raise ValueError("Job expired")
-    for key in ("length", "width", "height"):
-        n = job[key]
-        if isinstance(n, bool) or not isinstance(n, (int, float)) or not math.isfinite(n) or not 0 < n <= 10000:
-            raise ValueError("Dimensions must be finite and between 0 and 10000 mm")
+    # Only the legacy/default op has agent-level dimension bounds here; every
+    # other op's params are re-validated inside the FreeCAD worker itself
+    # (before any FreeCAD call), since the worker is the one that understands
+    # each op's own parameter shape.
+    if (job.get("type") or "create_box") == "create_box":
+        for key in ("length", "width", "height"):
+            n = job[key]
+            if isinstance(n, bool) or not isinstance(n, (int, float)) or not math.isfinite(n) or not 0 < n <= 10000:
+                raise ValueError("Dimensions must be finite and between 0 and 10000 mm")
     if job.get("confirmed") is not True:
         raise ValueError("Explicit confirmation required")
 
@@ -61,7 +66,12 @@ def execute(job, cads, root):
     if doc_dir is not None:
         doc_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
     request = directory / "request.json"
-    request.write_text(json.dumps({k: job[k] for k in ("length", "width", "height")}), encoding="utf-8")
+    # request.json carries the op discriminator plus every non-envelope job
+    # field as-is; the worker re-validates each value before touching FreeCAD.
+    # No path ever crosses this boundary: only the UUID document_id does.
+    envelope_keys = {"id", "cadId", "expires", "confirmed", "type", "documentId"}
+    params = {k: v for k, v in job.items() if k not in envelope_keys}
+    request.write_text(json.dumps({"op": op, "document_id": job.get("documentId"), **params}), encoding="utf-8")
     base_env = {k: v for k, v in os.environ.items() if k not in ("PYTHONHOME", "PYTHONPATH", "LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH")}
     base_env["CADGPT_JOB_DIR"] = str(directory.resolve())
     if doc_dir is not None:
