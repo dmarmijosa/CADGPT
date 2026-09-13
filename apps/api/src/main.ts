@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { Store, DomainError, cadSchema, boxSchema } from './store.js';
+import { registerTools } from './tools.js';
 import { authenticator } from './auth.js';
 import { browserSecurityPolicy } from './security.js';
 import { envs } from './config/envs.js';
@@ -147,45 +148,7 @@ http.post(
   wrap(async (q, r) => {
     const owner = await auth(q.headers.authorization);
     const server = new McpServer({ name: 'cadgpt', version: '0.1.0' });
-    const result = (value: unknown) => ({
-      content: [{ type: 'text' as const, text: JSON.stringify(value) }],
-    });
-    server.registerTool(
-      'list_devices',
-      {
-        description: 'List your CAD devices and detected capabilities.',
-        inputSchema: {},
-        annotations: { readOnlyHint: true },
-      },
-      async () => result(store.devices(owner)),
-    );
-    server.registerTool(
-      'list_jobs',
-      {
-        description: 'List your recent job outcomes. Files remain on the device.',
-        inputSchema: {},
-        annotations: { readOnlyHint: true },
-      },
-      async () => result(store.jobs(owner)),
-    );
-    server.registerTool(
-      'create_box',
-      {
-        description:
-          'Create a NEW FreeCAD box file on the selected online device. Ask the user to confirm dimensions in millimeters first. Never modifies an open drawing.',
-        inputSchema: boxSchema.shape,
-        annotations: {
-          readOnlyHint: false,
-          destructiveHint: false,
-          idempotentHint: false,
-          openWorldHint: false,
-        },
-      },
-      async (p) => {
-        await auth(q.headers.authorization, 'cad:write');
-        return result(store.enqueue(owner, p));
-      },
-    );
+    registerTools(server, store, owner, () => auth(q.headers.authorization, 'cad:write'));
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,

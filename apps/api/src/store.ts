@@ -20,6 +20,10 @@ export const boxSchema = z
   })
   .strict();
 export type Box = z.infer<typeof boxSchema>;
+// Generic job payload: every enqueue caller (REST `/api/jobs`, MCP tools in
+// `tools.ts`) validates its own per-op Zod schema before calling `enqueue()`,
+// so this type only pins the two fields `enqueue()` itself reads.
+export type EnqueueInput = { deviceId: string; cadId: string } & Record<string, unknown>;
 type Row = Record<string, any>;
 const hash = (s: string) => createHash('sha256').update(s).digest('hex');
 const secret = () => randomBytes(32).toString('base64url');
@@ -140,8 +144,15 @@ export class Store {
       .run(id);
     return { revoked: true };
   }
-  enqueue(owner: string, input: Box, type = 'create_box', documentId: string | null = null) {
-    const p = boxSchema.parse(input);
+  // Callers validate their own per-op Zod schema before calling `enqueue()`;
+  // this method only re-checks device ownership/online state, D17, and the cap.
+  enqueue(
+    owner: string,
+    input: EnqueueInput,
+    type = 'create_box',
+    documentId: string | null = null,
+  ) {
+    const p = input;
     const device = this.devices(owner).find((d) => d.id === p.deviceId && !d.revoked);
     if (!device) throw new DomainError(404, 'Device not found.');
     if (!device.online) throw new DomainError(409, 'Device is offline. No job was queued.');
