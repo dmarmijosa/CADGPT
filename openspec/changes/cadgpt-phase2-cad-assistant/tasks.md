@@ -132,10 +132,10 @@ Acceptance: a code-shaped extra field fails schema validation before enqueue; an
 
 ## Slice 3b — MCP instructions/prompts/resources text (PR 5, depends on: 3a)
 
-- [ ] 3b.1 (RED) Add a test asserting the instructions/resource text contains no code-fence, script, or path-like example (spec expert-design-guidance "No Code/Path Hints in Guidance").
-- [ ] 3b.2 Add `McpServer({ instructions })` content to `apps/api/src/tools.ts`: mm units, confirm-before-mutating, default tolerances (±0.1 mm general, ±0.02 mm fits), naming conventions, DfM guidance (mechanical + architectural).
-- [ ] 3b.3 Add resources `cadgpt://guidance/mechanical`, `cadgpt://guidance/architectural`, `cadgpt://guidance/units-tolerances`.
-- [ ] 3b.4 Add prompts `design_brief` (elicit intent → parametric plan) and `design_review` (read scene, check tolerance/fit/manufacturability).
+- [x] 3b.1 (RED) Add a test asserting the instructions/resource text contains no code-fence, script, or path-like example (spec expert-design-guidance "No Code/Path Hints in Guidance").
+- [x] 3b.2 Add `McpServer({ instructions })` content to `apps/api/src/tools.ts`: mm units, confirm-before-mutating, default tolerances (±0.1 mm general, ±0.02 mm fits), naming conventions, DfM guidance (mechanical + architectural).
+- [x] 3b.3 Add resources `cadgpt://guidance/mechanical`, `cadgpt://guidance/architectural`, `cadgpt://guidance/units-tolerances`.
+- [x] 3b.4 Add prompts `design_brief` (elicit intent → parametric plan) and `design_review` (read scene, check tolerance/fit/manufacturability).
 
 Acceptance: an MCP client reading instructions/resources receives documented conventions with zero code/path examples (verified by 3b.1). ~120 changed lines.
 
@@ -159,6 +159,8 @@ Acceptance: `boolean_union` with a malformed object id (containing `;`) fails va
 - [ ] 4b.6 Tests: transform-bounds rejection (`rotate_object` degrees outside [-360,360], `scale_object` factor outside [0.001,1000]); `export_design` format-enum rejection; `read_scene` 12 kB cap enforcement.
 
 Acceptance: the server tool catalog is verified (by 4b.5) to be a subset of the shared `ops-allowlist.json`, which the agent's allowlist also covers. ~220 changed lines.
+
+- [ ] 4b.7 Follow-up from slice 3b guidance: add an optional `label` parameter (regex `^[A-Za-z][A-Za-z0-9_]{0,31}$`, same as worker object names) to every `create_*` tool, forward it in the job payload, set `obj.Label` in the worker's `_create_primitive`, and include `label` in `read_scene` output so the "name features by function" guidance is actionable.
 
 ## Slice 5 — Mesh upload/serve routes + limits + README (PR 8, depends on: 1)
 

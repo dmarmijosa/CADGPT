@@ -271,3 +271,56 @@ None. All planned tests pass; no test needed adjustment after implementation.
 
 ### Status
 7/7 slice-3a tasks complete. `npm run format && npm run build && npm test` all green (api 24/24, web 1/1). Cumulative: 32/114 tasks complete across slices 1-3a. Not committed, not pushed (per instructions). **Flagging for the user/orchestrator before merge**: this slice landed at 580 changed lines (180 over the 400-line cap) — please confirm `size:exception` for this batch, or request the 3a-i/3a-ii split above before this branch is reviewed. Ready for `sdd-verify` on slice 3a, or `sdd-apply` again to continue with slice 3b.
+
+## Slice 3b — MCP instructions/prompts/resources text (PR 5, depends on: 3a; branch `feat/phase2-03b-mcp-instructions` stacked on `feat/phase2-03a-mcp-tools-a`)
+
+**Status**: done (tasks 3b.1-3b.4 complete), 322 changed lines against the 600-line session review budget for this slice.
+
+### Completed Tasks
+- [x] 3b.1 (RED) Added `apps/api/test/guidance.test.ts` first, before `src/guidance.ts` existed, so the suite necessarily failed with `ERR_MODULE_NOT_FOUND` against the pre-slice tree (confirmed: `git show HEAD:apps/api/src/guidance.ts` does not exist on this branch's parent). The test's `assertNoCodeOrPathHints` helper checks every instructions/resource/prompt string for a code fence, `import `/`def `/`(load`/`#!`, four path-shaped token forms, and any URL scheme other than `cadgpt://` (spec expert-design-guidance "No Code/Path Hints in Guidance").
+- [x] 3b.2 Added `SERVER_INSTRUCTIONS` (a template-literal string, ~20 lines) to a new `apps/api/src/guidance.ts` module covering: millimeter/degree units, confirm-before-mutating discipline, one-primitive-then-boolean workflow, `read_scene`-before-modify, `get_job`-after-every-job, `selection_required` handling, never-invented object names, function-based naming, and the allowlisted-tools-only safety posture. Wired into `apps/api/src/main.ts`'s `McpServer` constructor via `{ instructions: SERVER_INSTRUCTIONS }` instead of `tools.ts`, so instructions/guidance stays in its own module rather than growing the existing tool-registration file (see Deviations below).
+- [x] 3b.3 Added three markdown resources to `guidance.ts`, registered via `server.registerResource(name, uri, { title, mimeType: 'text/markdown' }, readCallback)`: `cadgpt://guidance/mechanical` (tolerances, DfM wall/fillet/draft/hole/chamfer guidance, primitive-then-boolean workflow, naming), `cadgpt://guidance/architectural` (grid/floor-height/wall-thickness/door/window/stair/corridor dimensions, extruded-slab modeling approach, naming), `cadgpt://guidance/units-tolerances` (unit statement, general/fit tolerances, fastener clearance holes, thread series, confirmation discipline). Each stays well under the ~120-line cap (26-31 lines each).
+- [x] 3b.4 Added two prompts via `server.registerPrompt(name, config, cb)`: `design_brief` (`argsSchema: { goal: z.string(), domain: z.enum(['mechanical','architectural']).optional(), constraints: z.string().optional() }`) returns a user message that echoes the goal/domain/constraints, then instructs the model to elicit missing intent and produce a parametric plan as an ordered sequence of tool-call descriptions in prose (e.g. "call create_box with length 40, width 25, height 10"), confirming dimensions before any mutating call and calling `read_scene` first when continuing an existing design. `design_review` (`argsSchema: { documentId: z.uuid() }`) returns a message instructing: call `read_scene` first (referenced by name — the tool itself lands in slice 4b), check every dimension against the tolerance/fit/manufacturability guidance resources, report every issue before any change, and re-confirm dimensions before any follow-up mutating call.
+
+### Files Changed
+| File | Action | What Was Done |
+|------|--------|---------------|
+| `apps/api/src/guidance.ts` | Created | `SERVER_INSTRUCTIONS` string, three markdown guidance constants, `RESOURCES` list, `registerGuidance(server)` registering all three resources and both prompts. |
+| `apps/api/src/main.ts` | Modified | Imports `registerGuidance`/`SERVER_INSTRUCTIONS`; `McpServer` constructor now passes `{ instructions: SERVER_INSTRUCTIONS }`; calls `registerGuidance(server)` next to `registerTools(...)` in the `/mcp` handler. |
+| `apps/api/test/guidance.test.ts` | Created | 3 tests using the MCP SDK's real `Client`/`McpServer`/`InMemoryTransport` (matching `tools.test.ts`'s style): instructions content + banned-pattern scan, resource list/read + banned-pattern scan per resource, prompt list + `getPrompt` content for both prompts + banned-pattern scan. |
+
+### Deviations from Design
+- **New `guidance.ts` module instead of adding instructions/resources/prompts to `tools.ts`.** Design's File Changes table and outline (design.md line 74/141) describe `McpServer({ instructions })`, the resources, and the prompts as living in `apps/api/src/tools.ts`. The task brief for this apply batch explicitly directed a new `apps/api/src/guidance.ts` module exporting `SERVER_INSTRUCTIONS` and `registerGuidance(server)`, called next to `registerTools(...)` in `main.ts`. This is a file-organization deviation only — the functional outcome (one `McpServer` per request advertising these instructions/resources/prompts) is identical to design intent, and keeps `tools.ts` (already 353 lines) from growing further. Flagging per the apply skill's deviation-reporting rule rather than silently diverging.
+- **`registerResource`/`registerPrompt` used instead of the deprecated `resource()`/`prompt()` overloads.** The installed SDK (`@modelcontextprotocol/sdk@1.30.0`) marks the older three/four-argument `resource()`/`prompt()` methods `@deprecated`; `registerResource`/`registerPrompt` are the current config-object API and were used throughout, consistent with `tools.ts`'s existing use of `registerTool`.
+
+### Issues Found
+None. All planned tests pass on the first run after implementation; no test needed adjustment.
+
+### Remaining Tasks
+- [ ] 2c.5 (residual, unchanged from prior batches) — apply the three commented-out optional-variable lines to `.env.example` once edit authority is granted.
+- [ ] 4a.1-4a.5 through 15.1-15.2 (Slices 4a-15, PRs 6-19; see tasks.md Dependency Graph)
+
+### Workload / PR Boundary
+- Mode: stacked-to-main chained PR slice, branch `feat/phase2-03b-mcp-instructions` stacked on `feat/phase2-03a-mcp-tools-a`.
+- Current work unit: Slice 3b — MCP instructions/prompts/resources text.
+- Boundary: starts at the phase-1 bare `new McpServer({ name, version })` with no instructions and no guidance resources/prompts; ends with instructions text, three markdown resources, and two prompts (`design_brief`, `design_review`) registered on every `/mcp` request. No new tools added (batch B lands in slices 4a/4b); `agent/**` and `apps/web/**` untouched.
+- Estimated review budget impact: 322 changed lines (`guidance.ts` 216 new, `guidance.test.ts` 99 new, `main.ts` +6/-1) against this session's 600-line review budget for the slice — well under budget; the guidance content is intentionally dense per the task brief's "keep it dense and useful rather than long" instruction rather than trimmed toward the tasks.md ~120-line estimate (that estimate predates the more detailed DfM/tolerance content this batch's brief specified).
+- Rollback boundary: revert `apps/api/src/main.ts` to its pre-3b version (drop the two `guidance.js` imports and the `instructions`/`registerGuidance` lines); delete `apps/api/src/guidance.ts` and `apps/api/test/guidance.test.ts`. Slices 1-3a are untouched and unaffected.
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command and exact result | `npx tsx --test test/guidance.test.ts` (from `apps/api/`) → `tests 3`, `pass 3`, `fail 0`. Full suite `npm test` (root) → api: `tests 28`, `pass 28`, `fail 0` (25 pre-existing + 3 new); web: `Test Files 1 passed (1)`, `Tests 1 passed (1)`. |
+| Runtime harness command/scenario and exact result | N/A — pure MCP resource/prompt content and registration, no external runtime boundary for this slice. The tests are the closest proxy: they drive a real `McpServer`/`Client` pair over `InMemoryTransport`, call `listResources`/`readResource`/`listPrompts`/`getPrompt`, and assert on the exact wire-level content an MCP client would receive. |
+| Rollback boundary | See "Workload / PR Boundary" above. |
+
+### Full Check (repo root)
+```
+npm run format  → all files formatted, no diffs beyond guidance.ts/guidance.test.ts whitespace normalization
+npm run build   → api tsc build OK; web (Angular) build OK, no errors
+npm test        → api: 28/28 pass; web (Vitest via `ng test`): 1/1 pass
+```
+
+### Status
+4/4 slice-3b tasks complete (tasks.md 3b.1-3b.4 marked `[x]`). `npm run format && npm run build && npm test` all green (api 28/28, web 1/1). Cumulative: 36/114 tasks complete across slices 1-3b (per tasks.md's current `[x]` count, excluding the still-open 2c.5 residual). Not committed, not pushed (per instructions). 322 changed lines is well within the 600-line session budget — no exception needed. Ready for `sdd-verify` on slice 3b, or `sdd-apply` again to continue with slice 4a.
