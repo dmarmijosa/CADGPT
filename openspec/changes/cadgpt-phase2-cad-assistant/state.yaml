@@ -13,7 +13,7 @@ phases:
   spec: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/spec", obs: 131 }
   design: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/design", obs: 133 }
   tasks: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/tasks", obs: 134 }
-  apply: { status: pending }
+  apply: { status: in_progress, ref: "sdd/cadgpt-phase2-cad-assistant/apply-progress", slice: "1/19", tasks_done: "1.1-1.6" }
   verify: { status: pending }
   archive: { status: pending }
 next_recommended: [sdd-apply]
