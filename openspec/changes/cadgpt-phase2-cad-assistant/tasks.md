@@ -118,15 +118,17 @@ Acceptance: `npm run build && npm test` green; starting the API without `PUBLIC_
 
 ## Slice 3a — MCP tools batch A + device/CAD selection (PR 4, depends on: 1)
 
-- [ ] 3a.1 (RED) Add `apps/api/test/tools.test.ts` schema-rejection test: `create_box` with an extra free-text/code field fails validation and enqueues no job (spec mcp-cad-operations "Schema rejects code-shaped input").
-- [ ] 3a.2 Create `apps/api/src/tools.ts` with `registerTools(server, store, owner, auth)`; register `list_devices`, `list_documents`, `get_job`, `create_box`, `create_cylinder`, `create_sphere`, `create_cone` with strict (`.strict()`) Zod schemas using the shared param fragments (`deviceId`, `cadId`, `mm`, `coord`, `confirmed`).
-- [ ] 3a.3 (RED) Add ambiguous-device test: two paired devices with the same CAD, tool called without `deviceId`, expect a `selection_required` response (spec "Ambiguous device requires explicit choice").
-- [ ] 3a.4 Implement device/CAD auto-resolve (D6): auto-resolve when exactly one online executable CAD matches; otherwise return `selection_required` + candidates.
-- [ ] 3a.5 Implement `enqueue(owner, op, input)` gate: device owned+online, `cad.capabilities.ops` includes `op` (fallback FreeCAD op list when `capabilities` absent), document owned and `cad_kind` matches, D17 lock, ≤5 active jobs per device (spec job-lifecycle "Active Job Cap Unchanged", "Non-FreeCAD capability check").
-- [ ] 3a.6 Mount `registerTools` in `apps/api/src/main.ts`.
-- [ ] 3a.7 Tests: owner-not-a-parameter check on every batch-A schema (spec mcp-cad-operations "Owner not a parameter"); enqueue capacity-cap and D17-lock tests.
+- [x] 3a.1 (RED) Add `apps/api/test/tools.test.ts` schema-rejection test: `create_box` with an extra free-text/code field fails validation and enqueues no job (spec mcp-cad-operations "Schema rejects code-shaped input").
+- [x] 3a.2 Create `apps/api/src/tools.ts` with `registerTools(server, store, owner, auth)`; register `list_devices`, `list_documents`, `get_job`, `create_box`, `create_cylinder`, `create_sphere`, `create_cone` with strict (`.strict()`) Zod schemas using the shared param fragments (`deviceId`, `cadId`, `mm`, `coord`, `confirmed`).
+- [x] 3a.3 (RED) Add ambiguous-device test: two paired devices with the same CAD, tool called without `deviceId`, expect a `selection_required` response (spec "Ambiguous device requires explicit choice").
+- [x] 3a.4 Implement device/CAD auto-resolve (D6): auto-resolve when exactly one online executable CAD matches; otherwise return `selection_required` + candidates.
+- [x] 3a.5 Implement `enqueue(owner, op, input)` gate: device owned+online, `cad.capabilities.ops` includes `op` (fallback FreeCAD op list when `capabilities` absent), document owned and `cad_kind` matches, D17 lock, ≤5 active jobs per device (spec job-lifecycle "Active Job Cap Unchanged", "Non-FreeCAD capability check").
+- [x] 3a.6 Mount `registerTools` in `apps/api/src/main.ts`.
+- [x] 3a.7 Tests: owner-not-a-parameter check on every batch-A schema (spec mcp-cad-operations "Owner not a parameter"); enqueue capacity-cap and D17-lock tests.
 
 Acceptance: a code-shaped extra field fails schema validation before enqueue; an ambiguous device/CAD pair returns a choice request instead of guessing. ~260 changed lines.
+
+**Delivered at 580 changed lines** (`git diff --numstat`: `main.ts` +2/-39, `store.ts` +13/-2, `tools.ts` +353/-0 new file, `tools.test.ts` +171/-0 new file), 180 over the 400-line hard cap. `main.ts` itself shrank (net -37) since the three inline tool registrations it used to carry moved out; the overage is structural in the two new files: 7 MCP tool registrations (5 create-ops + 2 reads + `get_job`) each need a full `.strict()` Zod schema, description, and annotations block (passing the whole schema, not `.shape`, to `registerTool` — required so the MCP SDK's `normalizeObjectSchema` preserves `.strict()` instead of silently stripping the extra field the RED test needs rejected), plus the `resolveCad`/`enqueueOp` gate functions with D6/D11/D17 commentary, plus 6 required tests (3a.1, 3a.3, 3a.7's three checks, and the happy-path test the apply prompt explicitly requested). No comment, blank line, doc, or test was cut to chase the number. See apply-progress.md Slice 3a "Workload / PR Boundary" for the size:exception recommendation.
 
 ## Slice 3b — MCP instructions/prompts/resources text (PR 5, depends on: 3a)
 
