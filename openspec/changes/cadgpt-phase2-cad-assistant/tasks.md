@@ -92,17 +92,19 @@ Acceptance: the existing phase-1 `create_box` job produces byte-identical argv/e
 
 ## Slice 2b — Worker `OPS` dispatch + STL export + scene (PR 3, depends on: 2a)
 
-- [ ] 2b.1 (RED) Add per-op malformed-value rejection tests to `agent/tests/test_agent.py` (Subprocess argv composition row — applicable): `NaN`/`1e309`/negative mm, out-of-range values, object ids containing `..`/`;`/quotes — asserted to fail before any FreeCAD call.
-- [ ] 2b.2 Add `OPS: dict[str, Callable]` dispatch in `agent/cadgpt_agent/freecad_worker.py`, keyed by allowlisted op name; unknown op exits 2 with no CAD process spawned.
-- [ ] 2b.3 Implement `create_box`/`create_cylinder`/`create_sphere`/`create_cone`: `newDocument` + `saveAs(doc_dir/design.FCStd)` when `documentId` is absent.
-- [ ] 2b.4 Implement the reopen path: `openDocument` → mutate → `recompute()` → `save()` when `documentId` is present (spec freecad-execution "Modify operation reopens existing document").
-- [ ] 2b.5 Implement `boolean_cut`/`boolean_union`/`boolean_intersect` (`Part::Cut|Fuse|Common` on `Base`/`Tool`).
-- [ ] 2b.6 Implement `translate_object`/`rotate_object`/`scale_object` mutating `obj.Placement`/`obj.Shape.scale`; resolve objects via `doc.getObject()`, rejecting unknown names (D5).
-- [ ] 2b.7 Implement `read_scene`: write `scene.json` as `[{name,label,type,bbox,volume}]` from a compound of top-level objects (empty `InList`).
-- [ ] 2b.8 Add the STL export step after every successful op via `MeshPart.meshFromShape(LinearDeflection=0.1, AngularDeflection=0.26, Relative=False).write(job_dir/preview.stl)`, alongside the native save (spec freecad-execution "STL Export Step").
-- [ ] 2b.9 Extend `agent/tests/test_agent.py`: one test per op class (create/modify/boolean/transform/read_scene) and an STL byte-shape assertion (`size == 84 + 50*facets`).
+- [x] 2b.1 (RED) Add per-op malformed-value rejection tests to `agent/tests/test_agent.py` (Subprocess argv composition row — applicable): `NaN`/`1e309`/negative mm, out-of-range values, object ids containing `..`/`;`/quotes — asserted to fail before any FreeCAD call.
+- [x] 2b.2 Add `OPS: dict[str, Callable]` dispatch in `agent/cadgpt_agent/freecad_worker.py`, keyed by allowlisted op name; unknown op exits 2 with no CAD process spawned.
+- [x] 2b.3 Implement `create_box`/`create_cylinder`/`create_sphere`/`create_cone`: `newDocument` + `saveAs(doc_dir/design.FCStd)` when `documentId` is absent.
+- [x] 2b.4 Implement the reopen path: `openDocument` → mutate → `recompute()` → `save()` when `documentId` is present (spec freecad-execution "Modify operation reopens existing document").
+- [x] 2b.5 Implement `boolean_cut`/`boolean_union`/`boolean_intersect` (`Part::Cut|Fuse|Common` on `Base`/`Tool`).
+- [x] 2b.6 Implement `translate_object`/`rotate_object`/`scale_object` mutating `obj.Placement`/`obj.Shape.scale`; resolve objects via `doc.getObject()`, rejecting unknown names (D5).
+- [x] 2b.7 Implement `read_scene`: write `scene.json` as `[{name,label,type,bbox,volume}]` from a compound of top-level objects (empty `InList`).
+- [x] 2b.8 Add the STL export step after every successful op via `MeshPart.meshFromShape(LinearDeflection=0.1, AngularDeflection=0.26, Relative=False).write(job_dir/preview.stl)`, alongside the native save (spec freecad-execution "STL Export Step").
+- [x] 2b.9 Extend `agent/tests/test_agent.py`: one test per op class (create/modify/boolean/transform/read_scene) and an STL byte-shape assertion (`size == 84 + 50*facets`).
 
 Acceptance: `boolean_union` with a `document_id` reopens, recomputes, saves, and exports STL; an unknown op exits 2 without spawning a CAD process; every malformed numeric/id input from 2b.1 is rejected pre-spawn. ~340 changed lines (near budget — do not add scope here).
+
+**Delivered at 478 changed lines** (`git diff --numstat`: `executor.py` +15/-5, `freecad_worker.py` +245/-13, `strategies/freecad.py` +9/-3, `test_agent.py` +183/-1, `test_strategies.py` +2/-2), ~138 over the 400-line hard cap, after two honest simplification passes (generic `_bounded`/`_mm` validators, a shared `_create_primitive`/`_boolean` factory, `SimpleNamespace`-based test fakes instead of full classes). No comment, blank line, doc, or test was cut to chase the number. The overage is structural: 11 real ops each need pre-FreeCAD validation, and per-op-class positive coverage (2b.9) needs a stubbed `FreeCAD`/`Part`/`MeshPart` surface plus the `request.json` op/param passthrough in `executor.py` that this slice's task list didn't itemize but the design's `request.json = {op, params, document_id}` shape requires. See apply-progress.md for the proposed two-PR split (`2b-i`: 2b.1-2b.4+2b.8; `2b-ii`: 2b.5-2b.7+2b.9) if `size:exception` is not accepted.
 
 ## Slice 3a — MCP tools batch A + device/CAD selection (PR 4, depends on: 1)
 
@@ -157,6 +159,8 @@ Acceptance: the server tool catalog is verified (by 4b.5) to be a subset of the 
 - [ ] 5.7 Tests: owner-scoped retrieval (non-owner request returns not-found/forbidden, spec "Non-owner cannot fetch mesh"); confirm every case from 5.1 passes against the implemented route.
 
 Acceptance: every malformed/oversize/mismatched/foreign-device/non-running-job upload is rejected and stores nothing; only the document's owner can `GET` its mesh. ~300 changed lines (borderline — keep scope frozen at this list).
+
+- [ ] 5.7 README follow-up from slice 2b: update the "Try the first operation" walkthrough (job artifacts are now `design.FCStd` and `preview.stl`; `box.step` is no longer produced) and the compatibility table wording.
 
 ## Slice 6 — Agent upload step after export (PR 9, depends on: 2b, 5)
 
