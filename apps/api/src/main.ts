@@ -12,23 +12,20 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { Store, DomainError, cadSchema, boxSchema } from './store.js';
 import { authenticator } from './auth.js';
 import { browserSecurityPolicy } from './security.js';
+import { envs } from './config/envs.js';
 
 @Module({})
 class AppModule {}
 
-const origin = process.env.PUBLIC_ORIGIN ?? 'http://localhost:3000';
-const issuer = process.env.OIDC_ISSUER ?? 'http://localhost:8080/realms/cadgpt';
+const origin = envs.publicOrigin;
+const issuer = envs.oidcIssuer;
 for (const address of [origin, issuer]) {
   const u = new URL(address);
   if (u.protocol !== 'https:' && !['localhost', '127.0.0.1', '[::1]'].includes(u.hostname))
     throw new Error('Non-loopback URLs require HTTPS.');
 }
-const auth = authenticator(
-  issuer,
-  process.env.OIDC_AUDIENCE ?? 'cadgpt-api',
-  process.env.OIDC_JWKS_URL ?? issuer + '/protocol/openid-connect/certs',
-);
-const data = process.env.DATA_DIR ?? resolve('../../data');
+const auth = authenticator(issuer, envs.oidcAudience, envs.oidcJwksUrl ?? issuer + '/protocol/openid-connect/certs');
+const data = envs.dataDir ?? resolve('../../data');
 mkdirSync(data, { recursive: true, mode: 0o700 });
 const store = new Store(resolve(data, 'cadgpt.db'));
 const app = await NestFactory.create(AppModule, { bodyParser: false });
@@ -220,4 +217,4 @@ http.use((e: unknown, _q: Request, r: Response, _n: NextFunction) => {
           : 'Invalid request.',
   });
 });
-await app.listen(Number(process.env.PORT ?? 3000), process.env.HOST ?? '127.0.0.1');
+await app.listen(envs.port, envs.host);

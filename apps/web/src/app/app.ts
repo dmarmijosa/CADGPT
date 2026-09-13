@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { form, FormField, min, max, maxLength } from '@angular/forms/signals';
 import { UserManager, WebStorageStateStore } from 'oidc-client-ts';
+import { environment } from '../environments/environment';
 
 interface Cad { id: string; name: string; path: string; version: string; executable: boolean; }
 interface Device { id: string; name: string; online: boolean; revoked: boolean; cads: Cad[]; }
@@ -79,7 +80,7 @@ export class App implements OnInit {
     });
   }
   private async request<T>(url: string, method = 'GET', body?: unknown): Promise<T> {
-    const response = await fetch(url, {
+    const response = await fetch(environment.apiBaseUrl + url, {
       method, headers: { 'Content-Type': 'application/json', ...(this.accessToken ? { Authorization: 'Bearer ' + this.accessToken } : {}) },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });

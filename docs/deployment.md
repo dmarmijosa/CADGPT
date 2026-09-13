@@ -16,6 +16,21 @@ The GitHub repository hosts source and downloadable agents, not a running authen
 
 Do not enable wildcard redirects or pass-through access tokens intended for another API. The backend derives ownership exclusively from the verified JWT subject.
 
+## Configuration
+
+The API validates its environment once at process start (`apps/api/src/config/envs.ts`) and fails fast — with a `Config validation error: ...` message — if a required variable is missing or malformed. Copy `.env.example` to `.env` at the repository root before running `npm start`/`npm run dev`.
+
+| Variable | Required | Default | Notes |
+|---|---|---|---|
+| `PUBLIC_ORIGIN` | Yes | — | Public origin of the dashboard/API, must be a valid URI. Non-loopback origins must use `https:`. |
+| `OIDC_ISSUER` | Yes | — | Keycloak realm issuer URL, must be a valid URI. Non-loopback issuers must use `https:`. |
+| `OIDC_AUDIENCE` | Yes | — | Expected audience claim on access tokens (e.g. `cadgpt-api`). |
+| `HOST` | No | `127.0.0.1` | Interface the API listens on. |
+| `PORT` | No | `3000` | Port the API listens on. |
+| `OIDC_JWKS_URL` | No | `${OIDC_ISSUER}/protocol/openid-connect/certs` | Override only if the identity provider exposes JWKS at a non-standard path. |
+| `DATA_DIR` | No | `<repo-root>/data` (resolved relative to the process working directory) | Where the SQLite store and job files are written. |
+| `NODE_ENV` | No | `development` | One of `development`, `production`, `test`. |
+
 ## Production on the VPS via GitHub Actions
 
 `.github/workflows/deploy.yml` builds the server image, pushes it to GHCR, and deploys the stack (API + Keycloak + Postgres) to the VPS behind Easypanel's Traefik at `https://cadengine.danny-armijos.com`. It runs on every push to `main` and on manual dispatch.
