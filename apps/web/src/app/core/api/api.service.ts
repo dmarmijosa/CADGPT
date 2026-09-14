@@ -25,4 +25,21 @@ export class ApiService {
       );
     return data as T;
   }
+
+  /** Bearer-authenticated binary fetch (used for `GET /api/designs/:id/mesh`,
+   * which requires an owner token that a plain `<img>`/loader URL can never
+   * attach). Errors are surfaced the same way as `request()`. */
+  async requestArrayBuffer(url: string): Promise<ArrayBuffer> {
+    const response = await fetch(environment.apiBaseUrl + url, {
+      headers: {
+        ...(this.auth.token() ? { Authorization: 'Bearer ' + this.auth.token() } : {}),
+      },
+    });
+    if (!response.ok) {
+      if (response.status === 401) throw new Error('Session expired. Sign out and sign in again.');
+      const data = await response.json().catch(() => undefined);
+      throw new Error((data as { error?: string } | undefined)?.error ?? 'Request failed.');
+    }
+    return response.arrayBuffer();
+  }
 }

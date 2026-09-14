@@ -1,5 +1,36 @@
-<section class="panel">
-  <p class="eyebrow">DESIGN</p>
-  <h1>{{ id() }}</h1>
-  <p>The 3D viewer arrives in the next slice.</p>
-</section>
+<a class="quiet" routerLink="/designs">&larr; Back to designs</a>
+
+@if (error()) {
+  <div class="message error" role="alert">{{ error() }}</div>
+} @else if (design(); as d) {
+  <section class="section-title">
+    <div>
+      <p class="eyebrow">DESIGN</p>
+      <h1>{{ d.name }}</h1>
+    </div>
+    <span class="status">{{ d.cadKind }}</span>
+  </section>
+  <section class="panel">
+    <p>
+      Created {{ d.created | date: 'medium' }} &middot; Updated {{ d.updated | date: 'medium' }}
+    </p>
+    @if (d.latestJobId) {
+      <p>
+        Latest job: <code>{{ d.latestJobId }}</code>
+      </p>
+    }
+  </section>
+  @if (mesh(); as buffer) {
+    <app-stl-viewer [mesh]="buffer" />
+  } @else {
+    <section class="panel" aria-live="polite">
+      <p class="eyebrow">PREVIEW</p>
+      <p>Preview pending — the machine has not uploaded a mesh yet.</p>
+      @if (stillPending()) {
+        <p>Still pending after 2 minutes. Refresh the page to check again.</p>
+      }
+    </section>
+  }
+} @else if (busy()) {
+  <p>Loading design…</p>
+}

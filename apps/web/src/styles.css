@@ -115,6 +115,18 @@ button {
   text-align: center;
   padding: 40px;
 }
+.stl-viewer {
+  height: 420px;
+  border: 1px solid #dde4dc;
+  border-radius: 15px;
+  overflow: hidden;
+  background: #f4f2ee;
+}
+.stl-viewer canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
 .section-title {
   display: flex;
   justify-content: space-between;
@@ -179,4 +191,9 @@ button {
   .dimensions {
     grid-template-columns: 1fr;
   }
+}
+
+.stl-viewer-unavailable {
+  padding: 1rem;
+  color: var(--muted, #555);
 }
