@@ -41,7 +41,7 @@ class Tests(unittest.TestCase):
                 process = popen.return_value
                 process.stdout = io.BytesIO(b"done")
                 def finish(timeout):
-                    (Path(d) / job["id"] / "design.FCStd").write_bytes(b"test")
+                    (Path(d) / "jobs" / job["id"] / "design.FCStd").write_bytes(b"test")
                     return 0
                 process.wait.side_effect = finish
                 execute(job, cads, d)
@@ -69,7 +69,7 @@ class Tests(unittest.TestCase):
                 process = popen.return_value
                 process.stdout = io.BytesIO(b"done")
                 def finish(timeout):
-                    (Path(d) / job["id"] / "design.dwg").write_bytes(b"test")
+                    (Path(d) / "jobs" / job["id"] / "design.dwg").write_bytes(b"test")
                     return 0
                 process.wait.side_effect = finish
                 message = execute(job, cads, d)

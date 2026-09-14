@@ -70,7 +70,7 @@ def _note_preview_unavailable(result, exc):
         return json.dumps(payload)
     return result + " " + note
 
-def run_job(job, cads, jobs, server, credential, upload=upload_mesh):
+def run_job(job, cads, root, server, credential, upload=upload_mesh):
     """Execute one job, then upload its STL preview (if the worker produced
     one) before returning the result the caller posts to the server.
 
@@ -79,10 +79,10 @@ def run_job(job, cads, jobs, server, credential, upload=upload_mesh):
     exists locally regardless of upload outcome.
     """
     try:
-        result = execute(job, cads, jobs)
+        result = execute(job, cads, root)
     except Exception as exc:
         return False, str(exc)[:4000]
-    preview = jobs / job["id"] / "preview.stl"
+    preview = root / "jobs" / job["id"] / "preview.stl"
     if preview.is_file():
         try:
             upload(server, job["id"], credential, preview)
@@ -177,14 +177,16 @@ def main():
                 break
         if not credential:
             raise RuntimeError("Pairing expired. Restart the agent to try again.")
-    jobs = root / "jobs"
-    jobs.mkdir(mode=0o700, exist_ok=True)
+    # `execute()` writes job scratch directories under `root/jobs/<id>` and
+    # keeps creating that directory itself; it is pre-created here only so it
+    # exists even before the first job runs.
+    (root / "jobs").mkdir(mode=0o700, exist_ok=True)
     print("Connected. Keep this agent running. Press Ctrl+C to stop.", flush=True)
     while True:
         try:
             state = request(server, "/api/agent/poll", {"cads": cads}, credential)
             if state["job"]:
-                ok, result = run_job(state["job"], cads, jobs, server, credential)
+                ok, result = run_job(state["job"], cads, root, server, credential)
                 # 16000 matches the server's `/api/agent/results/:id` cap and
                 # must not cut a JSON-wrapped `{message, scene}` payload in half.
                 request(server, "/api/agent/results/" + state["job"]["id"], {"ok": ok, "result": result[:16000]}, credential)

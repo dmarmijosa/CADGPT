@@ -12,7 +12,7 @@ Native downloads are published **only after the release build succeeds and a mai
 
 | Computer | Download asset | Format |
 |---|---|---|
-| Windows x64 | `CADGPT-Setup-windows-x64.exe` | Per-user installer, Python included |
+| Windows x64 | `CADGPT-Setup-windows-x64.exe` | Machine-wide installer (requires administrator), Python included |
 | MacBook / Mac with Apple Silicon | `CADGPT-macos-arm64.dmg` | Disk image containing the app, Python included |
 | MacBook / Mac with Intel | `CADGPT-macos-x64.dmg` | Disk image containing the app, Python included |
 | Linux x64 | `CADGPT-linux-x64.tar.gz` | Portable application archive, Python included |
@@ -27,7 +27,7 @@ Have a compatible CAD installation and your administrator's **CAD Agent Designer
 ### Windows
 
 1. Download the Windows installer from Releases and compare its SHA-256 with `SHA256SUMS.txt`: `Get-FileHash .\CADGPT-Setup-windows-x64.exe -Algorithm SHA256`.
-2. Run the installer for your user account. It does not need administrator privileges.
+2. Run the installer. It requires administrator privileges (an elevation prompt appears) and installs to Program Files for all users on this computer.
 3. Leave **Connect this computer to CAD Agent Designer** checked at the end.
 4. Enter the server URL. The agent opens the registration/sign-in page.
 5. Register or sign in, then enter the pairing code printed in the agent window. Confirm only a code from your own computer.

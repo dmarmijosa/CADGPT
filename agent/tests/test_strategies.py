@@ -32,7 +32,7 @@ class BaselineArgvEnvTests(unittest.TestCase):
             process.stdout = io.BytesIO(b"done")
 
             def finish(timeout):
-                (Path(d) / job["id"] / "design.FCStd").write_bytes(b"test")
+                (Path(d) / "jobs" / job["id"] / "design.FCStd").write_bytes(b"test")
                 return 0
 
             process.wait.side_effect = finish
@@ -50,7 +50,7 @@ class BaselineArgvEnvTests(unittest.TestCase):
             self.assertEqual(argv[0], "/trusted/FreeCADCmd")
             self.assertTrue(argv[1].endswith("freecad_worker.py"))
             env = kwargs["env"]
-            self.assertEqual(env["CADGPT_JOB_DIR"], str((Path(d) / job["id"]).resolve()))
+            self.assertEqual(env["CADGPT_JOB_DIR"], str((Path(d) / "jobs" / job["id"]).resolve()))
             self.assertEqual(env["QT_QPA_PLATFORM"], "offscreen")
             self.assertNotIn("CADGPT_DOC_DIR", env)
             for leaked in ("PYTHONHOME", "PYTHONPATH", "LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH"):
@@ -122,6 +122,32 @@ class CallerControlledPathTests(unittest.TestCase):
             self.assertEqual(env["CADGPT_DOC_DIR"], str(expected_doc_dir.resolve()))
             self.assertTrue(expected_doc_dir.is_dir())
 
+    def test_create_job_design_lives_under_documents_not_loose_in_root(self):
+        """A create op's design must land in its own `documents/<id>/`
+        directory -- a clean top-level sibling of `jobs/<job_id>/` -- and
+        never directly in the shared data root."""
+        with tempfile.TemporaryDirectory() as d:
+            document_id = str(uuid.uuid4())
+            job = self.job(documentId=document_id)
+            with patch("cadgpt_agent.executor.subprocess.Popen") as popen:
+                process = popen.return_value
+                process.stdout = io.BytesIO(b"done")
+
+                def finish(timeout):
+                    (Path(d) / "documents" / document_id / "design.FCStd").write_bytes(b"test")
+                    return 0
+
+                process.wait.side_effect = finish
+                execute(job, self.cads(), d)
+            job_dir = Path(d) / "jobs" / job["id"]
+            doc_dir = Path(d) / "documents" / document_id
+            self.assertTrue(job_dir.is_dir())
+            self.assertTrue((doc_dir / "design.FCStd").is_file())
+            # Nothing loose directly in the shared root: only the `jobs` and
+            # `documents` top-level directories exist there.
+            self.assertEqual(sorted(p.name for p in Path(d).iterdir()), ["documents", "jobs"])
+            self.assertFalse((Path(d) / "design.FCStd").exists())
+
 
 class ExecutorSceneResultShapeTests(unittest.TestCase):
     """4b.6/4b.8: when `scene.json` exists, the executor posts `result` as a
@@ -148,7 +174,7 @@ class ExecutorSceneResultShapeTests(unittest.TestCase):
                     # `execute()` already created doc_dir (exist_ok=True) before Popen.
                     doc_dir = Path(d) / "documents" / job["documentId"]
                     (doc_dir / "design.FCStd").write_bytes(b"test")
-                    (Path(d) / job["id"] / "scene.json").write_text(json.dumps(scene), encoding="utf-8")
+                    (Path(d) / "jobs" / job["id"] / "scene.json").write_text(json.dumps(scene), encoding="utf-8")
                     return 0
 
                 process.wait.side_effect = finish
@@ -444,7 +470,7 @@ class AutoCadExecutorGatingTests(unittest.TestCase):
                 process.stdout = io.BytesIO(b"done")
 
                 def finish(timeout):
-                    (Path(d) / job["id"] / "design.dwg").write_bytes(b"DWG")
+                    (Path(d) / "jobs" / job["id"] / "design.dwg").write_bytes(b"DWG")
                     return 0
 
                 process.wait.side_effect = finish

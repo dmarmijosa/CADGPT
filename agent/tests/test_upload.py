@@ -97,10 +97,10 @@ class RunJobPreviewUploadTests(unittest.TestCase):
         return {"id": "job-1", "cadId": "cad"}
 
     def test_success_path_uploads_mesh_before_reporting_and_adds_no_note(self):
-        with tempfile.TemporaryDirectory() as jobs_root:
-            jobs = Path(jobs_root)
-            job_dir = jobs / "job-1"
-            job_dir.mkdir()
+        with tempfile.TemporaryDirectory() as data_root:
+            root = Path(data_root)
+            job_dir = root / "jobs" / "job-1"
+            job_dir.mkdir(parents=True)
             (job_dir / "preview.stl").write_bytes(_stl_bytes())
             calls = []
 
@@ -112,7 +112,7 @@ class RunJobPreviewUploadTests(unittest.TestCase):
 
             import cadgpt_agent.main as main_module
             with unittest.mock.patch.object(main_module, "execute", fake_execute):
-                ok, result = run_job(self.job(), [], jobs, "https://cadgpt.example", "cred", upload=upload)
+                ok, result = run_job(self.job(), [], root, "https://cadgpt.example", "cred", upload=upload)
 
             self.assertTrue(ok)
             self.assertEqual(result, "Created design.FCStd. CAD files remain on this device.")
@@ -120,10 +120,10 @@ class RunJobPreviewUploadTests(unittest.TestCase):
             upload.assert_called_once_with("https://cadgpt.example", "job-1", "cred", job_dir / "preview.stl")
 
     def test_upload_failure_still_reports_ok_true_with_preview_unavailable_note(self):
-        with tempfile.TemporaryDirectory() as jobs_root:
-            jobs = Path(jobs_root)
-            job_dir = jobs / "job-1"
-            job_dir.mkdir()
+        with tempfile.TemporaryDirectory() as data_root:
+            root = Path(data_root)
+            job_dir = root / "jobs" / "job-1"
+            job_dir.mkdir(parents=True)
             (job_dir / "preview.stl").write_bytes(_stl_bytes())
 
             import cadgpt_agent.main as main_module
@@ -137,16 +137,16 @@ class RunJobPreviewUploadTests(unittest.TestCase):
                     ConnectionResetError("reset by peer"),
                 ):
                     upload = Mock(side_effect=failure)
-                    ok, result = run_job(self.job(), [], jobs, "https://cadgpt.example", "cred", upload=upload)
+                    ok, result = run_job(self.job(), [], root, "https://cadgpt.example", "cred", upload=upload)
                     self.assertTrue(ok)
                     self.assertIn("preview unavailable", result)
                     self.assertIn("(upload failed:", result)
 
     def test_upload_failure_merges_note_into_json_message_shape(self):
-        with tempfile.TemporaryDirectory() as jobs_root:
-            jobs = Path(jobs_root)
-            job_dir = jobs / "job-1"
-            job_dir.mkdir()
+        with tempfile.TemporaryDirectory() as data_root:
+            root = Path(data_root)
+            job_dir = root / "jobs" / "job-1"
+            job_dir.mkdir(parents=True)
             (job_dir / "preview.stl").write_bytes(_stl_bytes())
 
             import cadgpt_agent.main as main_module
@@ -155,7 +155,7 @@ class RunJobPreviewUploadTests(unittest.TestCase):
                 lambda job, cads, root: '{"message": "Read scene from design.FCStd.", "scene": []}',
             ):
                 upload = Mock(side_effect=urllib.error.URLError("connection lost"))
-                ok, result = run_job(self.job(), [], jobs, "https://cadgpt.example", "cred", upload=upload)
+                ok, result = run_job(self.job(), [], root, "https://cadgpt.example", "cred", upload=upload)
 
             self.assertTrue(ok)
             import json
@@ -164,9 +164,9 @@ class RunJobPreviewUploadTests(unittest.TestCase):
             self.assertEqual(payload["scene"], [])
 
     def test_no_preview_file_posts_no_mesh_and_no_note(self):
-        with tempfile.TemporaryDirectory() as jobs_root:
-            jobs = Path(jobs_root)
-            (jobs / "job-1").mkdir()  # no preview.stl written
+        with tempfile.TemporaryDirectory() as data_root:
+            root = Path(data_root)
+            (root / "jobs" / "job-1").mkdir(parents=True)  # no preview.stl written
 
             import cadgpt_agent.main as main_module
             with unittest.mock.patch.object(
@@ -174,15 +174,15 @@ class RunJobPreviewUploadTests(unittest.TestCase):
                 lambda job, cads, root: "Created design.FCStd. CAD files remain on this device.",
             ):
                 upload = Mock()
-                ok, result = run_job(self.job(), [], jobs, "https://cadgpt.example", "cred", upload=upload)
+                ok, result = run_job(self.job(), [], root, "https://cadgpt.example", "cred", upload=upload)
 
             self.assertTrue(ok)
             self.assertEqual(result, "Created design.FCStd. CAD files remain on this device.")
             upload.assert_not_called()
 
     def test_failed_execute_never_attempts_upload_and_reports_ok_false(self):
-        with tempfile.TemporaryDirectory() as jobs_root:
-            jobs = Path(jobs_root)
+        with tempfile.TemporaryDirectory() as data_root:
+            root = Path(data_root)
 
             import cadgpt_agent.main as main_module
 
@@ -191,7 +191,7 @@ class RunJobPreviewUploadTests(unittest.TestCase):
 
             with unittest.mock.patch.object(main_module, "execute", failing_execute):
                 upload = Mock()
-                ok, result = run_job(self.job(), [], jobs, "https://cadgpt.example", "cred", upload=upload)
+                ok, result = run_job(self.job(), [], root, "https://cadgpt.example", "cred", upload=upload)
 
             self.assertFalse(ok)
             self.assertIn("FreeCAD failed", result)

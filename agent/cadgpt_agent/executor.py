@@ -89,9 +89,14 @@ def execute(job, cads, root):
         raise ValueError("Unsupported operation for this CAD strategy")
     # Reject a malformed or path-shaped document_id before any directory or subprocess exists.
     doc_dir = resolve_document_dir(root, job.get("documentId"))
-    directory = Path(root) / job["id"]
-    # Exclusive creation provides local replay protection, including after a crash.
-    directory.mkdir(mode=0o700, parents=False, exist_ok=False)
+    # Job scratch directories live under `<root>/jobs/<job_id>` -- a clean
+    # top-level sibling of `<root>/documents/<document_id>` (see
+    # `resolve_document_dir`), never loose directly in `root`.
+    directory = Path(root) / "jobs" / job["id"]
+    # `parents=True` creates `<root>/jobs` on first use; exclusive creation of
+    # the leaf directory still provides local replay protection, including
+    # after a crash.
+    directory.mkdir(mode=0o700, parents=True, exist_ok=False)
     if doc_dir is not None:
         doc_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
     request = directory / "request.json"
