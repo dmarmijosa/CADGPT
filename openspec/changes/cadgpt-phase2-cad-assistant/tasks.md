@@ -164,17 +164,17 @@ Acceptance: the server tool catalog is verified (by 4b.5) to be a subset of the 
 
 ## Slice 5 — Mesh upload/serve routes + limits + README (PR 8, depends on: 1)
 
-- [ ] 5.1 (RED) Add `apps/api/test/mesh.test.ts` covering the Upload boundary threat row (applicable — one test per case): oversize rejected and stores nothing; mismatched `X-Mesh-Sha256` rejected; non-binary/ASCII STL rejected; non-`running` job rejected; foreign device rejected; quota-exceeded rejected.
-- [ ] 5.2 Create `apps/api/src/mesh.ts`: `POST /api/agent/jobs/:id/mesh` — device-credential auth via `token(q)`, job must be `running` on that device, `Content-Type: application/octet-stream`, streamed byte-count cap 25 MiB (destroy socket at cap+1), streaming `X-Mesh-Sha256` verification, binary STL sanity `size == 84 + 50*facets`.
-- [ ] 5.3 Write to `DATA_DIR/meshes/<jobId>.stl.part` then rename; enforce a 500 MiB per-device quota (sum of `meshes.size`); retain the newest 5 meshes per document, unlink older ones; job-bound file naming only (client-supplied filename header ignored, spec mesh-preview-upload "Client-supplied name ignored").
-- [ ] 5.4 Add a dedicated `rateLimit({limit: 30})` to the mesh upload route.
-- [ ] 5.5 Add `GET /api/designs`, `GET /api/designs/:id` (OIDC `cad:read`, owner-scoped), `GET /api/designs/:id/mesh` → `res.sendFile` with `Content-Type: model/stl`, `Cache-Control: private, no-store`; mount all in `apps/api/src/main.ts`.
-- [ ] 5.6 Update `README.md`: compatibility table plus the "mesh preview leaves the machine" security exception note (docs travel with this behavior-changing slice).
-- [ ] 5.7 Tests: owner-scoped retrieval (non-owner request returns not-found/forbidden, spec "Non-owner cannot fetch mesh"); confirm every case from 5.1 passes against the implemented route.
+- [x] 5.1 (RED) Add `apps/api/test/mesh.test.ts` covering the Upload boundary threat row (applicable — one test per case): oversize rejected and stores nothing; mismatched `X-Mesh-Sha256` rejected; non-binary/ASCII STL rejected; non-`running` job rejected; foreign device rejected; quota-exceeded rejected.
+- [x] 5.2 Create `apps/api/src/mesh.ts`: `POST /api/agent/jobs/:id/mesh` — device-credential auth via `token(q)`, job must be `running` on that device, `Content-Type: application/octet-stream`, streamed byte-count cap 25 MiB (destroy socket at cap+1), streaming `X-Mesh-Sha256` verification, binary STL sanity `size == 84 + 50*facets`.
+- [x] 5.3 Write to `DATA_DIR/meshes/<jobId>.stl.part` then rename; enforce a 500 MiB per-device quota (sum of `meshes.size`); retain the newest 5 meshes per document, unlink older ones; job-bound file naming only (client-supplied filename header ignored, spec mesh-preview-upload "Client-supplied name ignored").
+- [x] 5.4 Add a dedicated `rateLimit({limit: 30})` to the mesh upload route.
+- [x] 5.5 Add `GET /api/designs`, `GET /api/designs/:id` (OIDC `cad:read`, owner-scoped), `GET /api/designs/:id/mesh` → `res.sendFile` with `Content-Type: model/stl`, `Cache-Control: private, no-store`; mount all in `apps/api/src/main.ts`.
+- [x] 5.6 Update `README.md`: compatibility table plus the "mesh preview leaves the machine" security exception note (docs travel with this behavior-changing slice).
+- [x] 5.7 Tests: owner-scoped retrieval (non-owner request returns not-found/forbidden, spec "Non-owner cannot fetch mesh"); confirm every case from 5.1 passes against the implemented route.
 
 Acceptance: every malformed/oversize/mismatched/foreign-device/non-running-job upload is rejected and stores nothing; only the document's owner can `GET` its mesh. ~300 changed lines (borderline — keep scope frozen at this list).
 
-- [ ] 5.7 README follow-up from slice 2b: update the "Try the first operation" walkthrough (job artifacts are now `design.FCStd` and `preview.stl`; `box.step` is no longer produced) and the compatibility table wording.
+- [x] 5.7 README follow-up from slice 2b: update the "Try the first operation" walkthrough (job artifacts are now `design.FCStd` and `preview.stl`; `box.step` is no longer produced) and the compatibility table wording.
 
 ## Slice 6 — Agent upload step after export (PR 9, depends on: 2b, 5)
 

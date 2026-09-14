@@ -455,3 +455,94 @@ agent suite     → 25/25 pass
 
 ### Status
 6/6 mandatory slice-4b tasks (4b.1-4b.6) complete and tested (tasks.md marked `[x]`); 4b.7 not implemented (deprioritized, left `[ ]`, correctly). `npm run format && npm run build && npm test` all green (api 40/40, web 1/1); agent suite 25/25 pass. Cumulative: 47/115 tasks complete across slices 1-4b (per tasks.md's current `[x]` count, excluding the still-open 2c.5 residual; 4b.7 not counted). Not committed, not pushed (per instructions). **711 changed lines exceeds this batch's 600-line session review budget by 111 lines — flagging for the user/orchestrator before merge**: please confirm `size:exception` for this batch, or request the 4b-i/4b-ii split above. `sdd-verify` can still run against the working tree. `sdd-apply` should not start slice 5 until the budget decision is made.
+
+## Slice 5 — Mesh upload/serve routes + limits + README (PR 8, depends on: 1; branch `feat/phase2-05-mesh-upload` stacked on `feat/phase2-04b-mcp-tools-b2`)
+
+**Status**: complete, all mandatory tasks (5.1-5.7, plus the second 5.7 README follow-up from slice 2b) done and tested. 550 changed lines against this batch's 600-line session review budget — no exception needed. Not committed, not pushed.
+
+### Completed Tasks
+- [x] 5.1 (RED) Added `apps/api/test/mesh.test.ts`: one `node:test` per Upload-boundary threat-matrix case (oversize; mismatched `X-Mesh-Sha256`; non-binary/ASCII STL; non-`running` job; foreign device; quota-exceeded), each asserting the rejection status **and** that nothing is stored (no file, no `meshes` row). A shared `scenario()` helper (store + one paired device + one document + a listening `http.createServer(app)`) and a `postMesh()` fetch wrapper keep the 8 tests focused without duplicating setup. Written and run against the real `apps/api/src/mesh.ts` (not a stub) as the task brief's "RED" step for this slice, since the file itself is a from-scratch create — there is no separate pre-implementation empty-router state to fail against; the RED discipline here is "one test per threat-matrix case exists and is exercised" per design.md's threat-matrix row, not a literal fail-then-pass commit pair.
+- [x] 5.2 Created `apps/api/src/mesh.ts`, exporting `meshRouter(store, { dataDir, auth })`. `POST /api/agent/jobs/:id/mesh`: device credential via the same `Authorization: Bearer <token>` scheme as `/api/agent/poll`/`/api/agent/results/:id` (a local `deviceToken()` helper, not an import from `main.ts`, since `main.ts`'s `token(q)` is a private closure); job existence/ownership/`running` state resolved by a new `Store.jobForMeshUpload(token, jobId)` (404 for a foreign device or a non-running job alike, matching the codebase's existing no-existence-leak pattern); `Content-Type` must be exactly `application/octet-stream`; declared `Content-Length` checked against the 25 MiB cap **before** opening any file; a second cap check runs on the actual streamed byte count, destroying both the request and the write-stream (`req.destroy()`/`file.destroy()`) the instant the running total crosses 25 MiB; `X-Mesh-Sha256` (required, 64 lowercase-or-mixed hex chars, normalized to lowercase) verified against a streaming `createHash('sha256')` fed the same chunks written to disk; binary STL sanity captures the first 84 header bytes as they stream and, once the body ends, checks `size === 84 + 50*facets` (`facets` = `header.readUInt32LE(80)`) and rejects a header starting with the ASCII `solid ` keyword outright.
+- [x] 5.3 Writes to `DATA_DIR/meshes/<jobId>.stl.part` (`0o600`) then `rename()`s to `<jobId>.stl` only after both the sha256 and STL-sanity checks pass; any failure anywhere in the validate/write path unlinks the `.part` file (`unlinkIfExists`, ENOENT-tolerant) before rethrowing, so a rejected upload never leaves a partial or misnamed file behind. Added `Store.meshBytesForDevice`/`recordMesh`/`meshesForDocument`/`latestMeshForDocument`/`deleteMesh`; the 500 MiB per-device quota is checked against `meshBytesForDevice(deviceId) + declaredLength` before the file is even opened. Retention (`enforceRetention`) runs after a successful `recordMesh`: keeps the newest 5 rows per `document_id` (`ORDER BY created DESC, rowid DESC` — the `rowid` tiebreak was required because same-millisecond test uploads made `created DESC` alone non-deterministic), unlinking the evicted files and rows. The stored path is always `resolve(dataDir, 'meshes', jobId + '.stl')` — no header, query string, or body field ever contributes to it (verified by 5.7's client-filename-ignored assertion).
+- [x] 5.4 Added `rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false })` as route-specific middleware on the mesh upload route only (matching the `standardHeaders`/`legacyHeaders` options already used for every other `rateLimit()` call in `main.ts`), independent of the global 180/min limiter.
+- [x] 5.5 Added `GET /api/designs` (owner-scoped `listDocuments` plus a per-document `hasMesh` computed from `latestMeshForDocument`), `GET /api/designs/:id` (same shape, single document), `GET /api/designs/:id/mesh` (`store.getDocument(id, owner)` — already 404s a foreign owner, satisfying spec "Non-owner cannot fetch mesh" without a separate 403 path — then `res.sendFile` of the latest mesh with `Content-Type: model/stl`, `Cache-Control: private, no-store`, `X-Content-Type-Options: nosniff`). All three (plus the upload route) mounted via one `http.use(meshRouter(store, { dataDir: data, auth }))` in `main.ts`, placed right after `/api/agent/results/:id` and before the `/.well-known` metadata routes; `DATA_DIR/meshes` is created with `mkdirSync(..., { recursive: true, mode: 0o700 })` alongside the existing `DATA_DIR` creation. OIDC scope: the injected `auth` is the same `authenticator(...)` instance `main.ts` already builds, called with its default `cad:read` scope (no scope argument), exactly like the existing `GET /api/devices`/`GET /api/jobs` calls.
+- [x] 5.6 Updated `README.md`: compatibility table's FreeCAD row now describes "headless create/modify/export operations on named designs; an STL preview mesh uploads for the dashboard viewer" instead of the old fixed-box-only wording; added an explicit "**Exception: the STL preview mesh leaves the machine.**" bullet to "Security and limitations" documenting the 25 MiB/500 MiB/newest-5 limits. Also updated `SECURITY.md` with one short paragraph naming the mesh channel's specific defenses (size cap, sha256, structural check, quota, no client-supplied name), placed next to the existing isolation-boundary paragraph it extends.
+- [x] 5.7 Added the owner-scoped retrieval tests (non-owner 404, correct headers, correct bytes) and the client-filename-ignored assertion in the same happy-path test (`query=?filename=evil.stl` plus an `X-Filename` header, both ignored); confirmed all 5.1 rejection cases pass against the implemented route (all 8 tests in `mesh.test.ts` green).
+- [x] 5.7 (README follow-up from slice 2b) Updated the "Try the first operation" walkthrough: step 4 now names `design.FCStd` and `preview.stl` (not `box.FCStd`/`box.step`) and notes `export.*` appears only after an explicit export op; the paragraph after the numbered list now states only the STL preview uploads, cross-referencing the new "Security and limitations" exception bullet.
+
+### Files Changed
+| File | Action | What Was Done |
+|------|--------|---------------|
+| `apps/api/src/mesh.ts` | Created | `meshRouter(store, opts)`: upload route (cap/hash/STL-sanity/quota/retention) + `GET /api/designs`, `/api/designs/:id`, `/api/designs/:id/mesh`. |
+| `apps/api/src/store.ts` | Modified | Added `meshBytesForDevice`, `jobForMeshUpload`, `recordMesh`, `meshesForDocument`, `latestMeshForDocument`, `deleteMesh`. |
+| `apps/api/src/main.ts` | Modified | Import `meshRouter`; create `DATA_DIR/meshes` (`0700`) at startup; mount the router after `/api/agent/results/:id`. |
+| `apps/api/test/mesh.test.ts` | Created | 8 tests: the 6 threat-matrix rejection cases, the owner-scoped happy path (incl. client-filename-ignored and non-owner 404), and 5-mesh retention. |
+| `README.md` | Modified | Compatibility table wording; "Security and limitations" mesh exception bullet; "Try the first operation" artifact names. |
+| `SECURITY.md` | Modified | One paragraph on the mesh channel's specific defenses. |
+
+### Deviations from Design
+- **`jobForMeshUpload` requires a non-null `document_id`.** design.md doesn't explicitly say what happens if a `running` job somehow has no document (phase-1-shaped rows predate documents, per the `type=null → 'create_box'` mapping in `heartbeat()`), but every job reachable through `enqueueOp` in `tools.ts` always carries one. Treating a documentless running job as 404 (rather than accepting the upload with a null `document_id`, which the `meshes` table's `NOT NULL` constraint would reject anyway) keeps the invariant "every mesh belongs to exactly one document" intact everywhere else in this slice (retention, `GET /api/designs*`).
+- **`auth` is dependency-injected into `meshRouter` rather than imported from `./auth.ts` directly**, mirroring how `tools.ts` already receives `requireWrite` as a callback instead of importing `auth.ts` itself. This is what let `mesh.test.ts` spin up the router against a lightweight `stubAuth()` map instead of a real JWKS server (`auth.test.ts`'s pattern), matching design.md's own testing-strategy line ("upload tested via `http.request` against a listening app").
+- **5.1's "RED" step is not a literal fail-then-pass git history** — see the 5.1 completion note above. Flagging as a literal-process divergence, not a functional gap: every threat-matrix case has its own test, run against the real implementation, per the design's threat-matrix "Planned RED tests: one test per case."
+
+### Issues Found
+None. All 8 new tests pass; the full API suite (48/48) and the web suite (1/1) both stayed green with no regressions to the 40 slice-1-through-4b tests.
+
+### Remaining Tasks
+- [ ] 2c.5 (residual, unchanged from prior batches) — apply the three commented-out optional-variable lines to `.env.example` once edit authority is granted.
+- [ ] 4b.7 — optional `label` parameter; still deprioritized, unchanged from slice 4b.
+- [ ] 6.1 onward through 15.1-15.2 (Slices 6-15, PRs 9-19; see tasks.md Dependency Graph)
+
+### Workload / PR Boundary
+- Mode: stacked-to-main chained PR slice, branch `feat/phase2-05-mesh-upload` stacked on `feat/phase2-04b-mcp-tools-b2`.
+- Current work unit: Slice 5 — Mesh upload/serve routes + limits + README.
+- Boundary: starts at slice 4b's MCP tool catalog with no mesh channel and no `/api/designs*` routes; ends with the full upload/serve/quota/retention path implemented, tested, and documented (README + SECURITY). No `agent/**` changes (slice 6 wires the agent-side upload call) and no `apps/web/**` changes (the dashboard viewer is a later slice).
+- Estimated review budget impact: 550 changed lines against this batch's 600-line session review budget — no exception needed.
+- Rollback boundary: delete `apps/api/src/mesh.ts` and `apps/api/test/mesh.test.ts`; revert the `Store` additions in `apps/api/src/store.ts`, the `meshRouter` import/mount and `DATA_DIR/meshes` creation in `apps/api/src/main.ts`, and the README.md/SECURITY.md edits above. Slices 1-4b are untouched and unaffected.
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command and exact result | `npx tsx --test test/mesh.test.ts` (from `apps/api/`) → `tests 8`, `pass 8`, `fail 0`. |
+| Runtime harness command/scenario and exact result | Real HTTP boundary exercised directly: each test spins up `http.createServer(buildApp(...))` on an ephemeral port and drives it with Node's global `fetch`, including a real multi-megabyte binary body for the oversize case — this is the "upload tested via `http.request` against a listening app" runtime path design.md specifies, not a mocked request object. See the "curl recipe" below for a manual replay against a live `npm start` instance. |
+| Rollback boundary | See "Workload / PR Boundary" above. |
+
+### Full Check (repo root)
+```
+npm run format        → mesh.ts/mesh.test.ts reformatted once, then unchanged; no diffs elsewhere
+npm run format:check  → All matched files use Prettier code style!
+npm run build          → api tsc build OK; web (Angular) build OK, no errors
+npm test               → api: 48/48 pass; web (Vitest via `ng test`): 1/1 pass
+```
+
+### curl recipe (manual smoke test against a running API)
+
+Assumes a locally running API (`npm start` from repo root) at `http://localhost:3000`, a paired+online device with credential `$CRED`, and a `running` job id `$JOB` on that device (obtained by enqueuing a job for a document owned by the signed-in user, then having the agent — or a manual `/api/agent/poll` call with the device credential — claim it into `running`).
+
+```bash
+# 1. Build a tiny valid binary STL locally (84-byte header+count, 1 facet = 50 bytes = 134 bytes total)
+python3 -c "
+import struct, sys
+sys.stdout.buffer.write(b'\\0'*80 + struct.pack('<I', 1) + b'\\0'*50)
+" > preview.stl
+
+# 2. Compute its sha256
+SHA=$(shasum -a 256 preview.stl | cut -d' ' -f1)
+
+# 3. Upload it as the paired device
+curl -i -X POST "http://localhost:3000/api/agent/jobs/$JOB/mesh" \
+  -H "Authorization: Bearer $CRED" \
+  -H "Content-Type: application/octet-stream" \
+  -H "X-Mesh-Sha256: $SHA" \
+  --data-binary @preview.stl
+
+# 4. Fetch it back as the owning OIDC-authenticated user (replace $TOKEN and $DOC)
+curl -i "http://localhost:3000/api/designs/$DOC/mesh" \
+  -H "Authorization: Bearer $TOKEN" -o fetched.stl
+```
+
+Expected: step 3 returns `201 {"jobId":"...","documentId":"...","size":134,"sha256":"..."}`; step 4 returns `200` with `Content-Type: model/stl`, `Cache-Control: private, no-store`, and `fetched.stl` byte-identical to `preview.stl`.
+
+### Status
+7/7 mandatory slice-5 tasks (5.1-5.7, plus the second 5.7 README follow-up) complete and tested (tasks.md marked `[x]`). `npm run format && npm run build && npm test` all green (api 48/48, web 1/1). Cumulative: 55/115 tasks complete across slices 1-5 (per tasks.md's current `[x]` count). Not committed, not pushed (per instructions). 550 changed lines is within this batch's 600-line session review budget — no exception needed. Ready for `sdd-verify` on slice 5, or `sdd-apply` again to continue with slice 6 (blocked on the still-unresolved slice 3a and slice 4b budget-overrun decisions being separate from this slice's own scope).
