@@ -738,3 +738,101 @@ None. `npm run format` reports only Prettier's own re-wrapping of the new `desig
 
 ### Status
 8/8 slice-8 tasks (8.1-8.8) complete and tested (tasks.md marked `[x]`). `npm run format`, `npm run build`, and `npm test` all clean/green. Not committed, not pushed (per instructions). **492 authored changed lines — within the 600-line session review budget, no exception needed.** Ready for `sdd-verify` on slice 8, or `sdd-apply` again to continue with slice 9 (dashboard shell/nav + informational pages, depends on slice 7, already done).
+
+## Slice 9 — Dashboard shell/nav + informational pages (PR 12, depends on: 7)
+
+**Status**: done (tasks 9.1-9.4 complete). Branch `feat/phase2-09-dashboard-shell`, stacked on `feat/phase2-08-stl-viewer`. 729 changed lines against this batch's 600-line session review budget — **size:exception requested, not yet accepted**. Not committed, not pushed.
+
+### Design plan (frontend-design pass)
+
+- **Subject**: CADGPT bridges an AI assistant to CAD tools on a computer the user controls, over a fixed, allowlisted operation set. Audience: engineers/makers already comfortable with CAD and security-conscious about letting an assistant touch their machine.
+- **Color** (4-6 named values, cool drafting-paper neutrals + one technical blue): `--color-paper #f1f4f3`, `--color-surface #ffffff`, `--color-rule #dbe3e0`, `--color-ink #16211d`, `--color-ink-muted #4b5c56`, `--color-blue #1e56a8` (the single accent — every interactive/focus/active surface). Muted semantic status pairs (fg/bg) for queued/running/succeeded/failed, defined now for slices 10-11.
+- **Type**: one grotesque family via a system stack (`"Inter", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif` — no font files, no `@import`, consistent with the CSP's `style-src 'self' 'unsafe-inline'` and no `font-src` override). A small explicit scale (h1 1.75rem / h2 1.2rem, `.hero h1` 2.1rem) instead of unstyled browser defaults.
+- **Layout**: left-aligned throughout; a persistent 232px left rail (primary nav Devices/Designs/Jobs/Connect, a visually separated secondary About link below a rule), a 60px header (brand + identity/sign-in-out only), one `main` max-width (960px), collapsing to a horizontal top bar under 800px. ASCII: `[header: brand | identity]` / `[rail 232px | main content, max 960px]` / `[footer: alpha notice]`.
+- **Principles**: no all-caps eyebrows (the shared `.eyebrow` class itself is fixed — `text-transform: lowercase` + `::first-letter` uppercase — rather than uppercase literal text anywhere); no middle-dot-joined meta strings (footer/about links use "or"/"and", not `&middot;`); no arrow appended to internal action buttons (`→` dropped from "Sign in"/"Go to your designs"; `↗` kept only on the pre-existing external-link convention to GitHub); the only numbered sequence is home's genuine three-step install → link → connect flow, rendered with CSS counters (not manual "1."/"2." markup) so the tabular-numeral treatment applies to the step badges too.
+- **Self-review against the brief**: first draft added a dedicated `.button-link` primary-color link class for the signed-in home CTA and an unused `h3` type-scale rule — neither served a real requirement (the signed-in return-to-designs link is a secondary action, not the page's primary conversion), so both were cut before finishing, reusing the existing `.quiet` class instead. This kept the "one memorable element" restraint principle: slice 8's viewer canvas remains the app's one bold moment; this slice stays quiet and disciplined (hairline rules, one accent color used sparingly, no gradients, no card-shadow kit, zero decorative motion).
+
+### Completed Tasks
+- [x] 9.1 Added a `:root` token block to `apps/web/src/styles.css` (colors, semantic status pairs, font stack, radius scale, spacing scale, `color-scheme: light`) and retinted every existing selector in the file (`button`, `.quiet`, `.danger`, `.panel`, `.eyebrow`, `.message`, `.status`, `.cad`, `.job`, `input`/`select`, etc.) to consume the tokens instead of hardcoded hex values — so every page that already used these shared classes (devices/designs/jobs/connect/pair/design-detail) picks up the new palette with zero markup changes. Added `:focus-visible { outline: 2px solid var(--color-blue) }` globally, a `@media (prefers-reduced-motion: reduce)` block collapsing all transition/animation durations, and `.tabular-nums { font-variant-numeric: tabular-nums }` (applied on About's numeric limits — 10 minutes, 25 MiB, 500 MiB — and used by the home page's CSS-counter step badges). Rebuilt `layout/shell/*` on the same tokens: 232px persistent left rail, 60px slim header, a `.rail-secondary` block visually separating the primary nav (Devices/Designs/Jobs/Connect) from the secondary About link, collapsing to a horizontal top bar under 800px (bumped from the prior 760px breakpoint).
+- [x] 9.2 Rewrote `apps/web/src/app/pages/home/{home.html,home.ts}`: one-sentence explanation of what CADGPT does, the three-step connect flow (the one place a numbered sequence is used, per the session's explicit exception), a "what it can do today" list (FreeCAD create/modify/read/export vs. AutoCAD detection-only), a security posture block (fixed allowlist, native files never leave the machine, only the STL preview uploads), and both CTAs — primary "Sign in" (`auth.login('/designs')`, updated from the slice-7 stub's `/devices`) and secondary "Download the connector" linking to the README's GitHub Releases URL. Signed-in visitors see "Go to your designs" instead of the sign-in/download pair.
+- [x] 9.3 Rewrote `apps/web/src/app/pages/about/{about.html,about.ts}`: project status (experimental alpha, unsigned/non-notarized installers), the README's compatibility table (FreeCAD / FreeCAD GUI-only / AutoCAD / AutoCAD-on-Linux rows) via the new shared `table.data` class, a security-and-limitations summary (OIDC identity, one-use pairing codes, revocation scope, the mesh-preview exception with its byte limits, single-backend-instance caveat), and links to the README and `SECURITY.md` on GitHub.
+- [x] 9.4 Added `apps/web/src/app/pages/home/home.spec.ts` (renders for `user() === null`; asserts the Sign-in button calls `auth.login('/designs')`; asserts the download link's `href`), `apps/web/src/app/pages/about/about.spec.ts` (renders without any `AuthService` dependency; asserts the compatibility table and "experimental alpha" text), and `apps/web/src/app/layout/shell/shell.spec.ts` (wraps the real `app.routes.ts` route table under `Shell` for the test — `Shell` is the static app root in production, not itself a routed component, so `RouterTestingHarness`'s own bare-outlet host would otherwise never render it — navigates to `/devices` with a fake authenticated `AuthService`, and asserts the primary nav renders with `aria-current="page"` on the Devices link).
+
+### Class-alignment edits (deliverable 5, outside the shell/home/about scope)
+- `apps/web/src/app/pages/jobs/jobs.html`: the plain-text `<strong>{{ job.status }}</strong>` now renders as `<span class="status" [class.queued]="…" [class.running]="…" [class.succeeded]="…" [class.failed]="…">`, picking up the new semantic status-badge classes defined in 9.1. No `jobs.ts` change (template-only, no new imports — Angular's `[class.x]` binding needs no `NgClass` import).
+- Every other pre-existing use of `.eyebrow` (`devices.html`, `designs.html` ×2, `jobs.html`, `connect.html`, `pair.html`, `design-detail.html`) is fixed by the shared class definition in 9.1 alone — no other file was touched, keeping devices/designs/jobs (slices 10-11) and design-detail (slice 8, "adjust classes only") exactly as literal instructions required.
+
+### Files Changed
+| File | Action | What Was Done |
+|------|--------|---------------|
+| `apps/web/src/styles.css` | Modified | `:root` design tokens; retinted every existing selector; added `.tabular-nums`, `.skip-link`, `.page-head`, `table.data`, `.hero`/`.steps`/`.capabilities`/`.security-list`, semantic `.status.*` modifiers, `:focus-visible`, `prefers-reduced-motion` block. |
+| `apps/web/src/app/layout/shell/shell.html` | Rewrote | Skip link, inline-SVG brand mark, identity-or-sign-in header, primary+secondary rail nav with `ariaCurrentWhenActive="page"`, `id="main-content"` skip target, sentence-case footer. |
+| `apps/web/src/app/layout/shell/shell.css` | Rewrote | Token-based header/rail/footer, `.rail-secondary` divider, 800px collapse breakpoint. |
+| `apps/web/src/app/layout/shell/shell.ts` | Modified | Added `signIn()` (injects `Router` for `auth.login(this.router.url)`). |
+| `apps/web/src/app/layout/shell/shell.spec.ts` | Created | Authenticated-route left-rail-nav test (9.4). |
+| `apps/web/src/app/pages/home/{home.html,home.ts}` | Rewrote | Real landing content, both CTAs, `auth.login('/designs')`. |
+| `apps/web/src/app/pages/home/home.spec.ts` | Created | Unauthenticated-render test (9.4). |
+| `apps/web/src/app/pages/about/{about.html,about.ts}` | Rewrote | Status, compatibility table, security summary, GitHub links. |
+| `apps/web/src/app/pages/about/about.spec.ts` | Created | Unauthenticated-render test (9.4). |
+| `apps/web/src/app/pages/jobs/jobs.html` | Modified | Job status text → `.status` badge with semantic modifier classes. |
+
+### Deviations from Design
+- **`Shell` is not itself a routed component in production**, so `shell.spec.ts` cannot use `RouterTestingHarness` against the real `app.routes.ts` directly — the harness's own bare-outlet root component would never activate `Shell`. The test instead builds a route table scoped to itself (`[{ path: '', component: Shell, children: routes }]`), which is a test-only construction, not a production routing change; production `app.ts` is unchanged (`<app-shell />` remains the static root).
+- **`.button-link` and an unused `h3` type-scale rule were added, then removed** before finishing this slice, per the self-review note above — flagging as a documented false start rather than silently never having tried them.
+- **No other deviation** from design's "Design-system intent" line: cool drafting-paper neutrals, one technical blue, persistent left rail, one grotesque family, tabular numerals, no all-caps eyebrows, and no numbered markers outside the genuine three-step connect sequence are all implemented as specified.
+
+### Issues Found
+None. `npm run format` reports clean; `npm run build` and `npm test` are both green (see Work Unit Evidence).
+
+### Remaining Tasks
+- [ ] 2c.5 (residual, unchanged) — apply the three commented-out optional-variable lines to `.env.example` once edit authority is granted.
+- [ ] 4b.7 — optional `label` parameter; still deprioritized, unchanged.
+- [ ] 10.1 onward through 15.1-15.2 (Slices 10-15, PRs 13-19; see tasks.md Dependency Graph)
+
+### Workload / PR Boundary
+- Mode: stacked-to-main chained PR slice, branch `feat/phase2-09-dashboard-shell` stacked on `feat/phase2-08-stl-viewer` — **budget overrun, decision needed before this opens a PR**.
+- Current work unit: Slice 9 — Dashboard shell/nav + informational pages.
+- Boundary: starts at slice 7/8's functional-but-undesigned shell (green phase-1-derived colors, all-caps eyebrow captions, no design tokens) and stub home/about pages; ends with a token-driven design system applied app-wide, real home/about content, and devices/designs/jobs/connect/pair/design-detail all consuming the new palette through their existing shared classes with zero markup changes beyond the one `jobs.html` status-badge alignment. No changes to devices/designs/jobs page structure (slices 10-11 own that), no viewer/design-detail logic changes (slice 8 already landed), no `apps/api/**` or `agent/**` changes.
+- Estimated review budget impact: **729 changed lines against this batch's 600-line session review budget**, ~129 over (~21%). See tasks.md's Slice 9 "Delivered at 729 changed lines" note and the design-plan/self-review section above for the itemized justification; consistent with this change's already-accepted precedent (slice 2b +20%, slice 4b +18%, slice 7 +190%).
+- Rollback boundary: revert `apps/web/src/styles.css`, `apps/web/src/app/layout/shell/{shell.html,shell.css,shell.ts}`, `apps/web/src/app/pages/home/{home.html,home.ts}`, `apps/web/src/app/pages/about/{about.html,about.ts}`, and `apps/web/src/app/pages/jobs/jobs.html` to their slice-7/8 versions; delete `shell.spec.ts`, `home.spec.ts`, `about.spec.ts`. Slices 1-8 are completely untouched.
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command and exact result | `npx ng test --include "src/app/pages/home/**" --include "src/app/pages/about/**" --include "src/app/layout/shell/**" --watch=false` (conceptually; actually run via the full `ng test --watch=false` since this repo's Vitest config runs the whole web suite in ~1s) → `Test Files 9 passed (9)`, `Tests 13 passed (13)` (10 pre-existing from slices 7-8 + 3 new: `home.spec.ts`, `about.spec.ts`, `shell.spec.ts`). |
+| Runtime harness command/scenario and exact result | `npm run build` (root) → API `tsc` succeeds; Angular `ng build` succeeds, `home`/`about` remain separate lazy chunks (2.88 kB / 2.87 kB raw), confirming the rewritten pages still code-split correctly and the shared `styles.css` token additions landed in the single extracted `styles-*.css` initial chunk (6.22 kB raw), not per-route. Manual visual check: `npm run build` then serve `apps/web/dist/web/browser` with any static file server (e.g. `npx http-server apps/web/dist/web/browser -p 8080`) and open `http://localhost:8080` for `/` and `/about`; `/devices` etc. require a running API + OIDC session per existing dev instructions (`npm run dev:api` / `npm run dev:web`) to see the authenticated rail. |
+| Rollback boundary | See "Workload / PR Boundary" above. |
+
+### Full Check (repo root)
+```
+npm run format  → all matched files use Prettier code style; only styles.css/shell.*/home.*/about.*/jobs.html touched
+npm run build   → api tsc build OK; web (Angular) build OK, no errors
+npm test        → api: 49/49 pass; web (Vitest via `ng test`): 13/13 pass
+```
+
+### Design tokens (for orchestrator review)
+
+| Token | Value | Role |
+|---|---|---|
+| `--color-paper` | `#f1f4f3` | Page background — cool off-white drafting paper |
+| `--color-surface` | `#ffffff` | Panel/card background |
+| `--color-rule` | `#dbe3e0` | Hairline borders/dividers |
+| `--color-rule-strong` | `#c3cec9` | Input borders |
+| `--color-ink` | `#16211d` | Primary text |
+| `--color-ink-muted` | `#4b5c56` | Secondary text, body copy |
+| `--color-ink-faint` | `#7c8b85` | Tertiary text, captions |
+| `--color-blue` | `#1e56a8` | The one technical/accent color — links, primary buttons, focus ring |
+| `--color-blue-strong` | `#163f80` | Hover/active state of the accent |
+| `--color-blue-wash` | `#e6edf8` | Subtle accent background (active nav item, quiet buttons) |
+| `--status-queued-fg`/`-bg` | `#47575f` / `#e7ecee` | Job status: queued |
+| `--status-running-fg`/`-bg` | `#163f80` / `#e6edf8` (reuses blue) | Job status: running |
+| `--status-succeeded-fg`/`-bg` | `#235c3c` / `#e1f0e2` | Job status: succeeded (also device "online") |
+| `--status-failed-fg`/`-bg` | `#8a3128` / `#fae9e5` | Job status: failed (also `.message.error`, `.danger`) |
+| `--font-sans` | `'Inter','Helvetica Neue',Helvetica,Arial,system-ui,sans-serif` | The one grotesque family (system stack, no font files/CDN) |
+| `--radius-sm`/`-md`/`-lg` | `6px`/`10px`/`16px` | Buttons/inputs, (unused yet), panels |
+| `--space-1`…`-7` | `4/8/12/16/24/32/48px` | Spacing scale |
+| `.tabular-nums` | `font-variant-numeric: tabular-nums` | Utility for mm dimensions and other measured limits |
+
+### Status
+4/4 slice-9 tasks (9.1-9.4) complete and tested (tasks.md marked `[x]`). `npm run format`, `npm run build`, and `npm test` all clean/green (api 49/49, web 13/13). Cumulative: 78/115 tasks complete across slices 1-9 (per `rg -c '\[x\]' tasks.md`; 37 remain, including the still-open 2c.5/4b.7 residuals and slices 10-15). Not committed, not pushed (per instructions). **729 changed lines exceeds this batch's 600-line session review budget by ~129 lines (~21%) — flagging for the user/orchestrator before merge**, consistent with this change's established precedent (slices 2b/4b/7). `sdd-verify` can still run against the working tree. Ready for `sdd-apply` again to continue with slice 10 (dashboard devices/designs pages + `WorkspaceStore`, depends on slice 9, now done) once the budget decision is made.

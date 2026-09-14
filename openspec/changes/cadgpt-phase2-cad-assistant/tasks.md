@@ -212,12 +212,14 @@ Acceptance: opening `/designs/:id` for a document with only a queued job shows p
 
 ## Slice 9 — Dashboard shell/nav + informational pages (PR 12, depends on: 7)
 
-- [ ] 9.1 Apply the `frontend-design` pass to shell/nav: drafting-paper neutrals + one technical blue, persistent left rail, one grotesque type family, tabular numerals for mm dimensions (design "Design-system intent").
-- [ ] 9.2 Build real home page content (public) in `apps/web/src/app/pages/home/*`.
-- [ ] 9.3 Build real about page content (public) in `apps/web/src/app/pages/about/*`.
-- [ ] 9.4 Tests: home/about render without an active session; left rail nav renders on every authenticated route.
+- [x] 9.1 Apply the `frontend-design` pass to shell/nav: drafting-paper neutrals + one technical blue, persistent left rail, one grotesque type family, tabular numerals for mm dimensions (design "Design-system intent").
+- [x] 9.2 Build real home page content (public) in `apps/web/src/app/pages/home/*`.
+- [x] 9.3 Build real about page content (public) in `apps/web/src/app/pages/about/*`.
+- [x] 9.4 Tests: home/about render without an active session; left rail nav renders on every authenticated route.
 
 Acceptance: home/about render for an unauthenticated visitor; the left rail nav renders on every authenticated route. ~180 changed lines.
+
+**Delivered at 729 changed lines** (`git diff --numstat`: `styles.css` +278/-59, `shell.css` +48/-46, `shell.html` +28/-11, `shell.ts` +6/-1, `shell.spec.ts` +38 new, `home.html` +59/-11, `home.ts` +7/-3, `home.spec.ts` +31 new, `about.html` +65/-5, `about.ts` +7/-1, `about.spec.ts` +16 new, `jobs.html` +8/-1), ~129 over the 600-line session budget, after dropping one non-essential `.button-link` class (reused the existing `.quiet` style instead) and an unused `h3` type-scale rule. No comment, blank line, doc, or test was cut to chase the number. The overage is structural: this slice's own deliverable list requires a full color/type/radius/spacing token system (every hardcoded color in the shared `styles.css` is replaced by a `var()`, which `git diff` counts as a full delete+add per line even where only the value changed) plus two brand-new content pages, a redesigned shell, and three new spec files — consistent with this change's already-accepted precedent (slice 2b +20%, slice 4b +18%, slice 7 +190%). See apply-progress.md for the full token table and `size:exception` recommendation.
 
 ## Slice 10 — Dashboard devices/designs pages + `WorkspaceStore` (PR 13, depends on: 9)
 

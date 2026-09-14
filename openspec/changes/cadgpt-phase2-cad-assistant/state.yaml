@@ -13,11 +13,11 @@ phases:
   spec: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/spec", obs: 131 }
   design: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/design", obs: 133 }
   tasks: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/tasks", obs: 134 }
-  apply: { status: in_progress, ref: "sdd/cadgpt-phase2-cad-assistant/apply-progress", slice: "12/20", tasks_done: "1.1-1.6, 2a.1-2a.6, 2b.1-2b.9, 2c.1-2c.5, 3a.1-3a.7, 3b.1-3b.4, 4a.1-4a.5, 4b.1-4b.6 (4b.7 deprioritized/not done), 5.1-5.7 (incl. the second 5.7 README follow-up from slice 2b), 6.1-6.4, 7.1-7.7, 8.1-8.8", size_exception: "2b: 495 lines, accepted by the user (2026-09-14). 3a: 580 lines, covered by the budget raise to 600 (2026-09-14). 4b: 711 lines, accepted by the user (2026-09-14). 7: 1,741 lines (apps/web/src/app/** rewrite per design's File Changes table), size:exception requested, pending user decision (2026-09-14). 2c/3b/4a/5/6/8 within budget (slice 8: 492 authored lines, package-lock.json excluded)." }
+  apply: { status: in_progress, ref: "sdd/cadgpt-phase2-cad-assistant/apply-progress", slice: "13/20", tasks_done: "1.1-1.6, 2a.1-2a.6, 2b.1-2b.9, 2c.1-2c.5, 3a.1-3a.7, 3b.1-3b.4, 4a.1-4a.5, 4b.1-4b.6 (4b.7 deprioritized/not done), 5.1-5.7 (incl. the second 5.7 README follow-up from slice 2b), 6.1-6.4, 7.1-7.7, 8.1-8.8, 9.1-9.4", size_exception: "2b: 495 lines, accepted by the user (2026-09-14). 3a: 580 lines, covered by the budget raise to 600 (2026-09-14). 4b: 711 lines, accepted by the user (2026-09-14). 7: 1,741 lines (apps/web/src/app/** rewrite per design's File Changes table), size:exception requested, pending user decision (2026-09-14). 9: 729 lines (design-tokens pass across styles.css + shell + home/about + 3 new spec files), size:exception requested, pending user decision (2026-09-14). 2c/3b/4a/5/6/8 within budget (slice 8: 492 authored lines, package-lock.json excluded)." }
   verify: { status: pending }
   archive: { status: pending }
 next_recommended: [sdd-apply]
-delivery_forecast: 20 chained PRs stacked to main; ~4,250 total changed lines; budget 600/slice since 2026-09-14; exceptions recorded above. Slices 1-8 implemented on branches for PRs #1-#11 (branch `feat/phase2-08-stl-viewer` for slice 8/PR 11, stacked on `feat/phase2-07-web-routing`; none pushed/opened yet, per instructions).
+delivery_forecast: 20 chained PRs stacked to main; ~4,250 total changed lines; budget 600/slice since 2026-09-14; exceptions recorded above. Slices 1-9 implemented on branches for PRs #1-#12 (branch `feat/phase2-09-dashboard-shell` for slice 9/PR 12, stacked on `feat/phase2-08-stl-viewer`; none pushed/opened yet, per instructions).
 open_items_for_design:
   - Autodesk EULA on unattended Core Console automation
   - Angular 22 zoneless/SSR + three.js guard pattern
@@ -47,3 +47,8 @@ slice_8_notes:
   - "`SCENE_FACTORY` DI token (features/viewer/scene-factory.ts) is the test seam instead of module-level mocking of `three-scene.ts`; its default implementation lazy-imports `three-scene.ts`, the only module that imports `three`/its addons."
   - "Production build confirms `three` lands in its own lazy chunk (`three-scene`, 567.88 kB raw / 117.49 kB transfer), separate from `main` and from the `design-detail` route chunk (3.83 kB)."
   - "492 authored lines (package-lock.json's 65-line churn excluded), within the 600-line budget — no size:exception needed for slice 8."
+slice_9_notes:
+  - "Design tokens (:root custom properties in styles.css) retint every existing shared class (button/.quiet/.panel/.status/.eyebrow/.message/.cad/.job/inputs), so devices/designs/jobs/connect/pair/design-detail all pick up the new palette with zero markup changes beyond one status-badge class alignment in jobs.html."
+  - "The shared `.eyebrow` class itself is fixed (text-transform: lowercase + ::first-letter uppercase) instead of editing each page's all-caps literal text — satisfies 'no all-caps eyebrows' app-wide without touching devices/designs/jobs/pair/connect/design-detail markup."
+  - "`Shell` is the static app root in production (`app.ts` renders `<app-shell/>`), not a routed component, so `shell.spec.ts` wraps the real `app.routes.ts` route table under a test-only `{ path: '', component: Shell, children: routes }` config for RouterTestingHarness — no production routing change."
+  - "729 authored lines against the 600-line budget (~21% over), after dropping a non-essential `.button-link` class and an unused `h3` rule; size:exception requested, consistent with slices 2b/4b/7's already-accepted precedent in this same change."
