@@ -27,8 +27,16 @@ export class AuthService {
     return this.readyPromise;
   }
 
-  /** Stores the requested URL, then hands off to the identity provider. */
+  /**
+   * Stores the requested URL, then hands off to the identity provider — but
+   * only when there isn't already a live session. Every call site is now
+   * auth-reactive (it only offers "Sign in" while `user()` is null), so this
+   * guard is a backstop: `login()` itself never fires a pointless second
+   * `signinRedirect` for an authenticated visitor.
+   */
   login(returnUrl: string): void {
+    const current = this.user();
+    if (current && !current.expired) return;
     sessionStorage.setItem(RETURN_URL_KEY, returnUrl);
     void this.manager?.signinRedirect();
   }
@@ -38,7 +46,29 @@ export class AuthService {
     await this.readyPromise;
     const user = await this.manager!.signinRedirectCallback();
     this.user.set(user);
-    const returnUrl = sessionStorage.getItem(RETURN_URL_KEY) ?? '/';
+    return this.consumeReturnUrl('/');
+  }
+
+  /**
+   * Re-checks for a live session directly against the OIDC user store
+   * (bypassing `user()`, which `init()` never populates while on
+   * `/callback`) so a failed `completeSignIn()` — e.g. a redirect code
+   * already consumed by an earlier render of the callback page — can tell an
+   * already-signed-in visitor apart from one who genuinely has no session.
+   */
+  async currentUser(): Promise<User | null> {
+    await this.readyPromise;
+    const user = (await this.manager?.getUser()) ?? null;
+    if (user && !user.expired) {
+      this.user.set(user);
+      return user;
+    }
+    return null;
+  }
+
+  /** Reads and clears the URL stashed by `login()`, defaulting when absent. */
+  consumeReturnUrl(fallback: string): string {
+    const returnUrl = sessionStorage.getItem(RETURN_URL_KEY) ?? fallback;
     sessionStorage.removeItem(RETURN_URL_KEY);
     return returnUrl;
   }

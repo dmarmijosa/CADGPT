@@ -18,6 +18,19 @@
   --color-blue-strong: #163f80;
   --color-blue-wash: #e6edf8;
 
+  /* Second accent (home redesign, slice 15): the machined-brass counterpart
+   * to technical blue. Blue marks the assistant/software side of the
+   * connector throughout the app; brass marks the physical/machine side —
+   * used on the home page for AutoCAD's newer, partial capabilities and for
+   * the one artifact (the STL preview mesh) that crosses the trust
+   * boundary. Never used for a plain decorative accent. */
+  --color-brass: #7a5a2e;
+  --color-brass-strong: #5c431f;
+  --color-brass-wash: #f4ece0;
+
+  --font-mono:
+    ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, 'Liberation Mono', monospace;
+
   /* Semantic status colors (muted; queued/running reused by devices today,
    * succeeded/failed reserved for the jobs history in slice 11). */
   --status-queued-fg: #47575f;
@@ -151,6 +164,26 @@ button:hover:not(:disabled) {
 }
 .quiet:hover:not(:disabled) {
   background: #d9e4f3;
+}
+/* A `routerLink` that should read as the primary action (e.g. "Open your
+ * dashboard" once signed in, replacing "Sign in") — same look as `button`,
+ * spelled for an anchor so it never fires a click handler. */
+a.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--color-blue);
+  color: #fff;
+  padding: 0 18px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 120ms ease;
+}
+a.cta:hover {
+  background: var(--color-blue-strong);
 }
 .danger {
   color: var(--status-failed-fg);
@@ -475,45 +508,259 @@ table.data th {
     display: none;
   }
 }
-.steps {
-  list-style: none;
-  counter-reset: step;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: var(--space-5);
-}
-.steps li {
-  counter-increment: step;
-  padding-left: var(--space-7);
-  position: relative;
-}
-.steps li::before {
-  content: counter(step);
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--color-blue-wash);
-  color: var(--color-blue-strong);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-.steps strong {
-  display: block;
-  margin-bottom: var(--space-1);
-}
-.capabilities,
 .security-list {
   margin: 0;
   padding-left: 1.2em;
   display: grid;
   gap: var(--space-3);
+}
+
+/*
+ * Home redesign (slice 15). Every section below the hero shares one
+ * left-aligned, asymmetric rhythm — no repeating equal-width card grid —
+ * and one shared reveal treatment (`.reveal-pending` / `.is-visible`,
+ * applied to whole sections by `RevealOnScrollDirective`, never per-card).
+ */
+.manifesto,
+.flow,
+.capability-sheet,
+.trust,
+.closing {
+  margin-bottom: var(--space-7);
+}
+.reveal-pending {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 480ms ease,
+    transform 480ms ease;
+}
+.reveal-pending.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Manifesto: an editorial statement beside a title-block-style spec list. */
+.manifesto {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: var(--space-7);
+  align-items: start;
+}
+.manifesto__statement h2 {
+  font-size: 1.6rem;
+  max-width: 22ch;
+}
+.manifesto__statement p {
+  max-width: 54ch;
+}
+.specsheet {
+  margin: 0;
+  border-top: 1px solid var(--color-rule-strong);
+}
+.specsheet__row {
+  display: grid;
+  grid-template-columns: 11ch 1fr;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--color-rule);
+}
+.specsheet__row dt {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--color-ink-muted);
+  padding-top: 2px;
+}
+.specsheet__row dd {
+  margin: 0;
+  color: var(--color-ink);
+}
+
+/* How it works: a staggered signal path rather than three equal cards. */
+.flow h2 {
+  max-width: 32ch;
+  margin-bottom: var(--space-6);
+}
+.flow__diagram {
+  position: relative;
+}
+.flow__wire {
+  position: absolute;
+  top: 11px;
+  left: 11px;
+  right: 11px;
+  width: calc(100% - 22px);
+  height: 2px;
+  z-index: 0;
+}
+.flow__nodes {
+  position: relative;
+  z-index: 1;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-6);
+  counter-reset: node;
+}
+.flow__node {
+  counter-increment: node;
+  background: var(--color-paper);
+  padding-right: var(--space-3);
+}
+.flow__node--offset {
+  margin-top: var(--space-6);
+}
+.flow__node::before {
+  content: counter(node, decimal-leading-zero);
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--color-blue-strong);
+  border: 1px solid var(--color-rule-strong);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  margin-bottom: var(--space-3);
+}
+.flow__mark {
+  display: none;
+}
+.flow__node strong {
+  display: block;
+  margin: 0 0 var(--space-2);
+  font-size: 1.02rem;
+}
+.flow__node p {
+  margin: 0;
+  max-width: 32ch;
+}
+@media (min-width: 640px) {
+  .flow__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    background: var(--color-blue-wash);
+    color: var(--color-blue-strong);
+    margin-bottom: var(--space-3);
+  }
+}
+
+/* Capabilities: two datasheet panels, blue for the mature backend, brass
+ * for the newer / partial one — the same accent code used on trust. */
+.capability-sheet__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  font-size: 0.78rem;
+  color: var(--color-ink-muted);
+  margin-bottom: var(--space-5);
+}
+.capability-sheet__panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-5);
+}
+.capability-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-rule);
+  border-top: 3px solid var(--color-blue);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+}
+.capability-panel--autocad {
+  border-top-color: var(--color-brass);
+}
+.capability-panel__note {
+  font-size: 0.85rem;
+  margin-bottom: var(--space-4);
+}
+.capability-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+  font-size: 0.9rem;
+  color: var(--color-ink);
+}
+.dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: var(--space-2);
+}
+.dot--full {
+  background: var(--color-blue);
+}
+.capability-panel--autocad .dot--full {
+  background: var(--color-brass);
+}
+.dot--partial {
+  background: var(--color-brass);
+  opacity: 0.55;
+}
+.dot--none {
+  background: var(--color-rule-strong);
+}
+
+/* Trust: bullet case beside the boundary diagram. */
+.trust {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-7);
+  align-items: center;
+}
+.trust__diagram {
+  margin: 0;
+}
+.trust__diagram svg {
+  width: 100%;
+  height: auto;
+}
+.trust__diagram figcaption {
+  margin-top: var(--space-3);
+  font-size: 0.8rem;
+  color: var(--color-ink-muted);
+}
+
+/* Closing band: the CTA again, framed as a drawing's title block. */
+.closing {
+  border-top: 1px solid var(--color-rule-strong);
+  padding-top: var(--space-6);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-5);
+}
+.closing h2 {
+  max-width: 28ch;
+  margin: 0;
+}
+
+@media (max-width: 800px) {
+  .manifesto,
+  .trust {
+    grid-template-columns: 1fr;
+  }
+  .flow__nodes {
+    grid-template-columns: 1fr;
+    gap: var(--space-5);
+  }
+  .flow__node--offset {
+    margin-top: 0;
+  }
+  .flow__wire {
+    display: none;
+  }
+  .capability-sheet__panels {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

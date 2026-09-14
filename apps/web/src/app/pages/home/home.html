@@ -1,56 +1,272 @@
 <app-exploded-plug>
   @if (auth.user()) {
-    <a class="quiet" routerLink="/designs">Go to your designs</a>
+    <a class="cta" routerLink="/designs">Open your dashboard</a>
   } @else {
     <button type="button" (click)="signIn()">Sign in</button>
-    <a class="quiet" [href]="releasesUrl">Download the connector ↗</a>
   }
+  <a class="quiet" [href]="releasesUrl">Download the connector ↗</a>
 </app-exploded-plug>
 
-<section class="panel">
-  <h2>Three steps to connect</h2>
-  <ol class="steps">
-    <li>
-      <strong>Install the connector</strong>
-      <p>
-        Run the CAD Agent Designer agent on the computer with FreeCAD, or AutoCAD for detection
-        only.
+<section class="manifesto" appRevealOnScroll>
+  <div class="manifesto__statement">
+    <h2>An assistant that reaches your CAD software — not the other way around.</h2>
+    <p>
+      CAD Agent Designer runs as a small agent on the same computer as FreeCAD or AutoCAD. Claude or
+      ChatGPT talks to that agent through a fixed set of operations, never a shell and never a
+      free-form script, so the model can create and edit real designs without ever holding a copy of
+      your files.
+    </p>
+  </div>
+  <dl class="specsheet">
+    <div class="specsheet__row">
+      <dt>Execution surface</dt>
+      <dd>A closed allowlist of CAD operations. Nothing free-form reaches your machine.</dd>
+    </div>
+    <div class="specsheet__row">
+      <dt>Where it runs</dt>
+      <dd>Your computer. Native <code>.FCStd</code> and <code>.dwg</code> files never leave it.</dd>
+    </div>
+    <div class="specsheet__row">
+      <dt>Setup time</dt>
+      <dd>One pairing code, valid for <span class="tabular-nums">10</span> minutes.</dd>
+    </div>
+  </dl>
+</section>
+
+<section class="flow" aria-labelledby="flow-heading" appRevealOnScroll>
+  <h2 id="flow-heading">From a bare install to a connected assistant</h2>
+  <div class="flow__diagram">
+    <svg class="flow__wire" viewBox="0 0 600 2" preserveAspectRatio="none" aria-hidden="true">
+      <line
+        x1="0"
+        y1="1"
+        x2="600"
+        y2="1"
+        stroke="var(--color-rule-strong)"
+        stroke-width="2"
+        stroke-dasharray="1 9"
+        stroke-linecap="round"
+      />
+    </svg>
+    <ol class="flow__nodes">
+      <li class="flow__node">
+        <span class="flow__mark" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            width="22"
+            height="22"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <rect x="2" y="4" width="20" height="13" rx="1.5" />
+            <path d="M8 21h8M12 17v4" />
+          </svg>
+        </span>
+        <strong>Install the connector</strong>
+        <p>
+          Run the CAD Agent Designer agent on the computer with FreeCAD, or AutoCAD for detection
+          only.
+        </p>
+      </li>
+      <li class="flow__node flow__node--offset">
+        <span class="flow__mark" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            width="22"
+            height="22"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <rect x="3" y="6" width="14" height="12" rx="2" />
+            <circle cx="9.5" cy="12" r="1.75" />
+            <path d="M17 10h4M17 14h4" />
+          </svg>
+        </span>
+        <strong>Pair the machine</strong>
+        <p>Link it to your account with a one-time code that expires in 10 minutes.</p>
+      </li>
+      <li class="flow__node">
+        <span class="flow__mark" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            width="22"
+            height="22"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="6" cy="12" r="3" />
+            <circle cx="18" cy="12" r="3" />
+            <path d="M9 12h6" />
+          </svg>
+        </span>
+        <strong>Connect Claude or ChatGPT</strong>
+        <p>Add the CAD Agent Designer connector in your assistant's settings and sign in.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="capability-sheet" aria-labelledby="capability-heading" appRevealOnScroll>
+  <h2 id="capability-heading">What runs today</h2>
+  <p class="capability-sheet__legend">
+    <span class="dot dot--full" aria-hidden="true"></span> executes now
+    <span class="dot dot--partial" aria-hidden="true"></span> executes on some installs
+    <span class="dot dot--none" aria-hidden="true"></span> detected, not executed
+  </p>
+  <div class="capability-sheet__panels">
+    <article class="capability-panel capability-panel--freecad">
+      <h3>FreeCAD</h3>
+      <p class="capability-panel__note">Full execution on any host with a working FreeCADCmd.</p>
+      <ul class="capability-list">
+        <li>
+          <span class="dot dot--full" aria-hidden="true"></span> Create — primitives, booleans,
+          extrusions
+        </li>
+        <li>
+          <span class="dot dot--full" aria-hidden="true"></span> Modify — transforms on named
+          designs
+        </li>
+        <li>
+          <span class="dot dot--full" aria-hidden="true"></span> Read — scene contents and
+          dimensions
+        </li>
+        <li><span class="dot dot--full" aria-hidden="true"></span> Export — STEP, STL, and DXF</li>
+      </ul>
+    </article>
+    <article class="capability-panel capability-panel--autocad">
+      <h3>AutoCAD</h3>
+      <p class="capability-panel__note">
+        Create jobs on full editions with a Core Console install; AutoCAD LT is detected only.
       </p>
-    </li>
-    <li>
-      <strong>Link the machine</strong>
-      <p>Pair it to your account with a one-time code that expires in 10 minutes.</p>
-    </li>
-    <li>
-      <strong>Connect Claude or ChatGPT</strong>
-      <p>Add the CAD Agent Designer connector in your assistant's settings and sign in.</p>
-    </li>
-  </ol>
+      <ul class="capability-list">
+        <li>
+          <span class="dot dot--full" aria-hidden="true"></span> Create — always produces a
+          downloadable DWG
+        </li>
+        <li>
+          <span class="dot dot--partial" aria-hidden="true"></span> STL preview — full editions with
+          Core Console
+        </li>
+        <li>
+          <span class="dot dot--none" aria-hidden="true"></span> AutoCAD LT — installation detected,
+          not executed
+        </li>
+      </ul>
+    </article>
+  </div>
 </section>
 
-<section class="panel">
-  <h2>What it can do today</h2>
-  <ul class="capabilities">
-    <li>
-      <strong>FreeCAD</strong> — headless create, modify, read, and export on named designs:
-      primitives, booleans, transforms, extrusion, scene reads, STEP/STL/DXF export.
-    </li>
-    <li>
-      <strong>AutoCAD / AutoCAD LT</strong> — installation and edition detected only; no execution
-      yet.
-    </li>
-  </ul>
+<section class="trust" aria-labelledby="trust-heading" appRevealOnScroll>
+  <div class="trust__copy">
+    <h2 id="trust-heading">What stays yours</h2>
+    <ul class="security-list">
+      <li>
+        Every operation runs from a fixed allowlist — nothing free-form ever reaches the machine.
+      </li>
+      <li>
+        Native files (<code>.FCStd</code>, <code>.dwg</code>) never leave the computer that owns
+        them.
+      </li>
+      <li>Only a generated STL preview mesh uploads, and only so the dashboard can render it.</li>
+    </ul>
+  </div>
+  <figure class="trust__diagram">
+    <svg viewBox="0 0 300 160" aria-hidden="true">
+      <line
+        x1="150"
+        y1="8"
+        x2="150"
+        y2="152"
+        stroke="var(--color-rule-strong)"
+        stroke-width="2"
+        stroke-dasharray="4 6"
+      />
+      <rect
+        x="18"
+        y="22"
+        width="108"
+        height="28"
+        rx="4"
+        fill="var(--color-blue-wash)"
+        stroke="var(--color-blue)"
+      />
+      <text x="72" y="40" text-anchor="middle" font-size="10" fill="var(--color-blue-strong)">
+        .FCStd / .dwg
+      </text>
+      <rect
+        x="18"
+        y="66"
+        width="108"
+        height="28"
+        rx="4"
+        fill="var(--color-blue-wash)"
+        stroke="var(--color-blue)"
+      />
+      <text x="72" y="84" text-anchor="middle" font-size="10" fill="var(--color-blue-strong)">
+        Job &amp; device history
+      </text>
+      <rect
+        x="18"
+        y="110"
+        width="108"
+        height="28"
+        rx="4"
+        fill="var(--color-brass-wash)"
+        stroke="var(--color-brass)"
+      />
+      <text x="72" y="128" text-anchor="middle" font-size="10" fill="var(--color-brass-strong)">
+        STL preview mesh
+      </text>
+      <path
+        d="M128 124 H172"
+        stroke="var(--color-brass)"
+        stroke-width="2"
+        marker-end="url(#trust-arrow)"
+      />
+      <rect
+        x="174"
+        y="110"
+        width="108"
+        height="28"
+        rx="4"
+        fill="var(--color-surface)"
+        stroke="var(--color-rule-strong)"
+      />
+      <text x="228" y="128" text-anchor="middle" font-size="10" fill="var(--color-ink-muted)">
+        Dashboard render
+      </text>
+      <defs>
+        <marker
+          id="trust-arrow"
+          viewBox="0 0 10 10"
+          refX="8"
+          refY="5"
+          markerWidth="6"
+          markerHeight="6"
+          orient="auto-start-reverse"
+        >
+          <path d="M0 0L10 5L0 10Z" fill="var(--color-brass)" />
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      Native CAD files and job history stop at the boundary. Only a size-capped STL preview mesh
+      crosses it, so the dashboard has something to render.
+    </figcaption>
+  </figure>
 </section>
 
-<section class="panel">
-  <h2>Security posture</h2>
-  <ul class="security-list">
-    <li>
-      Every operation runs from a fixed allowlist — nothing free-form ever reaches the machine.
-    </li>
-    <li>
-      Native files (<code>.FCStd</code>, <code>.dwg</code>) never leave the computer that owns them.
-    </li>
-    <li>Only a generated STL preview mesh uploads, and only so the dashboard can render it.</li>
-  </ul>
+<section class="closing" appRevealOnScroll>
+  <h2>Connect once. Keep everything local.</h2>
+  <div class="hero-actions">
+    @if (auth.user()) {
+      <a class="cta" routerLink="/designs">Open your dashboard</a>
+    } @else {
+      <button type="button" (click)="signIn()">Sign in</button>
+    }
+    <a class="quiet" [href]="releasesUrl">Download the connector ↗</a>
+  </div>
 </section>

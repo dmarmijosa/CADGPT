@@ -1,0 +1,18 @@
+@switch (state()) {
+  @case ('pending') {
+    <p role="status">Signing you in…</p>
+  }
+  @case ('error') {
+    <section class="callback-error" role="alert">
+      <h1>We couldn't finish signing you in.</h1>
+      <p>
+        The sign-in link may have already been used or expired. This doesn't affect any device or
+        design you've already connected.
+      </p>
+      <div class="hero-actions">
+        <button type="button" (click)="retry()">Try again</button>
+        <a class="quiet" routerLink="/">Back to home</a>
+      </div>
+    </section>
+  }
+}

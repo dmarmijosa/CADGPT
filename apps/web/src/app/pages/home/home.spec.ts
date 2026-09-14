@@ -38,4 +38,42 @@ describe('HomePage (spec dashboard-routing: public route)', () => {
     );
     expect(download).toBeTruthy();
   });
+
+  it('shows a dashboard link instead of a sign-in trigger for a visitor who already has a session', async () => {
+    const fakeAuth = { user: () => ({ profile: { preferred_username: 'ada' } }), login: vi.fn() };
+    const sceneFactory = vi.fn().mockResolvedValue({ setProgress: vi.fn(), dispose: vi.fn() });
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: fakeAuth },
+        { provide: PLUG_SCENE_FACTORY, useValue: sceneFactory },
+        provideRouter([{ path: 'designs', children: [] }]),
+      ],
+    });
+
+    const fixture = TestBed.createComponent(HomePage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const root: HTMLElement = fixture.nativeElement;
+
+    const signInButton = Array.from(root.querySelectorAll('button')).find(
+      (b) => b.textContent?.trim() === 'Sign in',
+    );
+    expect(signInButton).toBeFalsy();
+
+    const dashboardLink = Array.from(root.querySelectorAll('a')).find(
+      (a) => a.textContent?.trim() === 'Open your dashboard',
+    );
+    expect(dashboardLink).toBeTruthy();
+    expect(dashboardLink!.getAttribute('href')).toBe('/designs');
+
+    dashboardLink!.click();
+    await fixture.whenStable();
+    expect(fakeAuth.login).not.toHaveBeenCalled();
+
+    const download = Array.from(root.querySelectorAll('a')).find((a) =>
+      a.getAttribute('href')?.includes('github.com/dmarmijosa/CADGPT/releases'),
+    );
+    expect(download).toBeTruthy();
+  });
 });

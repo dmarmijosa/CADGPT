@@ -2,18 +2,25 @@ import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ExplodedPlug } from '../../features/exploded/exploded-plug';
 import { AuthService } from '../../core/auth/auth.service';
+import { RevealOnScrollDirective } from '../../shared/reveal-on-scroll.directive';
 
 const RELEASES_URL = 'https://github.com/dmarmijosa/CADGPT/releases';
 
 /**
  * Public landing page (spec dashboard-routing: public route). Leads with a
  * scroll-driven exploded view of a spark plug (`ExplodedPlug`) as the hero,
- * then explains the three-step connection flow, today's capabilities, and
- * the security posture, for a visitor with no active session.
+ * then makes the case for the product editorially: what it is, the
+ * install → pair → connect path, what each CAD backend can do today, and
+ * what never leaves the visitor's machine.
+ *
+ * Every call to action here is auth-reactive: a visitor with no session gets
+ * "Sign in" (`auth.login`); a visitor who already holds one gets a plain
+ * `routerLink` to their dashboard instead, so clicking it never re-triggers
+ * an OIDC redirect for someone who is already signed in.
  */
 @Component({
   selector: 'app-home-page',
-  imports: [RouterLink, ExplodedPlug],
+  imports: [RouterLink, ExplodedPlug, RevealOnScrollDirective],
   templateUrl: './home.html',
 })
 export class HomePage {
