@@ -22,7 +22,7 @@ Keep the existing shape of every layer and extend it additively: Express handler
 | D10 | Agent execution seam | `CadStrategy` protocol; `FreeCadStrategy` (single allowlisted worker, per-op functions) and `AutoCadStrategy` (`.scr` template + allowlisted `.lsp`) | One script per op; subclass-per-CAD in executor | Same trust boundary as phase 1; strategy only builds argv/artifacts, executor keeps replay/timeout/env logic |
 | D11 | Capabilities | `cad.capabilities = {execute, edition, ops[], mesh}`; keep boolean `executable` mirrored for phase 1 agents | Replace boolean | Additive; `enqueue` gates on `ops.includes(op)`, falling back to a FreeCAD op list when `capabilities` is absent |
 | D12 | AutoCAD opt-in (EULA open item) | Adapter ships behind agent flag `--enable-autocad`; discovery reports `execute=false` without it; README notes user-owned license responsibility | Block slice 13 until legal answer | Unblocks engineering; the user, not the project, accepts unattended Core Console use |
-| D13 | AutoCAD mesh (spike open item) | Slice 14 conditional; until it passes, `capabilities.mesh=false` and viewer shows "Preview not available for AutoCAD; download DWG" | Assume `EXPORT`/`3DPRINT` works | Research A4: STLOUT excluded from Core Console; unproven path stays out of the critical chain |
+| D13 | AutoCAD mesh | Slice-14 live spike PASSED (2026-09-14): `STLOUT` exports a valid binary STL headless on full AutoCAD; `capabilities.mesh=true` for full editions. LT stays false. | `EXPORT`/`3DPRINT` (they hang headless) | Research A4 (STLOUT excluded) REFUTED empirically — see docs/autocad-stl-spike.md |
 | D14 | Registry detection (open item) | `HKLM\SOFTWARE\Autodesk\AutoCAD\R*\ACAD-*` → `AcadLocation`; require `<AcadLocation>\accoreconsole.exe` to exist; glob fallback `Program Files\Autodesk\AutoCAD 20*\accoreconsole.exe`; manual `--cad-path` may point at `accoreconsole.exe` directly | Run the exe to probe `PROGRAM` | Never executes untrusted binaries (existing rule); registry read unit-tested with a mocked `winreg` |
 | D15 | three.js integration (open item) | App is CSR + zoneless today (no `zone.js`, no `@angular/ssr`). Viewer boots in `afterNextRender` with `await import('./three-scene')`; render loop via rAF outside signals | Eager import in component file | Cost-free SSR safety; keeps `three` out of the initial bundle |
 | D16 | Web state | Signals + `resource()` in a `WorkspaceStore`; `AuthService` wraps `UserManager`; functional `authGuard` | NgRx/RxJS store | Project already uses signals and signal forms; small surface |
@@ -201,6 +201,6 @@ Additive schema; `migrate()` idempotent; phase 1 agents keep working (`type=null
 ## Open Questions (recorded as decisions with fallbacks)
 
 - [ ] D12 Autodesk EULA — opt-in flag; revisit wording with legal input.
-- [ ] D13 Windows spike for `EXPORT`/`3DPRINT` in Core Console — gates slice 14 only.
+- [x] D13 Windows spike DONE (2026-09-14): STLOUT works headless, EXPORT/3DPRINT hang; slice 14 uses STLOUT.
 - [ ] D14 registry layout verification on a real Windows install — glob + manual path fallback.
 - [ ] D15 confirmed CSR + zoneless; `afterNextRender` guard retained.

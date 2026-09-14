@@ -637,3 +637,63 @@ npm test → api: 45 pass, 0 fail; web: 1 pass, 0 fail
 
 ### Status
 5/6 slice-13b tasks complete (tasks.md 13b.1-13b.5 marked `[x]`; 13b.6 left `[ ]` with an inline deferral note — intentionally not implemented). 244 authored lines within the 600-line session budget — no exception needed. Not committed, not pushed. AutoCAD create jobs can now be enqueued end-to-end (API capability gate + generalized `Store.enqueue()`); modify/read ops remain deferred pending a non-vlax scene-readback design. Ready for `sdd-verify` on slice 13b.
+
+## Slice 14 — Conditional: AutoCAD STL preview (PR 18, depends on: 13b, 6; branch `feat/phase2-14-autocad-preview` stacked on `feat/phase2-13b-autocad-modify`)
+
+**Spike outcome (authoritative, recorded 2026-09-14 in `docs/autocad-stl-spike.md`)**: on the live AutoCAD 2026 host, `_STLOUT` + `_ALL` + `_Y` + `<path>` produced a valid binary STL (684 bytes = 84 + 50*12 facets) non-interactively via `accoreconsole.exe`; `_-EXPORT`/`3DPRINT` hang past 120 s on an interactive prompt `FILEDIA 0` does not suppress. Research A4 ("STLOUT excluded from Core Console") is REFUTED for AutoCAD 2026 — `_STLOUT` is the proven mechanism, `EXPORT`/`3DPRINT` are the ones that cannot run headless. This slice implements STL preview using `_STLOUT` only.
+
+**Status**: 3/3 applicable tasks complete (14.0 done in a prior batch; 14.1-14.3 this batch; 14.4 is the fail-only branch and does not apply since the spike passed). 172 changed lines (10 discovery.py + 38 autocad.py + 4 test_discovery.py + 86 test_strategies.py, additions+deletions), comfortably within the 600-line session budget. Not committed, not pushed.
+
+### Completed Tasks
+- [x] 14.0 (done in a prior batch) SPIKE PASS — see `docs/autocad-stl-spike.md`.
+- [x] 14.1 (RED) Added `AutoCadScriptGoldenTests`'s updated `expected()` golden string (now including the `_STLOUT`/`_ALL`/empty-line/`_Y`/STL-path block between the create call and `_SAVEAS`), `test_stl_path_is_job_dir_derived_not_caller_input` (proves an attacker-shaped `data["stl_path"]` has zero effect), and `AutoCadStrategyArgvTests::test_run_scr_contains_the_stlout_block_with_job_dir_stl_path` (proves the on-disk `run.scr` contains the exact block targeting `job_dir/preview.stl`) — all written against the pre-14.2 `render_script` (4-arg signature), confirmed RED via `TypeError: render_script() missing 1 required positional argument: 'stl_path'` before 14.2 landed.
+- [x] 14.2 Implemented STL export in `AutoCadStrategy.render_script` (now takes a `stl_path` parameter): appends `_STLOUT`, `_ALL`, an empty line (finish selection), `_Y` (binary), and `str(stl_path)` immediately after the `(cadgpt-<op> ...)` create call and before `_SAVEAS`/`_QUIT` — the solid already exists in the drawing by then, matching the spike's proven create → STLOUT → save ordering. `AutoCadStrategy.build_argv` computes `stl_path = job_dir / "preview.stl"` (never from `request.json`/caller params) and threads it through. `AutoCadStrategy.artifacts()["mesh"]` now returns `job_dir / "preview.stl"` (was `None`); `native` (`design.dwg`) is unchanged. Added `AutoCadArtifactsTests` (mesh stays job-scoped even when a `doc_dir` is present, unlike the doc-scoped `native`) and `AutoCadNoExportMechanismTests` (source-scan assertion that no `EXPORT`/`3DPRINT` command literal exists outside the module docstring's rationale prose).
+- [x] 14.3 Set `capabilities.mesh = (edition == "full")` for AutoCAD in `agent/cadgpt_agent/discovery.py` (was unconditionally `False`); LT stays `mesh=False` since STLOUT/Core Console are both absent there, independent of `execute`/`--enable-autocad`. Updated `AUTOCAD_OPS`'s stale docstring comment (previously claimed mesh was unavailable) and the two existing `test_discovery.py` capability assertions (full → `mesh=True`, LT → `mesh=False`, the latter newly added since no prior test asserted it).
+- [~] 14.4 N/A — conditional on the spike failing; 14.0 passed, so this branch was never taken. Left unchecked in tasks.md as a record, not as outstanding work.
+
+### Slice-6 upload step — confirmed already generic (no code change)
+Inspected `feat/phase2-06-agent-upload` (a sibling stacked branch not in this branch's ancestry, since 5-11 land on separate stacked branches per this change's delivery strategy): `agent/cadgpt_agent/main.py::run_job()` checks `jobs / job["id"] / "preview.stl"` by plain file existence and calls `upload_mesh(...)` whenever that file exists, with **no CAD-name/kind branch anywhere** in `run_job`, `upload_mesh`, or `_note_preview_unavailable`. This already covers AutoCAD's `preview.stl` unchanged once that file exists on disk — confirmed by reading the code, not by running it (that branch is out of this batch's edit scope per the task brief: "do not touch apps/**, FreeCAD strategy, or the executor's core loop beyond confirming mesh upload"). No `agent/cadgpt_agent/main.py`/`upload.py` change was made or is needed.
+
+### Files Changed
+| File | Action | What Was Done |
+|------|--------|---------------|
+| `agent/cadgpt_agent/strategies/autocad.py` | Modified | `render_script` gained a `stl_path` parameter and now emits the `_STLOUT`/`_ALL`/empty-line/`_Y`/path block between the create call and `_SAVEAS`/`_QUIT`; `build_argv` computes `job_dir/"preview.stl"` and threads it through; `artifacts()["mesh"]` returns that path instead of `None`; module docstring updated to document the proven `_STLOUT` mechanism and the refuted `EXPORT`/`3DPRINT` alternative. 38 insertions, 11 deletions. |
+| `agent/cadgpt_agent/discovery.py` | Modified | AutoCAD `capabilities.mesh` is now `edition == "full"` (was `False`); `AUTOCAD_OPS`'s comment updated to stop claiming mesh is unavailable. 10 insertions, 4 deletions. |
+| `agent/tests/test_strategies.py` | Modified | Updated `AutoCadScriptGoldenTests`/`AutoCadMalformedInputTests` for the new `stl_path` parameter and STLOUT golden block; added `test_stl_path_is_job_dir_derived_not_caller_input`, `AutoCadArtifactsTests`, `AutoCadNoExportMechanismTests`, `test_run_scr_contains_the_stlout_block_with_job_dir_stl_path`. 86 insertions, 18 deletions. |
+| `agent/tests/test_discovery.py` | Modified | Full-edition AutoCAD test now asserts `mesh=True`; LT test gained a new `mesh=False` assertion. 4 insertions, 1 deletion. |
+
+### Deviations from Design
+None — matches design D13 (AutoCAD mesh gated by the spike result) and the spec's "Conditional STL export (post-spike only)" scenario exactly: the spike passed, so the agent now additionally produces an STL mesh on a successful AutoCAD job. One correction inherited from the spike, already reflected in `docs/autocad-stl-spike.md` and the design's own D13 table before this batch started: `STLOUT` is the working mechanism, not the excluded one; `EXPORT`/`3DPRINT` are excluded instead. This batch does not alter that record, only implements against it.
+
+### Issues Found
+None. All 70 agent tests pass (67 pre-existing/prior-batch + 3 net new test methods beyond the updated goldens: `test_stl_path_is_job_dir_derived_not_caller_input`, `AutoCadArtifactsTests` ×2, `AutoCadNoExportMechanismTests`, `test_run_scr_contains_the_stlout_block_with_job_dir_stl_path` — 5 new methods, 2 pre-existing golden tests updated in place rather than added).
+
+### Remaining Tasks
+- [ ] 2c.5 (residual, unchanged from prior batches) — apply the three commented-out optional-variable lines to `.env.example` once edit authority is granted.
+- [ ] 4b.7 — optional `label` parameter, deprioritized (unchanged from prior batches).
+- [ ] 13b.6 — deferred by design (unchanged from prior batch); requires a future dedicated non-vlax scene-readback design.
+- [ ] 15.1-15.6 (Slice 15 — connect step) already landed per the Engram/state.yaml mirror on a sibling branch; not this batch's scope.
+- All 20 slices now have their applicable tasks addressed per the cumulative record in `state.yaml`; remaining open items are the residuals listed above plus the pending `size:exception` decisions on slices 2b/3a/4b/7/9/10 (unchanged from prior batches, not resolved by this one).
+
+### Workload / PR Boundary
+- Mode: stacked-to-main chained PR slice (per session `chain_strategy: stacked-to-main`), branch `feat/phase2-14-autocad-preview` stacked on `feat/phase2-13b-autocad-modify`.
+- Current work unit: Slice 14 — Conditional AutoCAD STL preview.
+- Boundary: starts at 13b's create-only AutoCAD strategy with `artifacts()["mesh"] = None` and `capabilities.mesh = False`; ends with a proven `_STLOUT`-based STL export appended to every create-op `run.scr`, `artifacts()["mesh"]` pointing at the real `preview.stl`, and `capabilities.mesh = True` for full-edition AutoCAD. No modify/read ops (13b.6 stays deferred), no `apps/**` change, no FreeCAD strategy change.
+- Estimated review budget impact: 172 changed lines against the 600-line session budget (estimated ~150) — comfortably within budget, no exception needed.
+- Rollback boundary: revert `agent/cadgpt_agent/strategies/autocad.py` and `agent/cadgpt_agent/discovery.py` to their pre-14 (13b) versions; revert the new/updated test blocks in `agent/tests/{test_strategies,test_discovery}.py`. Slice 13b and earlier are unaffected; `docs/autocad-stl-spike.md` (14.0's record) is untouched and kept.
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command and exact result | `<scratch-venv>/bin/python -m unittest agent.tests.test_strategies agent.tests.test_discovery -v` → all pass, including the two updated golden-script classes and the four new test methods/classes. Confirmed RED first for 14.1: the new STLOUT-block assertions and `test_stl_path_is_job_dir_derived_not_caller_input` were run against the pre-14.2 4-arg `render_script` and failed with `TypeError: render_script() missing 1 required positional argument: 'stl_path'`; after 14.2's implementation, restored to GREEN. |
+| Runtime harness command/scenario and exact result | N/A on this (macOS) sandbox — no real Windows AutoCAD/Core Console available here; the slice 14.0 spike itself (a prior batch, on the real Windows AutoCAD 2026 host) is the runtime evidence this slice implements against. This batch's own coverage is deterministic golden-string/file assertions against `render_script()`/`build_argv()` with synthetic and real temp-dir paths. The exact rendered `run.scr` for `create_box` 40×25×10 (including the STLOUT block) is included in this batch's return summary for the orchestrator to run live on the real host and confirm both `design.dwg` and a valid 684-byte `preview.stl` are produced. |
+| Rollback boundary | See "Workload / PR Boundary" above. |
+
+### Full Check
+```
+<scratch-venv>/bin/python -m unittest discover -s agent/tests -v → Ran 70 tests, OK (65 pre-existing + 5 net new test methods; 2 pre-existing golden-script test methods updated in place, not counted as new)
+```
+
+### Status
+3/3 applicable slice-14 tasks complete (tasks.md 14.1-14.3 marked `[x]`; 14.0 already `[x]` from a prior batch; 14.4 left unchecked with an inline "N/A — spike passed" note, not outstanding work). 172 changed lines within the 600-line session budget — no exception needed. Not committed, not pushed. AutoCAD jobs now produce both a DWG and a validated-binary-STL preview via the proven `_STLOUT` mechanism; the slice-6 upload path (on its own sibling stacked branch) already covers AutoCAD's `preview.stl` unchanged, confirmed by inspection. This is the last of the 20 planned slices with applicable tasks addressed in this change's cumulative record (`state.yaml` slice tracker: 20/20). Ready for `sdd-verify`.
