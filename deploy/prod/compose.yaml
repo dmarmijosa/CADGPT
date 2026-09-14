@@ -20,6 +20,12 @@ services:
       # same-origin, so a same-host issuer under a different path is accepted.
       OIDC_ISSUER: https://cadengine.danny-armijos.com/auth/realms/cadgpt
       OIDC_AUDIENCE: cadgpt-api
+      # Validate token signatures against Keycloak over the internal Docker
+      # network. Without this the API derives the JWKS URL from the public
+      # issuer, and the container cannot reach its own public hostname
+      # (hairpin NAT), so every token fails signature verification with a 401.
+      # The issuer above stays public so the `iss` claim check still matches.
+      OIDC_JWKS_URL: http://cadgpt-keycloak:8080/auth/realms/cadgpt/protocol/openid-connect/certs
       HOST: '0.0.0.0'
       PORT: '3000'
       DATA_DIR: /data
