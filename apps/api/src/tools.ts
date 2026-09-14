@@ -15,6 +15,7 @@ export const FREECAD_OPS = [
   'boolean_cut',
   'boolean_union',
   'boolean_intersect',
+  'extrude_rect',
   'translate_object',
   'rotate_object',
   'scale_object',
@@ -37,6 +38,10 @@ const nameFrag = z
   .string()
   .regex(/^[A-Za-z0-9 _-]{1,60}$/)
   .optional();
+// D5 object addressing: FreeCAD internal `Name` or an AutoCAD handle. A
+// dictionary key the worker resolves via `doc.getObject()`, never code/path.
+const objectNameFrag = z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,31}$|^[0-9A-F]{1,16}$/);
+const planeFrag = z.enum(['XY', 'XZ', 'YZ']);
 
 export const createBoxSchema = z
   .object({
@@ -97,6 +102,47 @@ export const batchASchemas = {
   create_sphere: createSphereSchema,
   create_cone: createConeSchema,
   get_job: getJobSchema,
+} as const;
+
+// Batch B1 (design "MCP Tool Catalog"): booleans always reopen an existing
+// document, so `documentId` is required (not optional like the create tools).
+const booleanSchema = z
+  .object({
+    deviceId: deviceIdFrag,
+    cadId: cadIdFrag,
+    documentId: z.uuid(),
+    base: objectNameFrag,
+    tool: objectNameFrag,
+    confirmed: confirmedFrag,
+  })
+  .strict();
+
+export const booleanCutSchema = booleanSchema;
+export const booleanUnionSchema = booleanSchema;
+export const booleanIntersectSchema = booleanSchema;
+
+// Design calls this `extrude_sketch_rect`; tasks.md names the tool
+// `extrude_rect` — following tasks.md and flagging the naming divergence.
+export const extrudeRectSchema = z
+  .object({
+    deviceId: deviceIdFrag,
+    cadId: cadIdFrag,
+    documentId: documentIdFrag,
+    width: mmFrag,
+    height: mmFrag,
+    depth: mmFrag,
+    plane: planeFrag,
+    position: positionFrag,
+    confirmed: confirmedFrag,
+  })
+  .strict();
+
+/** Every batch-B1 schema; asserted alongside batch A to never carry `owner`/`username`. */
+export const batchB1Schemas = {
+  boolean_cut: booleanCutSchema,
+  boolean_union: booleanUnionSchema,
+  boolean_intersect: booleanIntersectSchema,
+  extrude_rect: extrudeRectSchema,
 } as const;
 
 type ToolResult = { content: { type: 'text'; text: string }[] };
@@ -346,6 +392,59 @@ export function registerTools(
           { radius1, radius2, height, position },
           { deviceId, cadId, documentId },
           'Cone',
+        ),
+      );
+    },
+  );
+  function registerBoolean(name: 'boolean_cut' | 'boolean_union' | 'boolean_intersect') {
+    server.registerTool(
+      name,
+      {
+        description: `Combine two existing objects on a design (${name}). Ask the user to confirm before mutating.`,
+        inputSchema: batchB1Schemas[name],
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: false,
+          openWorldHint: false,
+        },
+      },
+      async (p) => {
+        await requireWrite();
+        const { deviceId, cadId, documentId, base, tool } = p;
+        return result(
+          enqueueOp(store, owner, name, { base, tool }, { deviceId, cadId, documentId }, 'Design'),
+        );
+      },
+    );
+  }
+  registerBoolean('boolean_cut');
+  registerBoolean('boolean_union');
+  registerBoolean('boolean_intersect');
+  server.registerTool(
+    'extrude_rect',
+    {
+      description:
+        'Extrude a rectangle (width x height) along its plane normal by depth, in millimeters, either as a new design or appended to an existing one via documentId. Ask the user to confirm dimensions first.',
+      inputSchema: extrudeRectSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (p) => {
+      await requireWrite();
+      const { deviceId, cadId, documentId, width, height, depth, plane, position } = p;
+      return result(
+        enqueueOp(
+          store,
+          owner,
+          'extrude_rect',
+          { width, height, depth, plane, position },
+          { deviceId, cadId, documentId },
+          'Extrude',
         ),
       );
     },

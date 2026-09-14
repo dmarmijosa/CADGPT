@@ -120,6 +120,28 @@ def _create_cone(data, doc_dir):
                               lambda Part, vec: Part.makeCone(radius1, radius2, height, vec))
 
 
+_EXTRUDE_BOX_ARGS = {
+    # Rectangle drawn on `plane`, extruded along its normal by `depth`.
+    # `Part.makeBox(length, width, height, position)` extents map as:
+    "XY": lambda w, h, d: (w, h, d),  # X=width, Y=height, Z=depth (normal)
+    "XZ": lambda w, h, d: (w, d, h),  # X=width, Y=depth (normal), Z=height
+    "YZ": lambda w, h, d: (d, w, h),  # X=depth (normal), Y=width, Z=height
+}
+
+
+def _extrude_rect(data, doc_dir):
+    width = _mm(data.get("width"), "width")
+    height = _mm(data.get("height"), "height")
+    depth = _mm(data.get("depth"), "depth")
+    plane = data.get("plane")
+    if plane not in _EXTRUDE_BOX_ARGS:
+        raise ValueError("plane must be one of XY, XZ, YZ")
+    box_args = _EXTRUDE_BOX_ARGS[plane](width, height, depth)
+    x, y, z = _position(data)
+    return _create_primitive(data, doc_dir, "Extrude", x, y, z,
+                              lambda Part, vec: Part.makeBox(*box_args, vec))
+
+
 def _boolean(feature_type):
     def handler(data, doc_dir):
         base_name = _object_name(data.get("base"), "base")
@@ -173,7 +195,11 @@ def _scale_object(data, doc_dir):
     factor = _bounded(data.get("factor"), "factor", 0.001, 1000)
     document = _open_document(doc_dir)
     obj = _get_object(document, name)
-    obj.Shape.scale(factor)
+    # `obj.Shape` is an immutable view; scale a copy about the object's own
+    # centre so it grows in place, then assign it back.
+    shape = obj.Shape.copy()
+    shape.scale(factor, shape.BoundBox.Center)
+    obj.Shape = shape
     document.recompute()
     return document
 
@@ -187,6 +213,7 @@ OPS = {
     "create_cylinder": _create_cylinder,
     "create_sphere": _create_sphere,
     "create_cone": _create_cone,
+    "extrude_rect": _extrude_rect,
     "boolean_cut": _boolean_cut,
     "boolean_union": _boolean_union,
     "boolean_intersect": _boolean_intersect,

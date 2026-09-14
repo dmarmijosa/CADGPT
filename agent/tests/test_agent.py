@@ -84,6 +84,15 @@ class FreecadWorkerValidationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             freecad_worker.OPS["scale_object"]({"object": "Box", "factor": 0.0001}, Path("/unused"))
 
+    def test_malformed_plane_rejected_before_any_freecad_import(self):
+        """4a.3: an unrecognized `plane` must fail before FreeCAD is imported.
+        `sys.modules["FreeCAD"]`/`Part` are not stubbed here, so a premature
+        import would raise `ModuleNotFoundError` instead of `ValueError`."""
+        for value in ("XYZ", "xy", "", None, 42):
+            with self.assertRaises(ValueError):
+                freecad_worker.OPS["extrude_rect"](
+                    {"width": 10, "height": 10, "depth": 10, "plane": value}, Path("/unused"))
+
 
 class _FakeVector:
     """The only fake needing a real class: `Placement.Base + Vector(...)`."""
@@ -94,9 +103,24 @@ class _FakeVector:
         return _FakeVector(self.x + other.x, self.y + other.y, self.z + other.z)
 
 
+class _FakeShape:
+    """Mimics a Part shape: `copy()` returns a mutable clone; `scale()` records its call."""
+
+    def __init__(self):
+        self.BoundBox = SimpleNamespace(XMin=0.0, YMin=0.0, ZMin=0.0, XMax=10.0, YMax=10.0, ZMax=10.0,
+                                        Center=_FakeVector())
+        self.Volume = 1000.0
+        self.scale_calls = []
+
+    def copy(self):
+        return _FakeShape()
+
+    def scale(self, factor, center=None):
+        self.scale_calls.append((factor, center))
+
+
 def _fake_shape():
-    bbox = SimpleNamespace(XMin=0.0, YMin=0.0, ZMin=0.0, XMax=10.0, YMax=10.0, ZMax=10.0)
-    return SimpleNamespace(BoundBox=bbox, Volume=1000.0, scale=lambda factor: None)
+    return _FakeShape()
 
 
 def _fake_object(name):
@@ -157,9 +181,16 @@ class _FakeFreeCAD:
 
 class _FakePart:
     """Every `make*`/`makeCompound` builder takes different args but yields
-    the same fake shape, so one catch-all attribute resolves them all."""
+    the same fake shape, so one catch-all attribute resolves them all and
+    records its call args for assertions that need to inspect them."""
+    def __init__(self):
+        self.calls = {}
+
     def __getattr__(self, name):
-        return lambda *args, **kwargs: _fake_shape()
+        def builder(*args, **kwargs):
+            self.calls[name] = args
+            return _fake_shape()
+        return builder
 
 
 class _FakeMeshPart:
@@ -178,8 +209,9 @@ class FreecadWorkerOpsTests(unittest.TestCase):
 
     def setUp(self):
         self.fake_freecad = _FakeFreeCAD()
+        self.fake_part = _FakePart()
         sys.modules["FreeCAD"] = self.fake_freecad
-        sys.modules["Part"] = _FakePart()
+        sys.modules["Part"] = self.fake_part
         sys.modules["MeshPart"] = _FakeMeshPart()
 
     def tearDown(self):
@@ -218,6 +250,35 @@ class FreecadWorkerOpsTests(unittest.TestCase):
             box = document.getObject("Box")
             self.assertEqual((box.Placement.Base.x, box.Placement.Base.y, box.Placement.Base.z), (1, 2, 3))
             self.assertEqual(document.save_calls, 1)
+
+    def test_scale_object_scales_a_copy_and_assigns_it_back(self):
+        """`obj.Shape` is immutable in FreeCAD: the worker must scale a copy
+        about the shape centre and assign the copy back to the feature."""
+        with tempfile.TemporaryDirectory() as d:
+            doc_dir = Path(d)
+            freecad_worker.run(doc_dir, doc_dir, {
+                "op": "scale_object", "document_id": "existing", "object": "Box", "factor": 2,
+            })
+            box = self.fake_freecad.last_document.getObject("Box")
+            self.assertEqual(len(box.Shape.scale_calls), 1)
+            factor, center = box.Shape.scale_calls[0]
+            self.assertEqual(factor, 2.0)
+            self.assertIsNotNone(center)
+
+    def test_extrude_rect_maps_plane_to_makebox_args(self):
+        """4a.3: each `plane` maps width/height/depth onto the right
+        `Part.makeBox(length, width, height, position)` extents."""
+        expected = {"XY": (10, 20, 30), "XZ": (10, 30, 20), "YZ": (30, 10, 20)}
+        for plane, box_args in expected.items():
+            with tempfile.TemporaryDirectory() as d:
+                job_dir = Path(d)
+                freecad_worker.run(job_dir, job_dir, {
+                    "op": "extrude_rect", "width": 10, "height": 20, "depth": 30, "plane": plane,
+                })
+                recorded = self.fake_part.calls["makeBox"]
+                self.assertEqual(recorded[:3], box_args)
+                document = self.fake_freecad.last_document
+                self.assertEqual(document.saveas_path, str(job_dir / "design.FCStd"))
 
     def test_read_scene_writes_scene_json_without_saving(self):
         with tempfile.TemporaryDirectory() as d:
