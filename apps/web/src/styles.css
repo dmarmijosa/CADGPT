@@ -305,6 +305,32 @@ button:hover:not(:disabled) {
   font-variant-numeric: tabular-nums;
 }
 
+/* Devices table: one CAD summary line per detected installation, and the
+ * inline revoke-confirmation row (replaces a native confirm dialog). */
+.cad-summary {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: 0.8rem;
+}
+.cad-summary:last-child {
+  margin-bottom: 0;
+}
+.confirm-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.8rem;
+}
+
+/* Designs page: the collapsed "Create a test box" panel. */
+.panel > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.panel[open] > summary {
+  margin-bottom: var(--space-4);
+}
+
 /* Skip link (shell landmark, hidden until focused). */
 .skip-link {
   position: absolute;

@@ -1,35 +1,29 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormField, form, max, min } from '@angular/forms/signals';
 import { RouterLink } from '@angular/router';
-import { ApiService } from '../../core/api/api.service';
-import { Device } from '../devices/devices';
-
-export interface Design {
-  id: string;
-  name: string;
-  cadKind: string;
-  created: number;
-  updated: number;
-  hasMesh: boolean;
-}
+import { ApiClient } from '../../core/api/api-client';
+import { WorkspaceStore } from '../../core/state/workspace.store';
 
 /**
- * Guarded designs list (`GET /api/designs`, owner-scoped by the server).
- * Keeps a minimal "create a box" form on this page — the README's
- * "Try the first operation" walkthrough still documents the phase-1
- * dashboard flow, so it stays available until the MCP tool flow replaces it
- * in the docs.
+ * Guarded designs list (`GET /api/designs`, owner-scoped by the server —
+ * spec document-registry "List scoped to owner"). This page renders
+ * `WorkspaceStore.designs` as-is: it never filters rows client-side and
+ * never calls anything but that one owner-scoped endpoint.
+ *
+ * Keeps a "create a test box" form, collapsed by default, for the README's
+ * "Try the first operation" walkthrough — the MCP tool flow documents the
+ * same operation for a connected assistant.
  */
 @Component({
   selector: 'app-designs-page',
-  imports: [FormField, RouterLink],
+  imports: [FormField, RouterLink, DatePipe],
   templateUrl: './designs.html',
 })
-export class DesignsPage implements OnInit {
-  private readonly api = inject(ApiService);
+export class DesignsPage {
+  readonly workspace = inject(WorkspaceStore);
+  private readonly api = inject(ApiClient);
 
-  readonly designs = signal<Design[]>([]);
-  readonly devices = signal<Device[]>([]);
   readonly busy = signal(false);
   readonly error = signal('');
   readonly notice = signal('');
@@ -48,8 +42,8 @@ export class DesignsPage implements OnInit {
     }
   });
   readonly freecadOptions = computed(() =>
-    this.devices()
-      .filter((d) => d.online)
+    this.workspace
+      .onlineDevices()
       .flatMap((d) =>
         d.cads
           .filter((c) => c.name === 'FreeCAD' && c.executable)
@@ -57,21 +51,8 @@ export class DesignsPage implements OnInit {
       ),
   );
 
-  async ngOnInit(): Promise<void> {
-    this.busy.set(true);
-    this.error.set('');
-    try {
-      const [designs, devices] = await Promise.all([
-        this.api.request<Design[]>('/api/designs'),
-        this.api.request<Device[]>('/api/devices'),
-      ]);
-      this.designs.set(designs);
-      this.devices.set(devices);
-    } catch (e) {
-      this.error.set(e instanceof Error ? e.message : 'Could not connect. Try again.');
-    } finally {
-      this.busy.set(false);
-    }
+  errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : 'Could not connect. Try again.';
   }
 
   selectOption(value: string): void {
@@ -84,9 +65,10 @@ export class DesignsPage implements OnInit {
     this.error.set('');
     this.notice.set('');
     try {
-      await this.api.request('/api/jobs', 'POST', this.model());
+      await this.api.createBoxJob(this.model());
       this.notice.set('Job queued for that device. Check Jobs for the result.');
       this.model.update((m) => ({ ...m, confirmed: false }));
+      this.workspace.refreshAll();
     } catch (e) {
       this.error.set(e instanceof Error ? e.message : 'Could not connect. Try again.');
     } finally {
