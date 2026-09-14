@@ -151,14 +151,14 @@ Acceptance: `boolean_union` with a malformed object id (containing `;`) fails va
 
 ## Slice 4b — MCP tools batch B2: transforms, read_scene, export + shared allowlist fixture (PR 7, depends on: 4a)
 
-- [ ] 4b.1 Register `translate_object`/`rotate_object`/`scale_object` (`documentId`, `object`, bounded numeric params, `confirmed`).
-- [ ] 4b.2 Register `read_scene` (`documentId` only), returning `scene` JSON capped at ≤12 kB, rendered as data/text only, never interpreted.
-- [ ] 4b.3 Register `export_design` (`documentId`, `format: z.enum(['step','stl','dxf'])`, `confirmed`).
-- [ ] 4b.4 Create `ops-allowlist.json` at the **repo root** listing every server-exposed op (design risk 4 — shared fixture both `apps/api/test` and `agent/tests` read by relative path).
-- [ ] 4b.5 (RED) Add a test asserting the server tool catalog is a subset of `ops-allowlist.json`, and a matching `agent/tests` test asserting the agent's `OPS` dict is a superset of the same fixture (spec mcp-cad-operations "Agent re-validates allowlist").
-- [ ] 4b.6 Tests: transform-bounds rejection (`rotate_object` degrees outside [-360,360], `scale_object` factor outside [0.001,1000]); `export_design` format-enum rejection; `read_scene` 12 kB cap enforcement.
+- [x] 4b.1 Register `translate_object`/`rotate_object`/`scale_object` (`documentId`, `object`, bounded numeric params, `confirmed`).
+- [x] 4b.2 Register `read_scene` (`documentId` only), returning `scene` JSON capped at ≤12 kB, rendered as data/text only, never interpreted.
+- [x] 4b.3 Register `export_design` (`documentId`, `format: z.enum(['step','stl','dxf'])`, `confirmed`).
+- [x] 4b.4 Create `ops-allowlist.json` at the **repo root** listing every server-exposed op (design risk 4 — shared fixture both `apps/api/test` and `agent/tests` read by relative path).
+- [x] 4b.5 (RED) Add a test asserting the server tool catalog is a subset of `ops-allowlist.json`, and a matching `agent/tests` test asserting the agent's `OPS` dict is a superset of the same fixture (spec mcp-cad-operations "Agent re-validates allowlist").
+- [x] 4b.6 Tests: transform-bounds rejection (`rotate_object` degrees outside [-360,360], `scale_object` factor outside [0.001,1000]); `export_design` format-enum rejection; `read_scene` 12 kB cap enforcement.
 
-Acceptance: the server tool catalog is verified (by 4b.5) to be a subset of the shared `ops-allowlist.json`, which the agent's allowlist also covers. ~220 changed lines.
+Acceptance: the server tool catalog is verified (by 4b.5) to be a subset of the shared `ops-allowlist.json`, which the agent's allowlist also covers. ~220 changed lines estimated in this file; **actual authored diff is 711 lines** (see apply-progress.md "Budget overrun" note) — exceeds the 600-line review budget even excluding 4b.7. Flagged for a delivery-strategy decision (size:exception vs. PR split) before this branch opens a PR.
 
 - [ ] 4b.7 Follow-up from slice 3b guidance: add an optional `label` parameter (regex `^[A-Za-z][A-Za-z0-9_]{0,31}$`, same as worker object names) to every `create_*` tool, forward it in the job payload, set `obj.Label` in the worker's `_create_primitive`, and include `label` in `read_scene` output so the "name features by function" guidance is actionable.
 
