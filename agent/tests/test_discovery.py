@@ -283,5 +283,65 @@ class AutoCadRegistryDetectionTests(unittest.TestCase):
             self.assertIsNone(cad["capabilities"]["console"])
 
 
+class EnableAutocadFlagTests(unittest.TestCase):
+    """13a.5/13a.8: `enable_autocad` is the sole gate for AutoCAD `execute`;
+    off by default (D12), and never true for LT even when passed."""
+
+    def test_full_autocad_stays_non_executable_without_the_flag(self):
+        with tempfile.TemporaryDirectory() as d:
+            install_dir = Path(d) / "AutoCAD 2026"
+            install_dir.mkdir()
+            console_path = install_dir / "accoreconsole.exe"
+            console_path.touch()
+            tree = {"R25.1": {"ACAD-9101": {**FULL_TREE["R25.1"]["ACAD-9101"], "AcadLocation": str(install_dir)}}}
+            with patch("cadgpt_agent.discovery.platform.system", return_value="Windows"), \
+                 patch("cadgpt_agent.discovery.winreg", make_fake_winreg(tree)), \
+                 patch.dict("cadgpt_agent.discovery.os.environ", {"ProgramFiles": str(Path(d) / "empty-pf")}):
+                cads = discover()  # enable_autocad defaults to False
+            cad = next(c for c in cads if c["path"] == str(console_path.resolve()))
+            self.assertFalse(cad["capabilities"]["execute"])
+            self.assertFalse(cad["executable"])
+
+    def test_full_autocad_becomes_executable_with_the_flag(self):
+        with tempfile.TemporaryDirectory() as d:
+            install_dir = Path(d) / "AutoCAD 2026"
+            install_dir.mkdir()
+            console_path = install_dir / "accoreconsole.exe"
+            console_path.touch()
+            tree = {"R25.1": {"ACAD-9101": {**FULL_TREE["R25.1"]["ACAD-9101"], "AcadLocation": str(install_dir)}}}
+            with patch("cadgpt_agent.discovery.platform.system", return_value="Windows"), \
+                 patch("cadgpt_agent.discovery.winreg", make_fake_winreg(tree)), \
+                 patch.dict("cadgpt_agent.discovery.os.environ", {"ProgramFiles": str(Path(d) / "empty-pf")}):
+                cads = discover(enable_autocad=True)
+            cad = next(c for c in cads if c["path"] == str(console_path.resolve()))
+            self.assertTrue(cad["capabilities"]["execute"])
+            self.assertTrue(cad["executable"])
+
+    def test_lt_stays_non_executable_even_with_the_flag(self):
+        with tempfile.TemporaryDirectory() as d:
+            install_dir = Path(d) / "AutoCAD LT 2026"
+            install_dir.mkdir()
+            acadlt_path = install_dir / "acadlt.exe"
+            acadlt_path.touch()
+            tree = {"R25.1": {"ACAD-9201": {**LT_TREE["R25.1"]["ACAD-9201"], "AcadLocation": str(install_dir)}}}
+            with patch("cadgpt_agent.discovery.platform.system", return_value="Windows"), \
+                 patch("cadgpt_agent.discovery.winreg", make_fake_winreg(tree)), \
+                 patch.dict("cadgpt_agent.discovery.os.environ", {"ProgramFiles": str(Path(d) / "empty-pf")}):
+                cads = discover(str(acadlt_path), enable_autocad=True)
+            cad = next(c for c in cads if c["path"] == str(acadlt_path.resolve()))
+            self.assertFalse(cad["capabilities"]["execute"])
+            self.assertFalse(cad["executable"])
+
+    def test_freecad_capabilities_unaffected_by_the_flag(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "FreeCADCmd"
+            path.touch()
+            with patch("cadgpt_agent.discovery.platform.system", return_value="Darwin"):
+                cads = discover(str(path), enable_autocad=True)
+            cad = next(c for c in cads if c["path"] == str(path.resolve()))
+            self.assertTrue(cad["capabilities"]["execute"])
+            self.assertTrue(cad["executable"])
+
+
 if __name__ == "__main__":
     unittest.main()

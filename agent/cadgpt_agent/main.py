@@ -47,6 +47,10 @@ def main():
     parser.add_argument("--headless", action="store_true", help="Print pairing URL instead of opening a browser")
     parser.add_argument("--allow-file-credentials", action="store_true", help="Explicitly allow owner-only file storage when no OS keyring exists")
     parser.add_argument("--pair", action="store_true", help="Discard saved credential and pair again")
+    parser.add_argument("--enable-autocad", action="store_true",
+                         help="Opt in to running full AutoCAD via Core Console (accoreconsole.exe). "
+                              "Off by default (D12); you are responsible for your own Autodesk license terms "
+                              "permitting this unattended, scripted use. See SECURITY.md.")
     args = parser.parse_args()
     root = Path(user_data_dir("CADGPT", appauthor=False))
     root.mkdir(parents=True, mode=0o700, exist_ok=True)
@@ -68,7 +72,7 @@ def main():
     server = server_url(value)
     manual = args.cad_path or config.get("cadPath")
     config_file.write_text(json.dumps({"server": server, "cadPath": manual}))
-    cads = discover(manual)
+    cads = discover(manual, enable_autocad=args.enable_autocad)
     file = root / "credential.json"
     credential = None
     use_file = False

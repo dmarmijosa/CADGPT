@@ -84,10 +84,21 @@ Files remain on that computer. The alpha does not upload models or download them
 |---|---|
 | FreeCAD with working `FreeCADCmd` / `freecadcmd`, Windows/macOS/Linux | Fixed headless box operation; installation-specific testing required |
 | FreeCAD GUI-only installation, AppImage, Flatpak or Snap | May need manual path or a separate command-line installation; no wrapper support promised |
-| AutoCAD / AutoCAD LT | Installation discovery only; no execution adapter shipped |
+| Full AutoCAD with `accoreconsole.exe`, Windows | Opt-in only (`--enable-autocad`); create-only primitives (box/cylinder/sphere/cone/extrude) via an allowlisted `.lsp`/`.scr` script; produces a DWG, no preview yet |
+| AutoCAD LT, or full AutoCAD without `accoreconsole.exe` | Installation discovery only; LT has no Core Console, so no execution adapter is offered regardless of the flag |
 | AutoCAD on Linux | Not a supported target |
 
-The agent's private Python runs networking and discovery. **FreeCAD uses its own Python and libraries**, avoiding a dependency on the user's system Python. No arbitrary Python, AutoLISP, shell, or file-path execution tool is exposed.
+The agent's private Python runs networking and discovery. **FreeCAD uses its own Python and libraries**, avoiding a dependency on the user's system Python. No arbitrary Python or shell execution tool is exposed; the opt-in AutoCAD adapter loads only its own bundled, allowlisted `.lsp` file (never caller-supplied AutoLISP) through AutoCAD Core Console.
+
+### AutoCAD (opt-in, experimental)
+
+AutoCAD execution is off by default. A detected full AutoCAD installation with `accoreconsole.exe` is only ever reported executable, and only ever dispatched a job, when you start the agent with `--enable-autocad`:
+
+```bash
+cadgpt-agent --server https://your-cadgpt.example --enable-autocad
+```
+
+**You are responsible for your own Autodesk license terms.** This flag drives AutoCAD Core Console (`accoreconsole.exe`) unattended, from a script CADGPT renders and controls; CADGPT does not interpret, warrant, or provide any Autodesk license, and does not claim this mode of use is permitted under every AutoCAD/AutoCAD LT license. Confirm your own EULA allows unattended, scripted invocation before enabling this flag. See `SECURITY.md` for the trust boundary this adapter operates under.
 
 ## Run from source
 

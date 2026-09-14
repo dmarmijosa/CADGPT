@@ -20,14 +20,14 @@ FREECAD_OPS = [
     "read_scene", "export_design",
 ]
 
-# AutoLISP-mappable subset only: primitive creation, booleans, transforms.
-# `read_scene`/`export_design` have no AutoCAD mapping in this slice — read
-# support for AutoCAD is added in slice 13b once the `.lsp`/`.scr` adapter
-# exists (design D10/D11, spec cad-discovery).
+# Ops the AutoCAD adapter can actually run today. Kept in lockstep with
+# `strategies.autocad._CREATE_OPS` (the agent's own gate) so the API's
+# capability check (`cad.capabilities.ops`) never advertises an op the agent
+# would then reject. Slice 13a ships create ops only; slice 13b widens this
+# to booleans/transforms as their `.lsp`/`.scr` mapping lands, and adds
+# read_scene/export for AutoCAD.
 AUTOCAD_OPS = [
     "create_box", "create_cylinder", "create_sphere", "create_cone", "extrude_rect",
-    "boolean_cut", "boolean_union", "boolean_intersect",
-    "translate_object", "rotate_object", "scale_object",
 ]
 
 
@@ -95,7 +95,7 @@ def _autocad_registry_installs():
     return installs
 
 
-def discover(manual=None):
+def discover(manual=None, enable_autocad=False):
     system = platform.system()
     paths = []
     console_editions = {}  # str(path) -> 'full' | 'lt', for accoreconsole.exe candidates
@@ -161,10 +161,10 @@ def discover(manual=None):
             edition = console_editions.get(str(path), "lt" if "lt" in path.name.lower() else ("full" if is_console else "unknown"))
             console = p if is_console else None
             # D12: AutoCAD execution is opt-in behind agent flag
-            # `--enable-autocad`, added in slice 13a. Discovery never reports
-            # `execute=true` for AutoCAD until that flag exists and is set —
-            # not even for a confirmed full-edition accoreconsole.exe.
-            executable = False
-            capabilities = dict(execute=False, edition=edition, console=console, ops=AUTOCAD_OPS, mesh=False)
+            # `--enable-autocad`. Even a confirmed full-edition
+            # accoreconsole.exe stays non-executable without it; LT never
+            # becomes executable regardless of the flag (no Core Console).
+            executable = bool(enable_autocad and edition == "full" and console is not None)
+            capabilities = dict(execute=executable, edition=edition, console=console, ops=AUTOCAD_OPS, mesh=False)
         result[identity] = dict(id=identity, name=name, path=p, version="Not verified", executable=executable, capabilities=capabilities)
     return list(result.values())[:30]

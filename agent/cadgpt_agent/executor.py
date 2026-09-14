@@ -8,10 +8,11 @@ import threading
 import time
 import uuid
 
+from .strategies.autocad import AutoCadStrategy
 from .strategies.freecad import FreeCadStrategy
 
-# Keyed by cad["name"]; extended with an AutoCAD strategy in a later slice.
-STRATEGIES = {"FreeCAD": FreeCadStrategy()}
+# Keyed by cad["name"].
+STRATEGIES = {"FreeCAD": FreeCadStrategy(), "AutoCAD": AutoCadStrategy()}
 
 # Mirrors the server-side re-enforcement in `apps/api/src/tools.ts`.
 SCENE_CAP_BYTES = 12_000
@@ -28,6 +29,16 @@ def _cap_scene(scene):
         size += chunk_size
         kept.append(entry)
     return kept, len(kept) < len(scene)
+
+def _decode_tail(tail, cad_kind):
+    """Decode a captured stdout/stderr tail for inclusion in an error message.
+
+    AutoCAD Core Console emits UTF-16LE on stdout (a documented quirk); every
+    other CAD strategy in this codebase emits plain UTF-8/ASCII. `errors`
+    stays `"replace"` either way so a decode mismatch never raises.
+    """
+    encoding = "utf-16-le" if cad_kind == "AutoCAD" else "utf-8"
+    return bytes(tail).decode(encoding, errors="replace").strip()
 
 def validate(job):
     if str(uuid.UUID(job["id"])) != job["id"]:
@@ -65,12 +76,14 @@ def resolve_document_dir(root, document_id):
 
 def execute(job, cads, root):
     validate(job)
-    cad = next((c for c in cads if c["id"] == job["cadId"] and c["name"] == "FreeCAD" and c["executable"]), None)
+    # Selection is CAD-neutral: pick the entry matching `cadId` that is
+    # marked executable AND has a registered strategy for its `name`. An
+    # AutoCAD entry with `executable=False` (D12: no `--enable-autocad`) is
+    # unreachable here regardless of what `AutoCadStrategy.supports()` says.
+    cad = next((c for c in cads if c["id"] == job["cadId"] and c["executable"] and c["name"] in STRATEGIES), None)
     if not cad:
-        raise ValueError("Compatible FreeCAD command-line executable not found")
-    strategy = STRATEGIES.get(cad["name"])
-    if strategy is None:
-        raise ValueError("No execution strategy registered for this CAD")
+        raise ValueError("Compatible CAD executable not found")
+    strategy = STRATEGIES[cad["name"]]
     op = job.get("type") or "create_box"
     if not strategy.supports(op):
         raise ValueError("Unsupported operation for this CAD strategy")
@@ -113,14 +126,16 @@ def execute(job, cads, root):
     except subprocess.TimeoutExpired:
         process.kill()
         process.wait()
-        raise RuntimeError("FreeCAD exceeded the 120-second execution limit")
+        raise RuntimeError("The CAD engine exceeded the 120-second execution limit")
     finally:
         reader.join(timeout=5)
         process.stdout.close()
     artifacts = strategy.artifacts(op, directory, doc_dir)
     output = artifacts["native"]
     if code != 0 or not output.is_file():
-        raise RuntimeError("FreeCAD failed to create the document. Check local installation compatibility.")
+        detail = _decode_tail(tail, cad["name"])[-500:]
+        message = "The CAD engine failed to create the document. Check local installation compatibility."
+        raise RuntimeError(message + (" " + detail if detail else ""))
     scene_path = artifacts.get("scene")
     if scene_path is not None and scene_path.is_file():
         scene, truncated = _cap_scene(json.loads(scene_path.read_text(encoding="utf-8")))
@@ -131,7 +146,7 @@ def execute(job, cads, root):
     if op == "export_design":
         export_path = (doc_dir or directory) / ("export." + str(job.get("format")))
         if not export_path.is_file():
-            raise RuntimeError("FreeCAD failed to export the design.")
+            raise RuntimeError("The CAD engine failed to export the design.")
         size = export_path.stat().st_size
         return "Exported " + export_path.name + " (" + str(size) + " bytes). CAD files remain on this device."
     return "Created " + str(output) + ". CAD files remain on this device."
