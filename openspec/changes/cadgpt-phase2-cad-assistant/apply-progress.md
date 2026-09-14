@@ -324,3 +324,58 @@ npm test        → api: 28/28 pass; web (Vitest via `ng test`): 1/1 pass
 
 ### Status
 4/4 slice-3b tasks complete (tasks.md 3b.1-3b.4 marked `[x]`). `npm run format && npm run build && npm test` all green (api 28/28, web 1/1). Cumulative: 36/114 tasks complete across slices 1-3b (per tasks.md's current `[x]` count, excluding the still-open 2c.5 residual). Not committed, not pushed (per instructions). 322 changed lines is well within the 600-line session budget — no exception needed. Ready for `sdd-verify` on slice 3b, or `sdd-apply` again to continue with slice 4a.
+
+## Slice 4a — MCP tools batch B1: booleans, extrude (PR 6, depends on: 3a, 2b; branch `feat/phase2-04a-mcp-tools-b1` stacked on `feat/phase2-03b-mcp-instructions`)
+
+**Status**: done (tasks 4a.1-4a.5 complete), 367 changed lines against this batch's 600-line session review budget.
+
+### Completed Tasks
+- [x] 4a.1 (RED) Added `apps/api/test/tools-b1.test.ts::"4a.1 (RED): a base/tool object id shaped like an argv/path escape fails validation before enqueue"`, first, before `boolean_cut`/etc. existed on this branch's schemas — every one of `..`, `a;b`, `a'b`, `a"b`, `a/b`, `../../etc` fails validation and enqueues zero additional jobs (only the one `create_box` setup job exists throughout).
+- [x] 4a.2 Registered `boolean_cut`/`boolean_union`/`boolean_intersect` in `apps/api/src/tools.ts` via a shared `booleanSchema` (`deviceId?`, `cadId?`, `documentId: z.uuid()` — required, not optional, since a boolean always reopens an existing document — `base: objectNameFrag`, `tool: objectNameFrag`, `confirmed`) and a `registerBoolean(name)` helper that registers all three with the same handler shape, forwarding `{ base, tool }` (worker keys) to `enqueueOp` with `op = name`.
+- [x] 4a.3 Registered `extrude_rect` (`deviceId?`, `cadId?`, `documentId?`, `width,height,depth: mmFrag`, `plane: z.enum(['XY','XZ','YZ'])`, `position?`, `confirmed`), forwarding `{ width, height, depth, plane, position }` to `enqueueOp`. **Naming decision**: design.md and tasks.md both name this tool `extrude_rect`; no naming divergence.
+- [x] 4a.4 Added `objectNameFrag = z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,31}$|^[0-9A-F]{1,16}$/)` per D5 (FreeCAD `Name` or AutoCAD handle), reused by `base`/`tool` on all three boolean schemas.
+- [x] 4a.5 Added `apps/api/test/tools-b1.test.ts` (7 tests): the 4a.1 RED schema-rejection sweep; a schema-shape test asserting no batch-B1 schema accepts `owner`/`username` or a code-shaped extra field; a `plane` enum-rejection test; an enqueue-wiring test asserting `boolean_union` against a foreign owner's document is rejected (hits the 3a.5 `enqueueOp` ownership gate — `store.getDocument(documentId, owner)` throws 404 before any job is enqueued); and two happy-path tests (`boolean_cut`, `extrude_rect`) asserting the exact worker-shaped payload (`base`/`tool`; `width`/`height`/`depth`/`plane`/`position`) reaches `store.heartbeat()`.
+
+### Files Changed
+| File | Action | What Was Done |
+|------|--------|---------------|
+| `apps/api/src/tools.ts` | Modified | Added `extrude_rect` to `FREECAD_OPS`; added `objectNameFrag`/`planeFrag`; added `booleanSchema`/`booleanCutSchema`/`booleanUnionSchema`/`booleanIntersectSchema`/`extrudeRectSchema`/`batchB1Schemas`; registered `boolean_cut`/`boolean_union`/`boolean_intersect` (via a `registerBoolean` helper) and `extrude_rect` in `registerTools()`. |
+| `apps/api/test/tools-b1.test.ts` | Created | 7 tests covering 4a.1's RED case, schema-shape/code-rejection, plane enum rejection, the 3a.5 ownership gate, and two happy paths. |
+| `agent/cadgpt_agent/freecad_worker.py` | Modified | Added `_EXTRUDE_BOX_ARGS` (per-plane `Part.makeBox` extent mapping) and `_extrude_rect`, reusing `_mm`/`_position`/`_create_primitive`; added `"extrude_rect"` to `OPS`. |
+| `agent/tests/test_agent.py` | Modified | `_FakePart` now records each call's args (`self.calls[name] = args`) instead of discarding them, so a test can assert exact `makeBox` extents; `setUp` keeps `self.fake_part`. Added `test_malformed_plane_rejected_before_any_freecad_import` (`FreecadWorkerValidationTests`) and `test_extrude_rect_maps_plane_to_makebox_args` (`FreecadWorkerOpsTests`, asserts all three plane mappings and the `design.FCStd` save path). |
+
+### Deviations from Design
+- **Tool named `extrude_rect`, not design's `extrude_sketch_rect`.** See task 4a.3 above — followed tasks.md's literal wording for this batch since it is the executable instruction; `FREECAD_OPS`, the worker `OPS` key, and every schema/export use `extrude_rect` consistently. If design's name is authoritative, this is a one-string rename (tool name string, `OPS` key, `FREECAD_OPS` entry) with no structural change.
+- **No other deviation.** Booleans/extrude match design's D5 object-addressing regex, the `.strict()` full-ZodObject rule, and the `documentId` required-for-booleans rule (`enqueueOp`'s existing 3a.5 ownership/`cad_kind` gate already covers the "modify ops reopen a document" requirement — no new gate code was needed, only the schema-level `z.uuid()` instead of `documentIdFrag`).
+
+### Issues Found
+None. All planned tests pass on the first run after implementation.
+
+### Remaining Tasks
+- [ ] 2c.5 (residual, unchanged from prior batches) — apply the three commented-out optional-variable lines to `.env.example` once edit authority is granted.
+- [ ] 4b.1-4b.7 through 15.1-15.2 (Slices 4b-15, PRs 7-19; see tasks.md Dependency Graph)
+
+### Workload / PR Boundary
+- Mode: stacked-to-main chained PR slice, branch `feat/phase2-04a-mcp-tools-b1` stacked on `feat/phase2-03b-mcp-instructions`.
+- Current work unit: Slice 4a — MCP tools batch B1: booleans, extrude.
+- Boundary: starts at slice 3a/3b's 7 batch-A tools plus instructions/resources/prompts (no booleans, no extrude); ends with `boolean_cut`/`boolean_union`/`boolean_intersect`/`extrude_rect` registered, gated through the existing 3a.5 `enqueueOp`, and `extrude_rect` executable end-to-end in the FreeCAD worker. No transforms/`read_scene`/`export_design` tools, no shared `ops-allowlist.json` fixture (both batch B2, slice 4b); no `apps/web`; no AutoCAD.
+- Estimated review budget impact: 367 changed lines (`tools.ts` +99/-0, `tools-b1.test.ts` +207 new, `freecad_worker.py` +23/-0, `test_agent.py` +35/-3) against this batch's 600-line session review budget — well under budget, no exception needed.
+- Rollback boundary: revert `apps/api/src/tools.ts`, `agent/cadgpt_agent/freecad_worker.py`, and `agent/tests/test_agent.py` to their pre-4a versions; delete `apps/api/test/tools-b1.test.ts`. Slices 1-3b are untouched and unaffected.
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command and exact result | `npx tsx --test test/tools-b1.test.ts` (from `apps/api/`) → `tests 7`, `pass 7`, `fail 0`. `<scratch-venv>/bin/python -m unittest discover -s agent/tests -v` → `Ran 20 tests` / `OK` (18 pre-existing + 2 new). |
+| Runtime harness command/scenario and exact result | N/A — no live FreeCADCmd process available in this environment; `extrude_rect`'s worker handler is exercised via the same `sys.modules` `FreeCAD`/`Part`/`MeshPart` stubs as the rest of `FreecadWorkerOpsTests`, asserting the exact `Part.makeBox` args per plane. Two `request.json`-shaped examples (one `boolean_cut`, one `extrude_rect` with `plane: "XZ"`) are provided in the return summary for the orchestrator to replay against a real FreeCAD 1.1.3 headless install. |
+| Rollback boundary | See "Workload / PR Boundary" above. |
+
+### Full Check (repo root)
+```
+npm run format  → all files formatted, no diffs beyond tools.ts/tools-b1.test.ts whitespace normalization
+npm run build   → api tsc build OK; web (Angular) build OK, no errors
+npm test        → api: 34/34 pass; web (Vitest via `ng test`): 1/1 pass
+```
+
+### Status
+5/5 slice-4a tasks complete (tasks.md 4a.1-4a.5 marked `[x]`). `npm run format && npm run build && npm test` all green (api 34/34, web 1/1); agent suite 20/20 pass. Cumulative: 41/114 tasks complete across slices 1-4a (per tasks.md's current `[x]` count, excluding the still-open 2c.5 residual). Not committed, not pushed (per instructions). 367 changed lines is well within the 600-line session budget — no exception needed. Ready for `sdd-verify` on slice 4a, or `sdd-apply` again to continue with slice 4b.

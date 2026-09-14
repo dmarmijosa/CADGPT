@@ -141,11 +141,11 @@ Acceptance: an MCP client reading instructions/resources receives documented con
 
 ## Slice 4a — MCP tools batch B1: booleans, extrude (PR 6, depends on: 3a, 2b)
 
-- [ ] 4a.1 (RED) Add a schema-rejection test: an `object` id containing `..`/`;`/quotes fails validation before enqueue (Subprocess argv composition threat row — applicable, api-side half).
-- [ ] 4a.2 Register `boolean_cut`/`boolean_union`/`boolean_intersect` in `apps/api/src/tools.ts` (`documentId`, `base: object`, `tool: object`, `confirmed`).
-- [ ] 4a.3 Register `extrude_rect` (`selection`, `documentId?`, `width,height,depth: mm`, `plane: z.enum(['XY','XZ','YZ'])`, `position?`, `confirmed`).
-- [ ] 4a.4 Add the shared `object` regex validator (FreeCAD `Name` `^[A-Za-z][A-Za-z0-9_]{0,31}$` or AutoCAD handle `^[0-9A-F]{1,16}$`) per D5, reused by both new tools.
-- [ ] 4a.5 Tests: per-tool schema validation plus an enqueue-wiring test hitting the 3a.5 gate.
+- [x] 4a.1 (RED) Add a schema-rejection test: an `object` id containing `..`/`;`/quotes fails validation before enqueue (Subprocess argv composition threat row — applicable, api-side half).
+- [x] 4a.2 Register `boolean_cut`/`boolean_union`/`boolean_intersect` in `apps/api/src/tools.ts` (`documentId`, `base: object`, `tool: object`, `confirmed`).
+- [x] 4a.3 Register `extrude_rect` (`selection`, `documentId?`, `width,height,depth: mm`, `plane: z.enum(['XY','XZ','YZ'])`, `position?`, `confirmed`). Also added `extrude_rect` to the FreeCAD worker's `OPS` table (`agent/cadgpt_agent/freecad_worker.py`) — not itemized separately but required for the tool to be functional, per the apply batch's explicit instruction.
+- [x] 4a.4 Add the shared `object` regex validator (FreeCAD `Name` `^[A-Za-z][A-Za-z0-9_]{0,31}$` or AutoCAD handle `^[0-9A-F]{1,16}$`) per D5, reused by both new tools.
+- [x] 4a.5 Tests: per-tool schema validation plus an enqueue-wiring test hitting the 3a.5 gate.
 
 Acceptance: `boolean_union` with a malformed object id (containing `;`) fails validation before enqueue (verified by 4a.1). ~200 changed lines.
 
