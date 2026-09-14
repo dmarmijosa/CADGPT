@@ -70,12 +70,12 @@ Chain strategy: pending
 
 ## Slice 1 — `documents` table + job `type`/`document_id` (PR 1, depends on: —)
 
-- [ ] 1.1 Add `documents` and `meshes` table DDL (D1 Data Model) to `apps/api/src/store.ts` constructor, guarded by `CREATE TABLE IF NOT EXISTS`. Columns: `owner`/`created`/`updated` per repo convention (F2/D2), not the proposal's literal names.
-- [ ] 1.2 Add `Store.migrate()`: read `PRAGMA table_info(jobs)`, add `type`/`document_id` columns only when missing; called from the constructor after table creation.
-- [ ] 1.3 Add `createDocument(owner, deviceId, cadKind, name)`, `getDocument(id, owner)`, `listDocuments(owner)`; update `complete()` to bump `documents.updated/latest_job_id/native_path` in the same transaction on success.
-- [ ] 1.4 Update `heartbeat()`/`enqueue()` to accept/return `type`/`documentId`; map phase-1 rows `type=null → 'create_box'`.
-- [ ] 1.5 Add D17 concurrency lock: reject enqueue when the target `document_id` already has a `queued|running` job (409).
-- [ ] 1.6 Tests in `apps/api/test/documents.test.ts`: migrate idempotence on a phase-1 DB fixture (run twice, assert one column addition); document creation scoped to `owner`; cross-owner `getDocument` returns not-found (spec document-registry "Cross-owner access denied"); `list_documents` returns only the caller's rows (spec "List scoped to owner"); D17 lock rejects a second active job on the same document.
+- [x] 1.1 Add `documents` and `meshes` table DDL (D1 Data Model) to `apps/api/src/store.ts` constructor, guarded by `CREATE TABLE IF NOT EXISTS`. Columns: `owner`/`created`/`updated` per repo convention (F2/D2), not the proposal's literal names.
+- [x] 1.2 Add `Store.migrate()`: read `PRAGMA table_info(jobs)`, add `type`/`document_id` columns only when missing; called from the constructor after table creation.
+- [x] 1.3 Add `createDocument(owner, deviceId, cadKind, name)`, `getDocument(id, owner)`, `listDocuments(owner)`; update `complete()` to bump `documents.updated/latest_job_id/native_path` in the same transaction on success.
+- [x] 1.4 Update `heartbeat()`/`enqueue()` to accept/return `type`/`documentId`; map phase-1 rows `type=null → 'create_box'`.
+- [x] 1.5 Add D17 concurrency lock: reject enqueue when the target `document_id` already has a `queued|running` job (409).
+- [x] 1.6 Tests in `apps/api/test/documents.test.ts`: migrate idempotence on a phase-1 DB fixture (run twice, assert one column addition); document creation scoped to `owner`; cross-owner `getDocument` returns not-found (spec document-registry "Cross-owner access denied"); `list_documents` returns only the caller's rows (spec "List scoped to owner"); D17 lock rejects a second active job on the same document.
 
 Acceptance: `migrate()` is idempotent and non-destructive on an existing phase-1 `jobs` table; a document row inserts with `owner` = caller's `sub`; a non-owner request for that document returns not-found/forbidden. ~180 changed lines.
 
