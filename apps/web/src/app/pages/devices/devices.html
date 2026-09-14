@@ -1,0 +1,111 @@
+<section class="page-head">
+  <div class="section-title">
+    <div>
+      <h1>Linked computers</h1>
+      <p>Computers running the CADGPT agent, and the CAD installations detected on each.</p>
+    </div>
+    <button
+      class="quiet"
+      type="button"
+      (click)="workspace.devices.reload()"
+      [disabled]="workspace.devices.isLoading()"
+    >
+      ↻ Refresh status
+    </button>
+  </div>
+</section>
+
+@if (workspace.devices.error(); as error) {
+  <div class="message error" role="alert">{{ errorMessage(error) }}</div>
+}
+@if (revokeError()) {
+  <div class="message error" role="alert">{{ revokeError() }}</div>
+}
+
+@if (workspace.devices.isLoading() && !workspace.devices.hasValue()) {
+  <p>Loading devices…</p>
+} @else if (workspace.devices.hasValue() && workspace.devices.value().length) {
+  <table class="data">
+    <thead>
+      <tr>
+        <th scope="col">Name</th>
+        <th scope="col">Status</th>
+        <th scope="col">Last seen</th>
+        <th scope="col">CAD installations</th>
+        <th scope="col">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (device of workspace.devices.value(); track device.id) {
+        <tr>
+          <td>{{ device.name }}</td>
+          <td>
+            <span class="status" [class.online]="device.online">
+              {{ device.revoked ? 'Revoked' : device.online ? 'Online' : 'Offline' }}
+            </span>
+          </td>
+          <td>
+            <span class="tabular-nums" [title]="device.lastSeen | date: 'medium'">
+              {{ relativeLastSeen(device.lastSeen) }}
+            </span>
+          </td>
+          <td>
+            @for (cad of device.cads; track cad.id) {
+              <div class="cad-summary">
+                <strong>{{ cad.name }}</strong> {{ cad.version || 'version not verified' }}
+                <span class="status" [class.succeeded]="cad.executable">
+                  {{ cad.executable ? 'Executable' : 'Detection only' }}
+                </span>
+              </div>
+            } @empty {
+              <span>No CAD detected</span>
+            }
+          </td>
+          <td>
+            @if (device.revoked) {
+              <span>—</span>
+            } @else if (confirmingRevoke() === device.id) {
+              <div class="confirm-row">
+                <span>Revoke this device?</span>
+                <button
+                  class="danger quiet"
+                  type="button"
+                  (click)="confirmRevoke(device.id)"
+                  [disabled]="revoking()"
+                >
+                  Confirm revoke
+                </button>
+                <button
+                  class="quiet"
+                  type="button"
+                  (click)="cancelRevoke()"
+                  [disabled]="revoking()"
+                >
+                  Cancel
+                </button>
+              </div>
+            } @else {
+              <button
+                class="danger quiet"
+                type="button"
+                (click)="askRevoke(device.id)"
+                [attr.aria-label]="'Revoke access for ' + device.name"
+              >
+                Revoke access
+              </button>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+} @else {
+  <article class="panel empty">
+    <h2>No linked computers yet</h2>
+    <p>
+      Install the agent from the
+      <a [href]="releasesUrl">GitHub Releases page ↗</a>, then
+      <a routerLink="/pair">pair it</a> with its one-time code.
+    </p>
+  </article>
+}

@@ -10,14 +10,18 @@ import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { Store, DomainError, cadSchema, boxSchema } from './store.js';
+import { meshRouter } from './mesh.js';
+import { registerTools } from './tools.js';
+import { registerGuidance, SERVER_INSTRUCTIONS } from './guidance.js';
 import { authenticator } from './auth.js';
 import { browserSecurityPolicy } from './security.js';
+import { envs } from './config/envs.js';
 
 @Module({})
 class AppModule {}
 
-const origin = process.env.PUBLIC_ORIGIN ?? 'http://localhost:3000';
-const issuer = process.env.OIDC_ISSUER ?? 'http://localhost:8080/realms/cadgpt';
+const origin = envs.publicOrigin;
+const issuer = envs.oidcIssuer;
 for (const address of [origin, issuer]) {
   const u = new URL(address);
   if (u.protocol !== 'https:' && !['localhost', '127.0.0.1', '[::1]'].includes(u.hostname))
@@ -25,11 +29,12 @@ for (const address of [origin, issuer]) {
 }
 const auth = authenticator(
   issuer,
-  process.env.OIDC_AUDIENCE ?? 'cadgpt-api',
-  process.env.OIDC_JWKS_URL ?? issuer + '/protocol/openid-connect/certs',
+  envs.oidcAudience,
+  envs.oidcJwksUrl ?? issuer + '/protocol/openid-connect/certs',
 );
-const data = process.env.DATA_DIR ?? resolve('../../data');
+const data = envs.dataDir ?? resolve('../../data');
 mkdirSync(data, { recursive: true, mode: 0o700 });
+mkdirSync(resolve(data, 'meshes'), { recursive: true, mode: 0o700 });
 const store = new Store(resolve(data, 'cadgpt.db'));
 const app = await NestFactory.create(AppModule, { bodyParser: false });
 const http = app.getHttpAdapter().getInstance();
@@ -124,13 +129,16 @@ http.post(
 http.post(
   '/api/agent/results/:id',
   wrap((q, r) => {
+    // 16000 accommodates the JSON-wrapped `{ message, scene }` contract
+    // (scene capped at ~12 kB) while staying inside the 32 kb JSON body cap.
     const b = z
-      .object({ ok: z.boolean(), result: z.string().max(4000) })
+      .object({ ok: z.boolean(), result: z.string().max(16000) })
       .strict()
       .parse(q.body);
     r.json(store.complete(token(q), z.uuid().parse(q.params.id), b.result, b.ok));
   }),
 );
+http.use(meshRouter(store, { dataDir: data, auth }));
 const metadata = {
   resource: origin + '/mcp',
   authorization_servers: [issuer],
@@ -145,46 +153,12 @@ http.post(
   '/mcp',
   wrap(async (q, r) => {
     const owner = await auth(q.headers.authorization);
-    const server = new McpServer({ name: 'cadgpt', version: '0.1.0' });
-    const result = (value: unknown) => ({
-      content: [{ type: 'text' as const, text: JSON.stringify(value) }],
-    });
-    server.registerTool(
-      'list_devices',
-      {
-        description: 'List your CAD devices and detected capabilities.',
-        inputSchema: {},
-        annotations: { readOnlyHint: true },
-      },
-      async () => result(store.devices(owner)),
+    const server = new McpServer(
+      { name: 'cadgpt', version: '0.1.0' },
+      { instructions: SERVER_INSTRUCTIONS },
     );
-    server.registerTool(
-      'list_jobs',
-      {
-        description: 'List your recent job outcomes. Files remain on the device.',
-        inputSchema: {},
-        annotations: { readOnlyHint: true },
-      },
-      async () => result(store.jobs(owner)),
-    );
-    server.registerTool(
-      'create_box',
-      {
-        description:
-          'Create a NEW FreeCAD box file on the selected online device. Ask the user to confirm dimensions in millimeters first. Never modifies an open drawing.',
-        inputSchema: boxSchema.shape,
-        annotations: {
-          readOnlyHint: false,
-          destructiveHint: false,
-          idempotentHint: false,
-          openWorldHint: false,
-        },
-      },
-      async (p) => {
-        await auth(q.headers.authorization, 'cad:write');
-        return result(store.enqueue(owner, p));
-      },
-    );
+    registerTools(server, store, owner, () => auth(q.headers.authorization, 'cad:write'));
+    registerGuidance(server);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,
@@ -220,4 +194,4 @@ http.use((e: unknown, _q: Request, r: Response, _n: NextFunction) => {
           : 'Invalid request.',
   });
 });
-await app.listen(Number(process.env.PORT ?? 3000), process.env.HOST ?? '127.0.0.1');
+await app.listen(envs.port, envs.host);

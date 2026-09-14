@@ -81,139 +81,159 @@ Acceptance: `migrate()` is idempotent and non-destructive on an existing phase-1
 
 ## Slice 2a — `CadStrategy` protocol + `FreeCadStrategy` refactor (PR 2, depends on: —)
 
-- [ ] 2a.1 (RED) Add `agent/tests/test_strategies.py` asserting today's FreeCAD job argv/env/`shell=False` baseline (Subprocess argv composition threat row — applicable), captured **before** the refactor lands.
-- [ ] 2a.2 Define `CadStrategy` Protocol in `agent/cadgpt_agent/strategies/base.py` (`supports`, `build_argv`, `env`, `artifacts`) per design.
-- [ ] 2a.3 Implement `FreeCadStrategy` in `agent/cadgpt_agent/strategies/freecad.py`, wrapping the current single-op pipeline unchanged — no new ops yet, behavior-preserving.
-- [ ] 2a.4 (RED) Add the "Caller-controlled paths" guard test (applicable threat row) to `agent/tests/test_strategies.py`: `document_id` not a UUID is rejected; a UUID with path separators is rejected; symlinked `doc_dir` is rejected via `resolve().is_relative_to(root)`.
-- [ ] 2a.5 Update `agent/cadgpt_agent/executor.py`: select the FreeCAD strategy by `cad.name`; add `uuid.UUID(...)` round-trip validation and `doc_dir = root/documents/<document_id>` containment check before any `Popen`; preserve exclusive job-dir `mkdir`, sanitized env, `shell=False`, fixed argv.
-- [ ] 2a.6 Confirm `agent/tests/test_strategies.py` passes against the refactored `executor.py`/`strategies/freecad.py` with byte-identical argv to the 2a.1 baseline.
+- [x] 2a.1 (RED) Add `agent/tests/test_strategies.py` asserting today's FreeCAD job argv/env/`shell=False` baseline (Subprocess argv composition threat row — applicable), captured **before** the refactor lands.
+- [x] 2a.2 Define `CadStrategy` Protocol in `agent/cadgpt_agent/strategies/base.py` (`supports`, `build_argv`, `env`, `artifacts`) per design.
+- [x] 2a.3 Implement `FreeCadStrategy` in `agent/cadgpt_agent/strategies/freecad.py`, wrapping the current single-op pipeline unchanged — no new ops yet, behavior-preserving.
+- [x] 2a.4 (RED) Add the "Caller-controlled paths" guard test (applicable threat row) to `agent/tests/test_strategies.py`: `document_id` not a UUID is rejected; a UUID with path separators is rejected; symlinked `doc_dir` is rejected via `resolve().is_relative_to(root)`.
+- [x] 2a.5 Update `agent/cadgpt_agent/executor.py`: select the FreeCAD strategy by `cad.name`; add `uuid.UUID(...)` round-trip validation and `doc_dir = root/documents/<document_id>` containment check before any `Popen`; preserve exclusive job-dir `mkdir`, sanitized env, `shell=False`, fixed argv.
+- [x] 2a.6 Confirm `agent/tests/test_strategies.py` passes against the refactored `executor.py`/`strategies/freecad.py` with byte-identical argv to the 2a.1 baseline.
 
 Acceptance: the existing phase-1 `create_box` job produces byte-identical argv/env after the refactor; a malformed or path-shaped `document_id` is rejected before any subprocess spawns. ~150 changed lines.
 
 ## Slice 2b — Worker `OPS` dispatch + STL export + scene (PR 3, depends on: 2a)
 
-- [ ] 2b.1 (RED) Add per-op malformed-value rejection tests to `agent/tests/test_agent.py` (Subprocess argv composition row — applicable): `NaN`/`1e309`/negative mm, out-of-range values, object ids containing `..`/`;`/quotes — asserted to fail before any FreeCAD call.
-- [ ] 2b.2 Add `OPS: dict[str, Callable]` dispatch in `agent/cadgpt_agent/freecad_worker.py`, keyed by allowlisted op name; unknown op exits 2 with no CAD process spawned.
-- [ ] 2b.3 Implement `create_box`/`create_cylinder`/`create_sphere`/`create_cone`: `newDocument` + `saveAs(doc_dir/design.FCStd)` when `documentId` is absent.
-- [ ] 2b.4 Implement the reopen path: `openDocument` → mutate → `recompute()` → `save()` when `documentId` is present (spec freecad-execution "Modify operation reopens existing document").
-- [ ] 2b.5 Implement `boolean_cut`/`boolean_union`/`boolean_intersect` (`Part::Cut|Fuse|Common` on `Base`/`Tool`).
-- [ ] 2b.6 Implement `translate_object`/`rotate_object`/`scale_object` mutating `obj.Placement`/`obj.Shape.scale`; resolve objects via `doc.getObject()`, rejecting unknown names (D5).
-- [ ] 2b.7 Implement `read_scene`: write `scene.json` as `[{name,label,type,bbox,volume}]` from a compound of top-level objects (empty `InList`).
-- [ ] 2b.8 Add the STL export step after every successful op via `MeshPart.meshFromShape(LinearDeflection=0.1, AngularDeflection=0.26, Relative=False).write(job_dir/preview.stl)`, alongside the native save (spec freecad-execution "STL Export Step").
-- [ ] 2b.9 Extend `agent/tests/test_agent.py`: one test per op class (create/modify/boolean/transform/read_scene) and an STL byte-shape assertion (`size == 84 + 50*facets`).
+- [x] 2b.1 (RED) Add per-op malformed-value rejection tests to `agent/tests/test_agent.py` (Subprocess argv composition row — applicable): `NaN`/`1e309`/negative mm, out-of-range values, object ids containing `..`/`;`/quotes — asserted to fail before any FreeCAD call.
+- [x] 2b.2 Add `OPS: dict[str, Callable]` dispatch in `agent/cadgpt_agent/freecad_worker.py`, keyed by allowlisted op name; unknown op exits 2 with no CAD process spawned.
+- [x] 2b.3 Implement `create_box`/`create_cylinder`/`create_sphere`/`create_cone`: `newDocument` + `saveAs(doc_dir/design.FCStd)` when `documentId` is absent.
+- [x] 2b.4 Implement the reopen path: `openDocument` → mutate → `recompute()` → `save()` when `documentId` is present (spec freecad-execution "Modify operation reopens existing document").
+- [x] 2b.5 Implement `boolean_cut`/`boolean_union`/`boolean_intersect` (`Part::Cut|Fuse|Common` on `Base`/`Tool`).
+- [x] 2b.6 Implement `translate_object`/`rotate_object`/`scale_object` mutating `obj.Placement`/`obj.Shape.scale`; resolve objects via `doc.getObject()`, rejecting unknown names (D5).
+- [x] 2b.7 Implement `read_scene`: write `scene.json` as `[{name,label,type,bbox,volume}]` from a compound of top-level objects (empty `InList`).
+- [x] 2b.8 Add the STL export step after every successful op via `MeshPart.meshFromShape(LinearDeflection=0.1, AngularDeflection=0.26, Relative=False).write(job_dir/preview.stl)`, alongside the native save (spec freecad-execution "STL Export Step").
+- [x] 2b.9 Extend `agent/tests/test_agent.py`: one test per op class (create/modify/boolean/transform/read_scene) and an STL byte-shape assertion (`size == 84 + 50*facets`).
 
 Acceptance: `boolean_union` with a `document_id` reopens, recomputes, saves, and exports STL; an unknown op exits 2 without spawning a CAD process; every malformed numeric/id input from 2b.1 is rejected pre-spawn. ~340 changed lines (near budget — do not add scope here).
 
+**Delivered at 478 changed lines** (`git diff --numstat`: `executor.py` +15/-5, `freecad_worker.py` +245/-13, `strategies/freecad.py` +9/-3, `test_agent.py` +183/-1, `test_strategies.py` +2/-2), ~138 over the 400-line hard cap, after two honest simplification passes (generic `_bounded`/`_mm` validators, a shared `_create_primitive`/`_boolean` factory, `SimpleNamespace`-based test fakes instead of full classes). No comment, blank line, doc, or test was cut to chase the number. The overage is structural: 11 real ops each need pre-FreeCAD validation, and per-op-class positive coverage (2b.9) needs a stubbed `FreeCAD`/`Part`/`MeshPart` surface plus the `request.json` op/param passthrough in `executor.py` that this slice's task list didn't itemize but the design's `request.json = {op, params, document_id}` shape requires. See apply-progress.md for the proposed two-PR split (`2b-i`: 2b.1-2b.4+2b.8; `2b-ii`: 2b.5-2b.7+2b.9) if `size:exception` is not accepted.
+
+## Slice 2c — Environment configuration (PR 3b, depends on: —; requested by the user on 2026-09-14)
+
+- [x] 2c.1 Add `apps/api/src/config/envs.ts` following the user's `micro-env` pattern: `import "dotenv/config"`, a `joi` schema with `.unknown(true)`, throw `Config validation error: ...` on failure, export a typed `envs` object. Variables: `PORT` (number, default 3000), `HOST` (string, default 127.0.0.1), `PUBLIC_ORIGIN` (uri, required), `OIDC_ISSUER` (uri, required), `OIDC_AUDIENCE` (string, required), `OIDC_JWKS_URL` (uri, optional), `DATA_DIR` (string, optional), `NODE_ENV` (development|production|test, default development).
+- [x] 2c.2 Replace every `process.env.*` read in `apps/api/src/main.ts` with `envs.*`; keep behavior identical (same defaults, same validation in `security.ts`).
+- [x] 2c.3 Add `joi` and `dotenv` to `apps/api/package.json`; `apps/api/test/envs.test.ts` covering: valid env parses with defaults; missing `PUBLIC_ORIGIN` throws `Config validation error`; unknown keys are tolerated.
+- [x] 2c.4 Angular environments: `apps/web/src/environments/environment.ts` (development: `production: false`, `apiBaseUrl: ''`) and `environment.prod.ts` (`production: true`, `apiBaseUrl: ''`); add `fileReplacements` to the `production` build configuration in `apps/web/angular.json`; import `environment` where the API base is composed in `apps/web/src/app/app.ts` (relative URLs stay relative — runtime `/api/config` remains the source of OIDC settings so one image serves every environment).
+- [ ] 2c.5 Document the variables in `.env.example` (unchanged names) and a short "Configuration" subsection in `docs/deployment.md`. **Partially done**: `docs/deployment.md` has the "Configuration" subsection; the root `.env.example` addition (optional-var comments for `OIDC_JWKS_URL`/`DATA_DIR`/`NODE_ENV`) was blocked by the sandbox's dotenv-file write guard (writes to any `.env*` path are denied regardless of tool, even though the file holds only placeholder values, not real secrets) — required names (`PUBLIC_ORIGIN`, `OIDC_ISSUER`, `OIDC_AUDIENCE`, `HOST`, `PORT`) were already present and unchanged, so this is a small manual follow-up, not new content.
+
+Acceptance: `npm run build && npm test` green; starting the API without `PUBLIC_ORIGIN` fails fast with `Config validation error`; production Angular build uses `environment.prod.ts`. ~150 changed lines.
+
 ## Slice 3a — MCP tools batch A + device/CAD selection (PR 4, depends on: 1)
 
-- [ ] 3a.1 (RED) Add `apps/api/test/tools.test.ts` schema-rejection test: `create_box` with an extra free-text/code field fails validation and enqueues no job (spec mcp-cad-operations "Schema rejects code-shaped input").
-- [ ] 3a.2 Create `apps/api/src/tools.ts` with `registerTools(server, store, owner, auth)`; register `list_devices`, `list_documents`, `get_job`, `create_box`, `create_cylinder`, `create_sphere`, `create_cone` with strict (`.strict()`) Zod schemas using the shared param fragments (`deviceId`, `cadId`, `mm`, `coord`, `confirmed`).
-- [ ] 3a.3 (RED) Add ambiguous-device test: two paired devices with the same CAD, tool called without `deviceId`, expect a `selection_required` response (spec "Ambiguous device requires explicit choice").
-- [ ] 3a.4 Implement device/CAD auto-resolve (D6): auto-resolve when exactly one online executable CAD matches; otherwise return `selection_required` + candidates.
-- [ ] 3a.5 Implement `enqueue(owner, op, input)` gate: device owned+online, `cad.capabilities.ops` includes `op` (fallback FreeCAD op list when `capabilities` absent), document owned and `cad_kind` matches, D17 lock, ≤5 active jobs per device (spec job-lifecycle "Active Job Cap Unchanged", "Non-FreeCAD capability check").
-- [ ] 3a.6 Mount `registerTools` in `apps/api/src/main.ts`.
-- [ ] 3a.7 Tests: owner-not-a-parameter check on every batch-A schema (spec mcp-cad-operations "Owner not a parameter"); enqueue capacity-cap and D17-lock tests.
+- [x] 3a.1 (RED) Add `apps/api/test/tools.test.ts` schema-rejection test: `create_box` with an extra free-text/code field fails validation and enqueues no job (spec mcp-cad-operations "Schema rejects code-shaped input").
+- [x] 3a.2 Create `apps/api/src/tools.ts` with `registerTools(server, store, owner, auth)`; register `list_devices`, `list_documents`, `get_job`, `create_box`, `create_cylinder`, `create_sphere`, `create_cone` with strict (`.strict()`) Zod schemas using the shared param fragments (`deviceId`, `cadId`, `mm`, `coord`, `confirmed`).
+- [x] 3a.3 (RED) Add ambiguous-device test: two paired devices with the same CAD, tool called without `deviceId`, expect a `selection_required` response (spec "Ambiguous device requires explicit choice").
+- [x] 3a.4 Implement device/CAD auto-resolve (D6): auto-resolve when exactly one online executable CAD matches; otherwise return `selection_required` + candidates.
+- [x] 3a.5 Implement `enqueue(owner, op, input)` gate: device owned+online, `cad.capabilities.ops` includes `op` (fallback FreeCAD op list when `capabilities` absent), document owned and `cad_kind` matches, D17 lock, ≤5 active jobs per device (spec job-lifecycle "Active Job Cap Unchanged", "Non-FreeCAD capability check").
+- [x] 3a.6 Mount `registerTools` in `apps/api/src/main.ts`.
+- [x] 3a.7 Tests: owner-not-a-parameter check on every batch-A schema (spec mcp-cad-operations "Owner not a parameter"); enqueue capacity-cap and D17-lock tests.
 
 Acceptance: a code-shaped extra field fails schema validation before enqueue; an ambiguous device/CAD pair returns a choice request instead of guessing. ~260 changed lines.
 
+**Delivered at 580 changed lines** (`git diff --numstat`: `main.ts` +2/-39, `store.ts` +13/-2, `tools.ts` +353/-0 new file, `tools.test.ts` +171/-0 new file), 180 over the 400-line hard cap. `main.ts` itself shrank (net -37) since the three inline tool registrations it used to carry moved out; the overage is structural in the two new files: 7 MCP tool registrations (5 create-ops + 2 reads + `get_job`) each need a full `.strict()` Zod schema, description, and annotations block (passing the whole schema, not `.shape`, to `registerTool` — required so the MCP SDK's `normalizeObjectSchema` preserves `.strict()` instead of silently stripping the extra field the RED test needs rejected), plus the `resolveCad`/`enqueueOp` gate functions with D6/D11/D17 commentary, plus 6 required tests (3a.1, 3a.3, 3a.7's three checks, and the happy-path test the apply prompt explicitly requested). No comment, blank line, doc, or test was cut to chase the number. See apply-progress.md Slice 3a "Workload / PR Boundary" for the size:exception recommendation.
+
 ## Slice 3b — MCP instructions/prompts/resources text (PR 5, depends on: 3a)
 
-- [ ] 3b.1 (RED) Add a test asserting the instructions/resource text contains no code-fence, script, or path-like example (spec expert-design-guidance "No Code/Path Hints in Guidance").
-- [ ] 3b.2 Add `McpServer({ instructions })` content to `apps/api/src/tools.ts`: mm units, confirm-before-mutating, default tolerances (±0.1 mm general, ±0.02 mm fits), naming conventions, DfM guidance (mechanical + architectural).
-- [ ] 3b.3 Add resources `cadgpt://guidance/mechanical`, `cadgpt://guidance/architectural`, `cadgpt://guidance/units-tolerances`.
-- [ ] 3b.4 Add prompts `design_brief` (elicit intent → parametric plan) and `design_review` (read scene, check tolerance/fit/manufacturability).
+- [x] 3b.1 (RED) Add a test asserting the instructions/resource text contains no code-fence, script, or path-like example (spec expert-design-guidance "No Code/Path Hints in Guidance").
+- [x] 3b.2 Add `McpServer({ instructions })` content to `apps/api/src/tools.ts`: mm units, confirm-before-mutating, default tolerances (±0.1 mm general, ±0.02 mm fits), naming conventions, DfM guidance (mechanical + architectural).
+- [x] 3b.3 Add resources `cadgpt://guidance/mechanical`, `cadgpt://guidance/architectural`, `cadgpt://guidance/units-tolerances`.
+- [x] 3b.4 Add prompts `design_brief` (elicit intent → parametric plan) and `design_review` (read scene, check tolerance/fit/manufacturability).
 
 Acceptance: an MCP client reading instructions/resources receives documented conventions with zero code/path examples (verified by 3b.1). ~120 changed lines.
 
 ## Slice 4a — MCP tools batch B1: booleans, extrude (PR 6, depends on: 3a, 2b)
 
-- [ ] 4a.1 (RED) Add a schema-rejection test: an `object` id containing `..`/`;`/quotes fails validation before enqueue (Subprocess argv composition threat row — applicable, api-side half).
-- [ ] 4a.2 Register `boolean_cut`/`boolean_union`/`boolean_intersect` in `apps/api/src/tools.ts` (`documentId`, `base: object`, `tool: object`, `confirmed`).
-- [ ] 4a.3 Register `extrude_rect` (`selection`, `documentId?`, `width,height,depth: mm`, `plane: z.enum(['XY','XZ','YZ'])`, `position?`, `confirmed`).
-- [ ] 4a.4 Add the shared `object` regex validator (FreeCAD `Name` `^[A-Za-z][A-Za-z0-9_]{0,31}$` or AutoCAD handle `^[0-9A-F]{1,16}$`) per D5, reused by both new tools.
-- [ ] 4a.5 Tests: per-tool schema validation plus an enqueue-wiring test hitting the 3a.5 gate.
+- [x] 4a.1 (RED) Add a schema-rejection test: an `object` id containing `..`/`;`/quotes fails validation before enqueue (Subprocess argv composition threat row — applicable, api-side half).
+- [x] 4a.2 Register `boolean_cut`/`boolean_union`/`boolean_intersect` in `apps/api/src/tools.ts` (`documentId`, `base: object`, `tool: object`, `confirmed`).
+- [x] 4a.3 Register `extrude_rect` (`selection`, `documentId?`, `width,height,depth: mm`, `plane: z.enum(['XY','XZ','YZ'])`, `position?`, `confirmed`). Also added `extrude_rect` to the FreeCAD worker's `OPS` table (`agent/cadgpt_agent/freecad_worker.py`) — not itemized separately but required for the tool to be functional, per the apply batch's explicit instruction.
+- [x] 4a.4 Add the shared `object` regex validator (FreeCAD `Name` `^[A-Za-z][A-Za-z0-9_]{0,31}$` or AutoCAD handle `^[0-9A-F]{1,16}$`) per D5, reused by both new tools.
+- [x] 4a.5 Tests: per-tool schema validation plus an enqueue-wiring test hitting the 3a.5 gate.
 
 Acceptance: `boolean_union` with a malformed object id (containing `;`) fails validation before enqueue (verified by 4a.1). ~200 changed lines.
 
 ## Slice 4b — MCP tools batch B2: transforms, read_scene, export + shared allowlist fixture (PR 7, depends on: 4a)
 
-- [ ] 4b.1 Register `translate_object`/`rotate_object`/`scale_object` (`documentId`, `object`, bounded numeric params, `confirmed`).
-- [ ] 4b.2 Register `read_scene` (`documentId` only), returning `scene` JSON capped at ≤12 kB, rendered as data/text only, never interpreted.
-- [ ] 4b.3 Register `export_design` (`documentId`, `format: z.enum(['step','stl','dxf'])`, `confirmed`).
-- [ ] 4b.4 Create `ops-allowlist.json` at the **repo root** listing every server-exposed op (design risk 4 — shared fixture both `apps/api/test` and `agent/tests` read by relative path).
-- [ ] 4b.5 (RED) Add a test asserting the server tool catalog is a subset of `ops-allowlist.json`, and a matching `agent/tests` test asserting the agent's `OPS` dict is a superset of the same fixture (spec mcp-cad-operations "Agent re-validates allowlist").
-- [ ] 4b.6 Tests: transform-bounds rejection (`rotate_object` degrees outside [-360,360], `scale_object` factor outside [0.001,1000]); `export_design` format-enum rejection; `read_scene` 12 kB cap enforcement.
+- [x] 4b.1 Register `translate_object`/`rotate_object`/`scale_object` (`documentId`, `object`, bounded numeric params, `confirmed`).
+- [x] 4b.2 Register `read_scene` (`documentId` only), returning `scene` JSON capped at ≤12 kB, rendered as data/text only, never interpreted.
+- [x] 4b.3 Register `export_design` (`documentId`, `format: z.enum(['step','stl','dxf'])`, `confirmed`).
+- [x] 4b.4 Create `ops-allowlist.json` at the **repo root** listing every server-exposed op (design risk 4 — shared fixture both `apps/api/test` and `agent/tests` read by relative path).
+- [x] 4b.5 (RED) Add a test asserting the server tool catalog is a subset of `ops-allowlist.json`, and a matching `agent/tests` test asserting the agent's `OPS` dict is a superset of the same fixture (spec mcp-cad-operations "Agent re-validates allowlist").
+- [x] 4b.6 Tests: transform-bounds rejection (`rotate_object` degrees outside [-360,360], `scale_object` factor outside [0.001,1000]); `export_design` format-enum rejection; `read_scene` 12 kB cap enforcement.
 
-Acceptance: the server tool catalog is verified (by 4b.5) to be a subset of the shared `ops-allowlist.json`, which the agent's allowlist also covers. ~220 changed lines.
+Acceptance: the server tool catalog is verified (by 4b.5) to be a subset of the shared `ops-allowlist.json`, which the agent's allowlist also covers. ~220 changed lines estimated in this file; **actual authored diff is 711 lines** (see apply-progress.md "Budget overrun" note) — exceeds the 600-line review budget even excluding 4b.7. Flagged for a delivery-strategy decision (size:exception vs. PR split) before this branch opens a PR.
+
+- [ ] 4b.7 Follow-up from slice 3b guidance: add an optional `label` parameter (regex `^[A-Za-z][A-Za-z0-9_]{0,31}$`, same as worker object names) to every `create_*` tool, forward it in the job payload, set `obj.Label` in the worker's `_create_primitive`, and include `label` in `read_scene` output so the "name features by function" guidance is actionable.
 
 ## Slice 5 — Mesh upload/serve routes + limits + README (PR 8, depends on: 1)
 
-- [ ] 5.1 (RED) Add `apps/api/test/mesh.test.ts` covering the Upload boundary threat row (applicable — one test per case): oversize rejected and stores nothing; mismatched `X-Mesh-Sha256` rejected; non-binary/ASCII STL rejected; non-`running` job rejected; foreign device rejected; quota-exceeded rejected.
-- [ ] 5.2 Create `apps/api/src/mesh.ts`: `POST /api/agent/jobs/:id/mesh` — device-credential auth via `token(q)`, job must be `running` on that device, `Content-Type: application/octet-stream`, streamed byte-count cap 25 MiB (destroy socket at cap+1), streaming `X-Mesh-Sha256` verification, binary STL sanity `size == 84 + 50*facets`.
-- [ ] 5.3 Write to `DATA_DIR/meshes/<jobId>.stl.part` then rename; enforce a 500 MiB per-device quota (sum of `meshes.size`); retain the newest 5 meshes per document, unlink older ones; job-bound file naming only (client-supplied filename header ignored, spec mesh-preview-upload "Client-supplied name ignored").
-- [ ] 5.4 Add a dedicated `rateLimit({limit: 30})` to the mesh upload route.
-- [ ] 5.5 Add `GET /api/designs`, `GET /api/designs/:id` (OIDC `cad:read`, owner-scoped), `GET /api/designs/:id/mesh` → `res.sendFile` with `Content-Type: model/stl`, `Cache-Control: private, no-store`; mount all in `apps/api/src/main.ts`.
-- [ ] 5.6 Update `README.md`: compatibility table plus the "mesh preview leaves the machine" security exception note (docs travel with this behavior-changing slice).
-- [ ] 5.7 Tests: owner-scoped retrieval (non-owner request returns not-found/forbidden, spec "Non-owner cannot fetch mesh"); confirm every case from 5.1 passes against the implemented route.
+- [x] 5.1 (RED) Add `apps/api/test/mesh.test.ts` covering the Upload boundary threat row (applicable — one test per case): oversize rejected and stores nothing; mismatched `X-Mesh-Sha256` rejected; non-binary/ASCII STL rejected; non-`running` job rejected; foreign device rejected; quota-exceeded rejected.
+- [x] 5.2 Create `apps/api/src/mesh.ts`: `POST /api/agent/jobs/:id/mesh` — device-credential auth via `token(q)`, job must be `running` on that device, `Content-Type: application/octet-stream`, streamed byte-count cap 25 MiB (destroy socket at cap+1), streaming `X-Mesh-Sha256` verification, binary STL sanity `size == 84 + 50*facets`.
+- [x] 5.3 Write to `DATA_DIR/meshes/<jobId>.stl.part` then rename; enforce a 500 MiB per-device quota (sum of `meshes.size`); retain the newest 5 meshes per document, unlink older ones; job-bound file naming only (client-supplied filename header ignored, spec mesh-preview-upload "Client-supplied name ignored").
+- [x] 5.4 Add a dedicated `rateLimit({limit: 30})` to the mesh upload route.
+- [x] 5.5 Add `GET /api/designs`, `GET /api/designs/:id` (OIDC `cad:read`, owner-scoped), `GET /api/designs/:id/mesh` → `res.sendFile` with `Content-Type: model/stl`, `Cache-Control: private, no-store`; mount all in `apps/api/src/main.ts`.
+- [x] 5.6 Update `README.md`: compatibility table plus the "mesh preview leaves the machine" security exception note (docs travel with this behavior-changing slice).
+- [x] 5.7 Tests: owner-scoped retrieval (non-owner request returns not-found/forbidden, spec "Non-owner cannot fetch mesh"); confirm every case from 5.1 passes against the implemented route.
 
 Acceptance: every malformed/oversize/mismatched/foreign-device/non-running-job upload is rejected and stores nothing; only the document's owner can `GET` its mesh. ~300 changed lines (borderline — keep scope frozen at this list).
 
+- [x] 5.7 README follow-up from slice 2b: update the "Try the first operation" walkthrough (job artifacts are now `design.FCStd` and `preview.stl`; `box.step` is no longer produced) and the compatibility table wording.
+
 ## Slice 6 — Agent upload step after export (PR 9, depends on: 2b, 5)
 
-- [ ] 6.1 (RED) Add `agent/tests/test_upload.py` with mocked `urlopen` (no redirect) asserting the upload call shape (device credential header, `X-Mesh-Sha256`, streamed body) before wiring it into `main.py`.
-- [ ] 6.2 In `agent/cadgpt_agent/main.py`, after a successful export, `POST` the produced STL to `/api/agent/jobs/:id/mesh` with the device credential and a streaming sha256 header.
-- [ ] 6.3 On upload failure, still report the job result as `ok=True` with a "preview unavailable" note — the design exists locally regardless of upload outcome.
-- [ ] 6.4 Extend `agent/tests/test_upload.py`: success path, upload-failure-tolerant path (job still reports `ok=True`).
+- [x] 6.1 (RED) Add `agent/tests/test_upload.py` with mocked `urlopen` (no redirect) asserting the upload call shape (device credential header, `X-Mesh-Sha256`, streamed body) before wiring it into `main.py`.
+- [x] 6.2 In `agent/cadgpt_agent/main.py`, after a successful export, `POST` the produced STL to `/api/agent/jobs/:id/mesh` with the device credential and a streaming sha256 header.
+- [x] 6.3 On upload failure, still report the job result as `ok=True` with a "preview unavailable" note — the design exists locally regardless of upload outcome.
+- [x] 6.4 Extend `agent/tests/test_upload.py`: success path, upload-failure-tolerant path (job still reports `ok=True`).
 
 Acceptance: a failed mesh upload never flips a successful CAD job to a failed status. ~110 changed lines.
 
 ## Slice 7 — Web routing skeleton + auth guard (PR 10, depends on: —)
 
-- [ ] 7.1 (RED) Add a Vitest test asserting an unauthenticated navigation to `/designs/:id` redirects to sign-in before any component renders (spec dashboard-routing "Unauthenticated redirect").
-- [ ] 7.2 Define lazy routes in `apps/web/src/app/app.routes.ts` (currently empty): `''` (home, public), `about` (public), `callback`, `pair`, `connect`, `devices`, `designs`, `designs/:id`, `jobs`, `**` → `''`.
-- [ ] 7.3 Implement `apps/web/src/app/core/auth/auth.service.ts` wrapping `UserManager`, with signals for `user`/`token`/`ready`.
-- [ ] 7.4 Implement the functional `apps/web/src/app/core/auth/auth.guard.ts`: `await auth.ready(); return auth.user() ? true : (auth.login(state.url), false)`.
-- [ ] 7.5 Implement `apps/web/src/app/layout/shell/*` (header, left rail nav, footer, `<router-outlet>`).
-- [ ] 7.6 Add stub `loadComponent` pages under `apps/web/src/app/pages/{home,about,callback,pair,connect,devices,designs,design-detail,jobs}/` sufficient to compile and navigate; full content lands in slices 8–11 and 15.
-- [ ] 7.7 Add a lazy-loading test: `/designs` loads its module on demand (spec dashboard-routing "Lazy route loads on navigation").
+- [x] 7.1 (RED) Add a Vitest test asserting an unauthenticated navigation to `/designs/:id` redirects to sign-in before any component renders (spec dashboard-routing "Unauthenticated redirect").
+- [x] 7.2 Define lazy routes in `apps/web/src/app/app.routes.ts` (currently empty): `''` (home, public), `about` (public), `callback`, `pair`, `connect`, `devices`, `designs`, `designs/:id`, `jobs`, `**` → `''`.
+- [x] 7.3 Implement `apps/web/src/app/core/auth/auth.service.ts` wrapping `UserManager`, with signals for `user`/`token`/`ready`.
+- [x] 7.4 Implement the functional `apps/web/src/app/core/auth/auth.guard.ts`: `await auth.ready(); return auth.user() ? true : (auth.login(state.url), false)`.
+- [x] 7.5 Implement `apps/web/src/app/layout/shell/*` (header, left rail nav, footer, `<router-outlet>`).
+- [x] 7.6 Add stub `loadComponent` pages under `apps/web/src/app/pages/{home,about,callback,pair,connect,devices,designs,design-detail,jobs}/` sufficient to compile and navigate; full content lands in slices 8–11 and 15.
+- [x] 7.7 Add a lazy-loading test: `/designs` loads its module on demand (spec dashboard-routing "Lazy route loads on navigation").
 
 Acceptance: navigating to `/designs/:id` without a session redirects to sign-in before rendering (verified by 7.1); `/designs` loads lazily. ~260 changed lines.
 
 ## Slice 8 — STL viewer on `/designs/:id` (PR 11, depends on: 7, 5)
 
-- [ ] 8.1 Add `three@0.186` and `@types/three` (dev) to `apps/web/package.json`.
-- [ ] 8.2 (RED) Add a Vitest test (SSR-pass guard) asserting zero three.js/WebGL loading occurs during a simulated server-rendered pass (spec mesh-viewer "SSR pass skips three.js").
-- [ ] 8.3 Implement `apps/web/src/app/features/viewer/stl-viewer.ts`: `meshUrl = input.required<string>()`, `afterNextRender` → dynamic `import('./three-scene')` only in the browser.
-- [ ] 8.4 Implement `apps/web/src/app/features/viewer/three-scene.ts`: scene setup, `STLLoader` from `three/addons/loaders`, `OrbitControls`, `ResizeObserver`, `DestroyRef` disposes the renderer.
-- [ ] 8.5 Wire `apps/web/src/app/pages/design-detail/*`: fetch `GET /api/designs/:id` and `GET /api/designs/:id/mesh` (bearer), pass the mesh URL into `StlViewer` only when a mesh exists.
-- [ ] 8.6 (RED, F1) Add a Vitest test for the pending-state scenario: a document with only a queued/running job renders a pending UI state and never constructs a mesh URL or invokes `STLLoader` (spec mesh-viewer "Pending State Without Mesh").
-- [ ] 8.7 Implement the pending state in `design-detail`: when no mesh exists yet, render pending copy instead of attempting a mesh fetch/load (satisfies 8.6).
-- [ ] 8.8 Tests: `StlViewer` mounts a canvas only when `meshUrl` is present (`three-scene` mocked); preview renders after job completion (spec "Preview renders after job completion").
+- [x] 8.1 Add `three@0.186` and `@types/three` (dev) to `apps/web/package.json`.
+- [x] 8.2 (RED) Add a Vitest test (SSR-pass guard) asserting zero three.js/WebGL loading occurs during a simulated server-rendered pass (spec mesh-viewer "SSR pass skips three.js").
+- [x] 8.3 Implement `apps/web/src/app/features/viewer/stl-viewer.ts`: `mesh = input.required<ArrayBuffer>()` (deviation from `meshUrl`, see below), `afterNextRender` → dynamic `import('./three-scene')` only in the browser.
+- [x] 8.4 Implement `apps/web/src/app/features/viewer/three-scene.ts`: scene setup, `STLLoader` from `three/addons/loaders`, `OrbitControls`, `ResizeObserver`, `DestroyRef` disposes the renderer.
+- [x] 8.5 Wire `apps/web/src/app/pages/design-detail/*`: fetch `GET /api/designs/:id` and `GET /api/designs/:id/mesh` (bearer), pass the mesh buffer into `StlViewer` only when a mesh exists.
+- [x] 8.6 (RED, F1) Add a Vitest test for the pending-state scenario: a document with only a queued/running job renders a pending UI state and never fetches the mesh binary or invokes `STLLoader` (spec mesh-viewer "Pending State Without Mesh").
+- [x] 8.7 Implement the pending state in `design-detail`: when no mesh exists yet, render pending copy and poll every 5 s instead of attempting a mesh fetch/load (satisfies 8.6).
+- [x] 8.8 Tests: `StlViewer` mounts a container and calls the scene factory only when `mesh` resolves (`three-scene` mocked via `SCENE_FACTORY` DI token); preview renders after job completion (spec "Preview renders after job completion").
 
 Acceptance: opening `/designs/:id` for a document with only a queued job shows pending — not an error — and never calls `STLLoader` (8.6/8.7); after job completion the same route renders the STL geometry (8.8); no three.js/WebGL code runs during any server-rendered pass (8.2). ~280 changed lines.
 
 ## Slice 9 — Dashboard shell/nav + informational pages (PR 12, depends on: 7)
 
-- [ ] 9.1 Apply the `frontend-design` pass to shell/nav: drafting-paper neutrals + one technical blue, persistent left rail, one grotesque type family, tabular numerals for mm dimensions (design "Design-system intent").
-- [ ] 9.2 Build real home page content (public) in `apps/web/src/app/pages/home/*`.
-- [ ] 9.3 Build real about page content (public) in `apps/web/src/app/pages/about/*`.
-- [ ] 9.4 Tests: home/about render without an active session; left rail nav renders on every authenticated route.
+- [x] 9.1 Apply the `frontend-design` pass to shell/nav: drafting-paper neutrals + one technical blue, persistent left rail, one grotesque type family, tabular numerals for mm dimensions (design "Design-system intent").
+- [x] 9.2 Build real home page content (public) in `apps/web/src/app/pages/home/*`.
+- [x] 9.3 Build real about page content (public) in `apps/web/src/app/pages/about/*`.
+- [x] 9.4 Tests: home/about render without an active session; left rail nav renders on every authenticated route.
 
 Acceptance: home/about render for an unauthenticated visitor; the left rail nav renders on every authenticated route. ~180 changed lines.
 
+**Delivered at 729 changed lines** (`git diff --numstat`: `styles.css` +278/-59, `shell.css` +48/-46, `shell.html` +28/-11, `shell.ts` +6/-1, `shell.spec.ts` +38 new, `home.html` +59/-11, `home.ts` +7/-3, `home.spec.ts` +31 new, `about.html` +65/-5, `about.ts` +7/-1, `about.spec.ts` +16 new, `jobs.html` +8/-1), ~129 over the 600-line session budget, after dropping one non-essential `.button-link` class (reused the existing `.quiet` style instead) and an unused `h3` type-scale rule. No comment, blank line, doc, or test was cut to chase the number. The overage is structural: this slice's own deliverable list requires a full color/type/radius/spacing token system (every hardcoded color in the shared `styles.css` is replaced by a `var()`, which `git diff` counts as a full delete+add per line even where only the value changed) plus two brand-new content pages, a redesigned shell, and three new spec files — consistent with this change's already-accepted precedent (slice 2b +20%, slice 4b +18%, slice 7 +190%). See apply-progress.md for the full token table and `size:exception` recommendation.
+
 ## Slice 10 — Dashboard devices/designs pages + `WorkspaceStore` (PR 13, depends on: 9)
 
-- [ ] 10.1 Implement `apps/web/src/app/core/state/workspace.store.ts`: signals + `resource()` for devices, jobs, designs (D16).
-- [ ] 10.2 Implement `apps/web/src/app/core/api/{api-client,models}.ts`: typed `fetch` + bearer client and DTOs.
-- [ ] 10.3 Build the devices page (list + status) and designs list page (backed by `list_documents`) under `apps/web/src/app/pages/{devices,designs}/*`.
-- [ ] 10.4 Tests: `WorkspaceStore` resource loading/error states (`TestBed`); designs list renders only the authenticated owner's documents (ties to spec document-registry "List scoped to owner").
+- [x] 10.1 Implement `apps/web/src/app/core/state/workspace.store.ts`: signals + `resource()` for devices, jobs, designs (D16).
+- [x] 10.2 Implement `apps/web/src/app/core/api/{api-client,models}.ts`: typed `fetch` + bearer client and DTOs.
+- [x] 10.3 Build the devices page (list + status) and designs list page (backed by `list_documents`) under `apps/web/src/app/pages/{devices,designs}/*`.
+- [x] 10.4 Tests: `WorkspaceStore` resource loading/error states (`TestBed`); designs list renders only the authenticated owner's documents (ties to spec document-registry "List scoped to owner").
 
 Acceptance: the designs list page renders only the authenticated owner's documents. ~240 changed lines.
 
 ## Slice 11 — Dashboard jobs history (PR 14, depends on: 9, 10)
 
-- [ ] 11.1 Build the jobs history page under `apps/web/src/app/pages/jobs/*`, consuming `WorkspaceStore.jobs`; show status/type/document link.
-- [ ] 11.2 Tests: jobs list renders each status (queued/running/succeeded/failed) and links to `document_id` when present.
+- [x] 11.1 Build the jobs history page under `apps/web/src/app/pages/jobs/*`, consuming `WorkspaceStore.jobs`; show status/type/document link.
+- [x] 11.2 Tests: jobs list renders each status (queued/running/succeeded/failed) and links to `document_id` when present.
 
 Acceptance: the jobs history page shows each job's `type` and links to its `document_id` when present. ~120 changed lines.
 
@@ -262,11 +282,13 @@ Acceptance: `capabilities.mesh` for AutoCAD is `true` only if 14.0 passed and is
 
 ## Slice 15 — Post-pairing connect step + agent open + docs (PR 19, depends on: 9)
 
-- [ ] 15.1 (RED) Add a Vitest test asserting `ConnectPage` renders both Claude-specific and ChatGPT-specific instruction sets, distinct from each other (spec mcp-client-onboarding).
-- [ ] 15.2 In `agent/cadgpt_agent/main.py`, after `poll` returns a credential, open `server + '/connect?device=' + deviceId` (UUID only, never the secret); `--headless` prints it instead of opening a browser.
-- [ ] 15.3 Build `apps/web/src/app/pages/connect/*`: MCP resource URL (`origin + '/mcp'`), Claude-specific steps (Settings → Connectors → Add custom connector → paste URL → sign in), ChatGPT-specific steps (Settings → Connectors → Developer mode → Add → paste URL), a live device-status card polling `/api/devices`, a "Try `list_devices`" callout.
-- [ ] 15.4 Link `apps/web/src/app/pages/pair/*` → `/connect` after approval.
-- [ ] 15.5 Update `README.md`/`docs/`: MCP connect guide, cross-reference to the AutoCAD opt-in and mesh-preview exception notes already added in slices 5 and 13a.
-- [ ] 15.6 Tests: confirm 15.1 passes; add an agent test (mocked `webbrowser.open`) asserting the opened URL contains only the device UUID, never the secret.
+- [x] 15.1 (RED) Add a Vitest test asserting `ConnectPage` renders both Claude-specific and ChatGPT-specific instruction sets, distinct from each other (spec mcp-client-onboarding).
+- [x] 15.2 In `agent/cadgpt_agent/main.py`, after `poll` returns a credential, open `server + '/connect?device=' + deviceId` (UUID only, never the secret); `--headless` prints it instead of opening a browser.
+- [x] 15.3 Build `apps/web/src/app/pages/connect/*`: MCP resource URL (`origin + '/mcp'`), Claude-specific steps (Settings → Connectors → Add custom connector → paste URL → sign in), ChatGPT-specific steps (Settings → Connectors → Developer mode → Add → paste URL), a live device-status card polling `/api/devices`, a "Try `list_devices`" callout.
+- [x] 15.4 Link `apps/web/src/app/pages/pair/*` → `/connect` after approval.
+- [x] 15.5 Update `README.md`/`docs/`: MCP connect guide, cross-reference to the AutoCAD opt-in and mesh-preview exception notes already added in slices 5 and 13a.
+- [x] 15.6 Tests: confirm 15.1 passes; add an agent test (mocked `webbrowser.open`) asserting the opened URL contains only the device UUID, never the secret.
+
+**Note (2026-09-14)**: slices 13a (AutoCAD strategy/opt-in note) and 12 are not yet delivered (pending Windows/AutoCAD host access), so this slice's docs phrase AutoCAD as detection-only today rather than referencing an opt-in note that does not exist yet; the cross-reference will be added when slice 13a lands. Delivered at 331 changed lines (well within the 600-line session budget).
 
 Acceptance: the connect step never displays the device secret, only its UUID (15.6); Claude and ChatGPT instructions are visibly distinct (15.1). ~220 changed lines.

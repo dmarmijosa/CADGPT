@@ -6,6 +6,8 @@ Only a fixed FreeCAD box operation is implemented. There is no arbitrary code to
 
 A compromised OS account, CAD installation, identity provider or backend is outside the agent's isolation boundary. The FreeCAD process is not an OS sandbox. Do not point manual discovery to executables you do not trust.
 
+The mesh preview channel (`POST /api/agent/jobs/:id/mesh`) accepts only a binary STL, bound to a `running` job the uploading device owns; it enforces a streamed 25 MiB size cap, a verified SHA-256, a structural binary-STL check, and a 500 MiB per-device quota, and never trusts a client-supplied file name. The uploaded STL is the only design data that leaves the agent's computer; native CAD files never do.
+
 Use a trusted HTTPS backend. Do not share access/device tokens or put them in issues. Revoke a compromised device through the dashboard; stop its local process separately if immediate execution termination is necessary. Back up drawings before testing.
 
 Public abuse reporting and private vulnerability reporting channels have not yet been configured. Do not post secrets or working exploit credentials in public GitHub issues.

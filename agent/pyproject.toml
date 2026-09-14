@@ -8,5 +8,7 @@ requires-python = ">=3.11"
 dependencies = ["keyring>=25.6,<26", "platformdirs>=4.3,<5"]
 [project.scripts]
 cadgpt-agent = "cadgpt_agent.main:main"
+[tool.setuptools.packages.find]
+include = ["cadgpt_agent*"]
 [tool.setuptools.package-data]
 cadgpt_agent = ["freecad_worker.py"]

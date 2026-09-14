@@ -1,0 +1,107 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+header {
+  height: 60px;
+  padding: 0 var(--space-5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-rule);
+  flex: none;
+}
+.brand {
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-ink);
+}
+.mark {
+  display: inline-flex;
+  color: var(--color-blue);
+}
+nav[aria-label='Account'] {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--color-ink-muted);
+}
+.shell {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 232px 1fr;
+}
+.rail {
+  border-right: 1px solid var(--color-rule);
+  padding: var(--space-5) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.rail a {
+  text-decoration: none;
+  color: var(--color-ink-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+.rail a:hover {
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+.rail a.active {
+  background: var(--color-blue-wash);
+  color: var(--color-blue-strong);
+}
+.rail-secondary {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-rule);
+}
+main {
+  padding: var(--space-6) var(--space-7);
+  max-width: 960px;
+}
+footer {
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-5);
+  font-size: 0.72rem;
+  color: var(--color-ink-faint);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--color-rule);
+}
+@media (max-width: 800px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+  .rail {
+    border-right: none;
+    border-bottom: 1px solid var(--color-rule);
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: var(--space-3);
+  }
+  .rail-secondary {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+  main {
+    padding: var(--space-5) var(--space-4);
+  }
+  footer {
+    flex-direction: column;
+  }
+}

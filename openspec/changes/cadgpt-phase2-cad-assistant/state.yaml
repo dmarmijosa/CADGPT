@@ -4,7 +4,7 @@ artifact_store: hybrid
 chain_strategy: stacked-to-main
 execution_mode: auto
 delivery_strategy: ask-on-risk
-review_budget_lines: 400
+review_budget_lines: 600  # raised from 400 by the user on 2026-09-14 after slices 2b/3a
 phases:
   explore: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/explore", obs: 125 }
   research: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/research", obs: 128 }
@@ -13,11 +13,11 @@ phases:
   spec: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/spec", obs: 131 }
   design: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/design", obs: 133 }
   tasks: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/tasks", obs: 134 }
-  apply: { status: in_progress, ref: "sdd/cadgpt-phase2-cad-assistant/apply-progress", slice: "1/19", tasks_done: "1.1-1.6" }
+  apply: { status: in_progress, ref: "sdd/cadgpt-phase2-cad-assistant/apply-progress", slice: "16/20", tasks_done: "1.1-1.6, 2a.1-2a.6, 2b.1-2b.9, 2c.1-2c.5, 3a.1-3a.7, 3b.1-3b.4, 4a.1-4a.5, 4b.1-4b.6 (4b.7 deprioritized/not done), 5.1-5.7 (incl. the second 5.7 README follow-up from slice 2b), 6.1-6.4, 7.1-7.7, 8.1-8.8, 9.1-9.4, 10.1-10.4, 11.1-11.2, 15.1-15.6", size_exception: "2b: 495 lines, accepted by the user (2026-09-14). 3a: 580 lines, covered by the budget raise to 600 (2026-09-14). 4b: 711 lines, accepted by the user (2026-09-14). 7: 1,741 lines (apps/web/src/app/** rewrite per design's File Changes table), size:exception requested, pending user decision (2026-09-14). 9: 729 lines (design-tokens pass across styles.css + shell + home/about + 3 new spec files), size:exception requested, pending user decision (2026-09-14). 10: 877 lines (WorkspaceStore + ApiClient/models + full devices/designs table redesign + 3 new spec files), size:exception requested, pending user decision (2026-09-14). 2c/3b/4a/5/6/8/11/15 within budget (slice 8: 492 authored lines, package-lock.json excluded; slice 11: 442 authored lines; slice 15: 331 authored lines).", note: "Slices 12-14 (AutoCAD discovery/strategy/STL preview) remain pending — Windows/AutoCAD host access is being arranged. Slice 15 was delivered out of dependency order ahead of them since it only depends on slice 9." }
   verify: { status: pending }
   archive: { status: pending }
 next_recommended: [sdd-apply]
-delivery_forecast: chained PRs expected; 19 slices, ~4,100 total changed lines, three slices (2b ~340, 5 ~300, 13a ~320) near the 400-line budget; 400-line budget risk Medium; chain strategy not yet chosen (pending) — orchestrator must ask the user before sdd-apply starts slice 1 (ask-on-risk => Decision needed before apply: Yes)
+delivery_forecast: 20 chained PRs stacked to main; ~4,250 total changed lines; budget 600/slice since 2026-09-14; exceptions recorded above. Slices 1-10 implemented on branches for PRs #1-#13 (branch `feat/phase2-10-devices-designs` for slice 10/PR 13, stacked on `feat/phase2-09-dashboard-shell`; none pushed/opened yet, per instructions).
 open_items_for_design:
   - Autodesk EULA on unattended Core Console automation
   - Angular 22 zoneless/SSR + three.js guard pattern
@@ -34,11 +34,37 @@ design_notes:
   - Threat matrix has 4 applicable rows (executable classification, subprocess argv, caller-controlled paths, upload boundary) that must propagate unchanged to tasks as RED tests
   - Design artifact exceeds the 800-word skill guideline because the task brief mandates 10 documented areas including the full tool catalog; accepted tradeoff
 tasks_notes:
-  - 19 slices, one work unit per slice, dependency order documented in the tasks artifact's Dependency Graph
+  - 20 slices (Slice 2c added 2026-09-14 at the user's request), one work unit per slice, dependency order documented in the tasks artifact's Dependency Graph
   - Every applicable threat-matrix row (executable classification, subprocess argv composition, caller-controlled paths, upload boundary) has an explicit RED-test task placed before its corresponding production task in the owning slice
   - Slice 14 (AutoCAD STL preview) is conditional on task 14.0, a Windows EXPORT/3DPRINT headless spike with an explicit pass/fail criterion; a failed spike is a valid outcome that skips 14.1-14.3
   - Shared ops-allowlist.json fixture lands at the repo root (task 4b.4) so both apps/api/test (tsx --test) and agent/tests (unittest) read the same file by relative path (closes design risk 4)
-  - Chain strategy is left as "pending" — delivery_strategy ask-on-risk requires the orchestrator to ask the user which chain strategy (stacked-to-main / feature-branch-chain / size:exception) to use before sdd-apply starts slice 1
-  - Tasks artifact exceeds the 530-word skill guideline by design, consistent with the spec/design precedent already recorded above — 19 slices each need explicit files/tests/acceptance/estimate per the task brief
-updated: 2026-09-13
-openspec_mirrored_at: 2026-09-13
+  - Chain strategy chosen by the user before slice 1: stacked-to-main
+  - Tasks artifact exceeds the 530-word skill guideline by design, consistent with the spec/design precedent already recorded above — 20 slices each need explicit files/tests/acceptance/estimate per the task brief
+updated: 2026-09-14
+slice_15_notes:
+  - "`open_connect_step(server, device_id, headless)` in `agent/cadgpt_agent/main.py` is called with `state['deviceId']` from the pairing-poll response (`store.poll()` returns `{pending: false, deviceId, credential}`), only right after a fresh credential is obtained — never when a saved credential is reused from the keyring/file fallback."
+  - "`/api/pairings/approve` returns only `{ approved: true }` (no device id), so `PairPage` always navigates to plain `/connect` after a successful approval, per the task's documented fallback; a code comment flags forwarding `?device=<id>` if the response ever adds one."
+  - "Claude/ChatGPT connect steps use a plain `<ol>`, not the `.steps` custom-counter class, to respect design's 'no numbered markers except the genuine pairing→connect sequence' (reserved for home's 3-step list)."
+  - "331 authored lines against the 600-line budget — no size:exception needed for slice 15."
+slice_11_notes:
+  - "`Store.jobs()`'s SELECT now projects `COALESCE(type,'create_box') AS type` and `document_id AS documentId`, so `Job.type`/`Job.documentId` in `models.ts` moved from optional to required — the API now actually sends both, closing the gap slice 10 flagged."
+  - "`jobResultSummary()` in `jobs.ts` mirrors `apps/api/src/tools.ts`'s `parseJobResult`: JSON `{message, scene?}` renders only `message`, truncated to ~140 chars with the full text in `title`; `scene` is never rendered on this page."
+  - "Status badge uses one dynamic `[class]` bound to the raw status string instead of one `[class.x]` per value, so `queued/running/succeeded/failed/expired/unknown/cancelled` are all covered without new CSS — `.status`'s existing muted base style covers any value without a dedicated color token, and status text is always shown alongside the class."
+  - "442 authored lines against the 600-line budget — no size:exception needed for slice 11."
+openspec_mirrored_at: 2026-09-14
+slice_8_notes:
+  - "StlViewer's `mesh` input carries an already-fetched `ArrayBuffer`, not `meshUrl` as tasks.md's wording suggested — `GET /api/designs/:id/mesh` requires an owner bearer token that a plain `STLLoader.load(url)` call cannot attach, so `design-detail` fetches the bytes via `ApiService.requestArrayBuffer()` and passes them in."
+  - "`SCENE_FACTORY` DI token (features/viewer/scene-factory.ts) is the test seam instead of module-level mocking of `three-scene.ts`; its default implementation lazy-imports `three-scene.ts`, the only module that imports `three`/its addons."
+  - "Production build confirms `three` lands in its own lazy chunk (`three-scene`, 567.88 kB raw / 117.49 kB transfer), separate from `main` and from the `design-detail` route chunk (3.83 kB)."
+  - "492 authored lines (package-lock.json's 65-line churn excluded), within the 600-line budget — no size:exception needed for slice 8."
+slice_9_notes:
+  - "Design tokens (:root custom properties in styles.css) retint every existing shared class (button/.quiet/.panel/.status/.eyebrow/.message/.cad/.job/inputs), so devices/designs/jobs/connect/pair/design-detail all pick up the new palette with zero markup changes beyond one status-badge class alignment in jobs.html."
+  - "The shared `.eyebrow` class itself is fixed (text-transform: lowercase + ::first-letter uppercase) instead of editing each page's all-caps literal text — satisfies 'no all-caps eyebrows' app-wide without touching devices/designs/jobs/pair/connect/design-detail markup."
+  - "`Shell` is the static app root in production (`app.ts` renders `<app-shell/>`), not a routed component, so `shell.spec.ts` wraps the real `app.routes.ts` route table under a test-only `{ path: '', component: Shell, children: routes }` config for RouterTestingHarness — no production routing change."
+  - "729 authored lines against the 600-line budget (~21% over), after dropping a non-essential `.button-link` class and an unused `h3` rule; size:exception requested, consistent with slices 2b/4b/7's already-accepted precedent in this same change."
+slice_10_notes:
+  - "New `core/api/models.ts` + `core/api/api-client.ts` wrap `ApiService`: `Device`/`Job`/`Design`/`DesignDetail` DTOs match the server's actual camelCase JSON exactly (`store.ts`'s `devices()`/`jobs()`/`listDocuments()` already alias to camelCase in SQL). `Job.type`/`documentId` are optional — the `jobs` table has both columns since slice 1, but `Store.jobs()`'s SELECT does not project them yet (slice 11 extends that query), so the DTO does not invent data the API does not send today. `Cad.capabilities` is optional for the same forward-compat reason (D14/D16 add it in a later slice)."
+  - "`WorkspaceStore` uses one `resource()` per collection (D16); `resource().value()` throws while a resource is in its error state with no prior successful load, so `onlineDevices`/`designsWithPreview` and both pages' template conditionals gate every `.value()` read behind `.hasValue()` — an `?? []` fallback does not catch the throw."
+  - "Devices/designs pages moved from the old `.panel`-per-row layout to `table.data` (slice 9's shared class) with `scope=\"col\"` headers; devices revoke uses an inline per-row confirm/cancel state instead of `window.confirm`; the 'create a test box' form on the designs page moved into a collapsed native `<details>` panel."
+  - "Deliverable 6 (wire `design-detail` to `ApiClient`) was left as `ApiService` per the task's own 'if trivial; otherwise leave' clause once the projected diff crossed the review budget — the page's behavior and its existing tests are unchanged."
+  - "877 authored lines against the 600-line budget (~46% over) — a `WorkspaceStore`+`ApiClient`/`models` architecture layer plus two full page-and-test rewrites did not fit the ~240-450 estimate without cutting tests or comments; size:exception requested, consistent with slices 2b/4b/7/9's already-accepted precedent in this same change."

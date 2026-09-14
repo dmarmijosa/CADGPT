@@ -1,7 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Store } from '../src/store.js';
-const cad = { id: 'cad', name: 'FreeCAD', path: '/opt/FreeCADCmd', version: 'test', executable: true };
+const cad = {
+  id: 'cad',
+  name: 'FreeCAD',
+  path: '/opt/FreeCADCmd',
+  version: 'test',
+  executable: true,
+};
 function setup() {
   let time = Date.now();
   const store = new Store(':memory:', () => time);
@@ -22,12 +28,16 @@ test('migrate is idempotent on a phase-1 jobs table', () => {
     DROP TABLE jobs;
     ALTER TABLE jobs_legacy RENAME TO jobs;
   `);
-  const before = (store.db.prepare('PRAGMA table_info(jobs)').all() as { name: string }[]).map((c) => c.name);
+  const before = (store.db.prepare('PRAGMA table_info(jobs)').all() as { name: string }[]).map(
+    (c) => c.name,
+  );
   assert.equal(before.includes('type'), false);
   assert.equal(before.includes('document_id'), false);
   store.migrate();
   store.migrate(); // second call must not throw or duplicate columns
-  const after = (store.db.prepare('PRAGMA table_info(jobs)').all() as { name: string }[]).map((c) => c.name);
+  const after = (store.db.prepare('PRAGMA table_info(jobs)').all() as { name: string }[]).map(
+    (c) => c.name,
+  );
   assert.equal(after.filter((c) => c === 'type').length, 1);
   assert.equal(after.filter((c) => c === 'document_id').length, 1);
 });
@@ -56,14 +66,31 @@ test('list_documents is scoped to the caller', () => {
 test('D17 lock rejects a second active job on the same document', () => {
   const { store, device } = setup();
   const doc = store.createDocument('alice', device.deviceId!, 'FreeCAD', 'Bracket');
-  const input = { deviceId: device.deviceId!, cadId: 'cad', length: 1, width: 2, height: 3, confirmed: true as const };
+  const input = {
+    deviceId: device.deviceId!,
+    cadId: 'cad',
+    length: 1,
+    width: 2,
+    height: 3,
+    confirmed: true as const,
+  };
   store.enqueue('alice', input, 'modify', doc.id);
-  assert.throws(() => store.enqueue('alice', input, 'modify', doc.id), (e: unknown) => e instanceof Error && /active job/.test(e.message));
+  assert.throws(
+    () => store.enqueue('alice', input, 'modify', doc.id),
+    (e: unknown) => e instanceof Error && /active job/.test(e.message),
+  );
 });
 test('complete() bumps documents.updated/latest_job_id on success', () => {
   const { store, device } = setup();
   const doc = store.createDocument('alice', device.deviceId!, 'FreeCAD', 'Bracket');
-  const input = { deviceId: device.deviceId!, cadId: 'cad', length: 1, width: 2, height: 3, confirmed: true as const };
+  const input = {
+    deviceId: device.deviceId!,
+    cadId: 'cad',
+    length: 1,
+    width: 2,
+    height: 3,
+    confirmed: true as const,
+  };
   const job = store.enqueue('alice', input, 'modify', doc.id);
   const picked = store.heartbeat(device.credential!, [cad]);
   assert.equal(picked.job?.id, job.id);
@@ -76,7 +103,14 @@ test('complete() bumps documents.updated/latest_job_id on success', () => {
 });
 test('phase-1 rows map type=null to create_box', () => {
   const { store, device } = setup();
-  const input = { deviceId: device.deviceId!, cadId: 'cad', length: 1, width: 2, height: 3, confirmed: true as const };
+  const input = {
+    deviceId: device.deviceId!,
+    cadId: 'cad',
+    length: 1,
+    width: 2,
+    height: 3,
+    confirmed: true as const,
+  };
   store.enqueue('alice', input); // no type/documentId passed — matches phase-1 callers
   const picked = store.heartbeat(device.credential!, [cad]);
   assert.equal(picked.job?.type, 'create_box');

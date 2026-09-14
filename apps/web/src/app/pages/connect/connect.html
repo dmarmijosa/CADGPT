@@ -1,0 +1,82 @@
+<section class="page-head">
+  <p class="eyebrow">CONNECT YOUR MCP CLIENT</p>
+  <h1>Almost there.</h1>
+  <p>Paste this deployment's MCP resource URL into Claude or ChatGPT to finish connecting.</p>
+</section>
+
+<section class="panel">
+  <h2>MCP resource URL</h2>
+  <p>
+    <code>{{ resourceUrl }}</code>
+  </p>
+  <button
+    type="button"
+    class="quiet"
+    (click)="copyResourceUrl()"
+    [attr.aria-label]="'Copy ' + resourceUrl"
+  >
+    {{ copied() ? 'Copied!' : 'Copy URL' }}
+  </button>
+</section>
+
+<section class="panel" data-testid="claude-steps">
+  <h2>Connect Claude</h2>
+  <ol>
+    <li>Open Claude and go to <strong>Settings → Connectors</strong>.</li>
+    <li>Choose <strong>Add custom connector</strong>.</li>
+    <li>Paste the MCP resource URL above.</li>
+    <li>Sign in with your CADGPT account when prompted.</li>
+  </ol>
+</section>
+
+<section class="panel" data-testid="chatgpt-steps">
+  <h2>Connect ChatGPT</h2>
+  <ol>
+    <li>Open ChatGPT and go to <strong>Settings → Connectors</strong>.</li>
+    <li>Turn on <strong>Developer mode</strong>.</li>
+    <li>Choose <strong>Add</strong> and paste the MCP resource URL above.</li>
+  </ol>
+</section>
+
+<section class="panel">
+  <h2>Device status</h2>
+  @if (workspace.devices.error(); as error) {
+    <div class="message error" role="alert">Could not load device status.</div>
+  } @else if (device()) {
+    @if (boundDevice(); as bound) {
+      <p>
+        <span class="status" [class.online]="bound.online">
+          {{ bound.online ? 'Online' : 'Waiting for this computer to come online…' }}
+        </span>
+        {{ bound.name }}
+      </p>
+    } @else if (workspace.devices.isLoading()) {
+      <p>Looking up this device…</p>
+    } @else {
+      <p>This device was not found. Check <a routerLink="/devices">your linked computers</a>.</p>
+    }
+  } @else if (workspace.devices.isLoading() && !workspace.devices.hasValue()) {
+    <p>Loading device status…</p>
+  } @else if (workspace.devices.hasValue() && workspace.devices.value().length) {
+    <ul>
+      @for (d of workspace.devices.value(); track d.id) {
+        <li>
+          <span class="status" [class.online]="d.online">{{
+            d.online ? 'Online' : 'Offline'
+          }}</span>
+          {{ d.name }}
+        </li>
+      }
+    </ul>
+  } @else {
+    <p>No linked computers yet. <a routerLink="/pair">Pair one first</a>.</p>
+  }
+</section>
+
+<section class="panel">
+  <h2>Try it</h2>
+  <p>
+    Once connected, ask your assistant to run <code>list_devices</code>. It should list this
+    computer as soon as the agent is running and the device above shows online.
+  </p>
+</section>

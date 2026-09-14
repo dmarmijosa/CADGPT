@@ -1,0 +1,12 @@
+<div
+  #container
+  class="stl-viewer"
+  role="img"
+  aria-label="Interactive 3D preview of the design's STL mesh"
+  [hidden]="unavailable()"
+></div>
+@if (unavailable()) {
+  <p class="stl-viewer-unavailable" role="status">
+    3D preview is unavailable in this browser. The design file is still on the linked machine.
+  </p>
+}

@@ -16,6 +16,21 @@ The GitHub repository hosts source and downloadable agents, not a running authen
 
 Do not enable wildcard redirects or pass-through access tokens intended for another API. The backend derives ownership exclusively from the verified JWT subject.
 
+## Configuration
+
+The API validates its environment once at process start (`apps/api/src/config/envs.ts`) and fails fast — with a `Config validation error: ...` message — if a required variable is missing or malformed. Copy `.env.example` to `.env` at the repository root before running `npm start`/`npm run dev`.
+
+| Variable | Required | Default | Notes |
+|---|---|---|---|
+| `PUBLIC_ORIGIN` | Yes | — | Public origin of the dashboard/API, must be a valid URI. Non-loopback origins must use `https:`. |
+| `OIDC_ISSUER` | Yes | — | Keycloak realm issuer URL, must be a valid URI. Non-loopback issuers must use `https:`. |
+| `OIDC_AUDIENCE` | Yes | — | Expected audience claim on access tokens (e.g. `cadgpt-api`). |
+| `HOST` | No | `127.0.0.1` | Interface the API listens on. |
+| `PORT` | No | `3000` | Port the API listens on. |
+| `OIDC_JWKS_URL` | No | `${OIDC_ISSUER}/protocol/openid-connect/certs` | Override only if the identity provider exposes JWKS at a non-standard path. |
+| `DATA_DIR` | No | `<repo-root>/data` (resolved relative to the process working directory) | Where the SQLite store and job files are written. |
+| `NODE_ENV` | No | `development` | One of `development`, `production`, `test`. |
+
 ## Production on the VPS via GitHub Actions
 
 `.github/workflows/deploy.yml` builds the server image, pushes it to GHCR, and deploys the stack (API + Keycloak + Postgres) to the VPS behind Easypanel's Traefik at `https://cadengine.danny-armijos.com`. It runs on every push to `main` and on manual dispatch.
@@ -88,6 +103,16 @@ Register a **separate OAuth client for each AI integration** in the identity pro
 Client setup screens, plan availability and OAuth registration requirements vary. Automatic dynamic client registration is **not implemented** here. Do not enable unrestricted dynamic registration as a shortcut. If the selected client cannot use a pre-registered OAuth client with this provider, stop and implement/test the required authorization integration before advertising compatibility.
 
 MCP is implemented using the official TypeScript SDK v1.30 maintenance line. The handler authenticates every request and creates no cross-user MCP session. ChatGPT/Claude live account integration remains a deployment acceptance test, not a completed certification.
+
+### The dashboard's guided step
+
+After a device is paired and approved, its owner can open `/connect` in the dashboard for a
+copy-pasteable resource URL and the same Claude/ChatGPT steps summarized above, plus a live status
+card for the paired computer. That page is a client-side walkthrough only — it does not replace the
+OAuth client registration steps above, and it never displays a device secret or credential, only
+the device's UUID and the public MCP URL. See the [mesh preview exception](../README.md#security-and-limitations)
+for what a connected client can retrieve today, and note that AutoCAD remains detection-only (no
+execution adapter shipped yet) regardless of which client connects.
 
 ## Operational boundaries
 

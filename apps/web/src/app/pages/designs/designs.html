@@ -1,0 +1,106 @@
+<section class="page-head">
+  <div class="section-title">
+    <div>
+      <h1>Designs</h1>
+      <p>Named CAD documents created or modified through a connected MCP client.</p>
+    </div>
+    <button
+      class="quiet"
+      type="button"
+      (click)="workspace.designs.reload()"
+      [disabled]="workspace.designs.isLoading()"
+    >
+      ↻ Refresh
+    </button>
+  </div>
+</section>
+
+@if (workspace.designs.error(); as error) {
+  <div class="message error" role="alert">{{ errorMessage(error) }}</div>
+}
+@if (error()) {
+  <div class="message error" role="alert">{{ error() }}</div>
+}
+@if (notice()) {
+  <div class="message" role="status">{{ notice() }}</div>
+}
+
+@if (workspace.designs.isLoading() && !workspace.designs.hasValue()) {
+  <p>Loading designs…</p>
+} @else if (workspace.designs.hasValue() && workspace.designs.value().length) {
+  <table class="data">
+    <thead>
+      <tr>
+        <th scope="col">Name</th>
+        <th scope="col">CAD</th>
+        <th scope="col">Updated</th>
+        <th scope="col">Preview</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (design of workspace.designs.value(); track design.id) {
+        <tr>
+          <td>
+            <a [routerLink]="['/designs', design.id]">{{ design.name }}</a>
+          </td>
+          <td>{{ design.cadKind }}</td>
+          <td class="tabular-nums">{{ design.updated | date: 'medium' }}</td>
+          <td>
+            <span class="status" [class.succeeded]="design.hasMesh">
+              {{ design.hasMesh ? 'Preview ready' : 'No preview yet' }}
+            </span>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+} @else {
+  <article class="panel empty">
+    <h2>No designs yet</h2>
+    <p>Create one below, or ask your connected MCP client to create one.</p>
+  </article>
+}
+
+<details class="panel">
+  <summary>Create a test box</summary>
+  <p>Dimensions are in millimeters. A new file is saved in the agent's job directory.</p>
+  <form (submit)="$event.preventDefault(); createBox()">
+    <label for="target">Device / CAD</label>
+    <select
+      id="target"
+      (change)="selectOption($any($event.target).value)"
+      [disabled]="!freecadOptions().length"
+    >
+      <option value="">Select a linked FreeCAD installation…</option>
+      @for (option of freecadOptions(); track option.cadId) {
+        <option [value]="option.deviceId + '|' + option.cadId">{{ option.label }}</option>
+      }
+    </select>
+    <div class="dimensions">
+      <label
+        >Length (mm)<input
+          type="number"
+          step="any"
+          class="tabular-nums"
+          [formField]="fields.length"
+      /></label>
+      <label
+        >Width (mm)<input type="number" step="any" class="tabular-nums" [formField]="fields.width"
+      /></label>
+      <label
+        >Height (mm)<input
+          type="number"
+          step="any"
+          class="tabular-nums"
+          [formField]="fields.height"
+      /></label>
+    </div>
+    <label class="check">
+      <input type="checkbox" [formField]="fields.confirmed" /> I confirm these dimensions and
+      authorize creating a new file on this computer.
+    </label>
+    <button type="submit" [disabled]="busy() || !model().deviceId || !model().confirmed">
+      Create new FreeCAD box →
+    </button>
+  </form>
+</details>

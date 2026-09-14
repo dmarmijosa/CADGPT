@@ -13,24 +13,13 @@
       "publicClient": true,
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
-      "redirectUris": [
-        "http://localhost:3000/callback",
-        "http://localhost:4200/callback"
-      ],
-      "webOrigins": [
-        "http://localhost:3000",
-        "http://localhost:4200"
-      ],
+      "redirectUris": ["http://localhost:3000/callback", "http://localhost:4200/callback"],
+      "webOrigins": ["http://localhost:3000", "http://localhost:4200"],
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "post.logout.redirect.uris": "http://localhost:3000##http://localhost:4200"
       },
-      "defaultClientScopes": [
-        "profile",
-        "email",
-        "cad:read",
-        "cad:write"
-      ],
+      "defaultClientScopes": ["profile", "email", "cad:read", "cad:write"],
       "protocolMappers": [
         {
           "name": "cadgpt-audience",

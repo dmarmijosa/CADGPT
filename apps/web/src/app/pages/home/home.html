@@ -1,0 +1,61 @@
+<section class="hero">
+  <h1>Run CAD operations from the AI client you already use.</h1>
+  <p class="lead">
+    CADGPT links a computer you control to a fixed, allowlisted set of CAD operations, so an
+    MCP-connected assistant can create, modify, and read named designs — with no free-form code ever
+    reaching that machine.
+  </p>
+  <div class="hero-actions">
+    @if (auth.user()) {
+      <a class="quiet" routerLink="/designs">Go to your designs</a>
+    } @else {
+      <button type="button" (click)="signIn()">Sign in</button>
+      <a class="quiet" [href]="releasesUrl">Download the connector ↗</a>
+    }
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Three steps to connect</h2>
+  <ol class="steps">
+    <li>
+      <strong>Install the connector</strong>
+      <p>Run the CADGPT agent on the computer with FreeCAD, or AutoCAD for detection only.</p>
+    </li>
+    <li>
+      <strong>Link the machine</strong>
+      <p>Pair it to your account with a one-time code that expires in 10 minutes.</p>
+    </li>
+    <li>
+      <strong>Connect Claude or ChatGPT</strong>
+      <p>Add the CADGPT connector in your assistant's settings and sign in.</p>
+    </li>
+  </ol>
+</section>
+
+<section class="panel">
+  <h2>What it can do today</h2>
+  <ul class="capabilities">
+    <li>
+      <strong>FreeCAD</strong> — headless create, modify, read, and export on named designs:
+      primitives, booleans, transforms, extrusion, scene reads, STEP/STL/DXF export.
+    </li>
+    <li>
+      <strong>AutoCAD / AutoCAD LT</strong> — installation and edition detected only; no execution
+      yet.
+    </li>
+  </ul>
+</section>
+
+<section class="panel">
+  <h2>Security posture</h2>
+  <ul class="security-list">
+    <li>
+      Every operation runs from a fixed allowlist — nothing free-form ever reaches the machine.
+    </li>
+    <li>
+      Native files (<code>.FCStd</code>, <code>.dwg</code>) never leave the computer that owns them.
+    </li>
+    <li>Only a generated STL preview mesh uploads, and only so the dashboard can render it.</li>
+  </ul>
+</section>
