@@ -1,4 +1,4 @@
-# Deploy a CADGPT server before distributing agents
+# Deploy a CAD Agent Designer server before distributing agents
 
 The GitHub repository hosts source and downloadable agents, not a running authentication or relay service.
 
@@ -97,7 +97,7 @@ Register a **separate OAuth client for each AI integration** in the identity pro
 2. Register only that redirect URI; enable code flow and PKCE as supported/required by that client. Do not reuse the browser client's ID or ship a client secret in Angular.
 3. Assign the CAD scopes and `cadgpt-api` audience mapper to its access tokens. Turn on user consent for the integration.
 4. Configure the integration with the public MCP endpoint, registered client ID and (only if the client requires confidential authentication) its secret in the integration's secure server-side configuration.
-5. Sign in as the same CADGPT account that approved the device. Consent to the requested permissions.
+5. Sign in as the same CAD Agent Designer account that approved the device. Consent to the requested permissions.
 6. First test `list_devices`; then explicitly authorize a small box on a disposable FreeCAD workspace.
 
 Client setup screens, plan availability and OAuth registration requirements vary. Automatic dynamic client registration is **not implemented** here. Do not enable unrestricted dynamic registration as a shortcut. If the selected client cannot use a pre-registered OAuth client with this provider, stop and implement/test the required authorization integration before advertising compatibility.

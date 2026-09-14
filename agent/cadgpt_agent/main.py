@@ -15,6 +15,9 @@ from .discovery import discover
 from .executor import execute
 from .upload import upload_mesh
 
+# Kept as "CADGPT" for compatibility: this is the OS keyring service name used
+# to look up credentials already stored by previously paired devices. Renaming
+# it would orphan every existing device's saved credential.
 SERVICE = "CADGPT"
 MAX_RESPONSE = 65536
 
@@ -89,8 +92,8 @@ def run_job(job, cads, jobs, server, credential, upload=upload_mesh):
     return True, result
 
 def main():
-    parser = argparse.ArgumentParser(description="Connect this CAD computer to your CADGPT server.")
-    parser.add_argument("--server", help="CADGPT HTTPS server origin")
+    parser = argparse.ArgumentParser(description="Connect this CAD computer to your CAD Agent Designer server.")
+    parser.add_argument("--server", help="CAD Agent Designer HTTPS server origin")
     parser.add_argument("--cad-path", help="Manual FreeCADCmd or AutoCAD executable path")
     parser.add_argument("--headless", action="store_true", help="Print pairing URL instead of opening a browser")
     parser.add_argument("--allow-file-credentials", action="store_true", help="Explicitly allow owner-only file storage when no OS keyring exists")
@@ -100,6 +103,8 @@ def main():
                               "Off by default (D12); you are responsible for your own Autodesk license terms "
                               "permitting this unattended, scripted use. See SECURITY.md.")
     args = parser.parse_args()
+    # On-disk directory name kept as "CADGPT" for compatibility: renaming it
+    # would orphan every existing paired device's credential and data dir.
     root = Path(user_data_dir("CADGPT", appauthor=False))
     root.mkdir(parents=True, mode=0o700, exist_ok=True)
     config_file = root / "config.json"
@@ -111,10 +116,10 @@ def main():
             from tkinter.simpledialog import askstring
             window = tk.Tk()
             window.withdraw()
-            value = askstring("Connect CADGPT", "Your CADGPT server URL (https://…):")
+            value = askstring("Connect CAD Agent Designer", "Your CAD Agent Designer server URL (https://…):")
             window.destroy()
         except Exception:
-            value = input("CADGPT server URL (https://…): ").strip()
+            value = input("CAD Agent Designer server URL (https://…): ").strip()
     if not value:
         return
     server = server_url(value)

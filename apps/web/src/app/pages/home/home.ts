@@ -6,7 +6,7 @@ const RELEASES_URL = 'https://github.com/dmarmijosa/CADGPT/releases';
 
 /**
  * Public landing page (spec dashboard-routing: public route). Explains what
- * CADGPT does, the three-step connection flow, today's capabilities, and the
+ * CAD Agent Designer does, the three-step connection flow, today's capabilities, and the
  * security posture, for a visitor with no active session.
  */
 @Component({

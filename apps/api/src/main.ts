@@ -154,7 +154,7 @@ http.post(
   wrap(async (q, r) => {
     const owner = await auth(q.headers.authorization);
     const server = new McpServer(
-      { name: 'cadgpt', version: '0.1.0' },
+      { name: 'cad-agent-designer', version: '0.1.0' },
       { instructions: SERVER_INSTRUCTIONS },
     );
     registerTools(server, store, owner, () => auth(q.headers.authorization, 'cad:write'));

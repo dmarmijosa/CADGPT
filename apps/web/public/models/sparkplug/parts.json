@@ -1,0 +1,37 @@
+[
+  {
+    "name": "1_terminal",
+    "zmin": 52.0,
+    "zmax": 60.0,
+    "vol": 508.9,
+    "facets": 200
+  },
+  {
+    "name": "2_insulator",
+    "zmin": 22.0,
+    "zmax": 52.0,
+    "vol": 5062.2,
+    "facets": 1120
+  },
+  {
+    "name": "3_hexbody",
+    "zmin": 16.0,
+    "zmax": 26.0,
+    "vol": 1662.8,
+    "facets": 20
+  },
+  {
+    "name": "4_thread",
+    "zmin": 0.0,
+    "zmax": 16.0,
+    "vol": 2055.0,
+    "facets": 2240
+  },
+  {
+    "name": "5_electrode",
+    "zmin": -9.0,
+    "zmax": 2.0,
+    "vol": 65.1,
+    "facets": 226
+  }
+]

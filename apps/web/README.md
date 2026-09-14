@@ -1,4 +1,4 @@
-# CADGPT dashboard
+# CAD Agent Designer dashboard
 
 Angular workspace for account sign-in, explicit device pairing and controlled FreeCAD jobs.
 

@@ -1,4 +1,4 @@
-# CADGPT Bridge
+# CAD Agent Designer Bridge
 
 **One Angular dashboard for your CAD computers, a NestJS API, and a self-contained Python agent.** Link your own computer to your account, discover CAD installations, and submit controlled FreeCAD jobs remotely.
 
@@ -18,17 +18,17 @@ Native downloads are published **only after the release build succeeds and a mai
 | Linux x64 | `CADGPT-linux-x64.tar.gz` | Portable application archive, Python included |
 | All | `SHA256SUMS.txt` | Integrity checksums |
 
-Asset-specific direct links will be added here when those files actually exist. CADGPT does **not** install AutoCAD or FreeCAD and does not modify your existing Python installation.
+Asset-specific direct links will be added here when those files actually exist. CAD Agent Designer does **not** install AutoCAD or FreeCAD and does not modify your existing Python installation.
 
 ## Install and link your computer
 
-Have a compatible CAD installation and your administrator's **CADGPT HTTPS server URL** ready.
+Have a compatible CAD installation and your administrator's **CAD Agent Designer HTTPS server URL** ready.
 
 ### Windows
 
 1. Download the Windows installer from Releases and compare its SHA-256 with `SHA256SUMS.txt`: `Get-FileHash .\CADGPT-Setup-windows-x64.exe -Algorithm SHA256`.
 2. Run the installer for your user account. It does not need administrator privileges.
-3. Leave **Connect this computer to CADGPT** checked at the end.
+3. Leave **Connect this computer to CAD Agent Designer** checked at the end.
 4. Enter the server URL. The agent opens the registration/sign-in page.
 5. Register or sign in, then enter the pairing code printed in the agent window. Confirm only a code from your own computer.
 6. Keep the agent window open. Refresh the dashboard to see the online device.
@@ -98,7 +98,7 @@ AutoCAD execution is off by default. A detected full AutoCAD installation with `
 cadgpt-agent --server https://your-cadgpt.example --enable-autocad
 ```
 
-**You are responsible for your own Autodesk license terms.** This flag drives AutoCAD Core Console (`accoreconsole.exe`) unattended, from a script CADGPT renders and controls; CADGPT does not interpret, warrant, or provide any Autodesk license, and does not claim this mode of use is permitted under every AutoCAD/AutoCAD LT license. Confirm your own EULA allows unattended, scripted invocation before enabling this flag. See `SECURITY.md` for the trust boundary this adapter operates under.
+**You are responsible for your own Autodesk license terms.** This flag drives AutoCAD Core Console (`accoreconsole.exe`) unattended, from a script CAD Agent Designer renders and controls; CAD Agent Designer does not interpret, warrant, or provide any Autodesk license, and does not claim this mode of use is permitted under every AutoCAD/AutoCAD LT license. Confirm your own EULA allows unattended, scripted invocation before enabling this flag. See `SECURITY.md` for the trust boundary this adapter operates under.
 
 ## Run from source
 
@@ -145,7 +145,7 @@ ChatGPT / Claude -- OAuth + MCP HTTPS --> NestJS API
 Angular dashboard -- OIDC/PKCE -------->      |
                                             | outgoing HTTPS polling
                                             v
-                                      CADGPT agent --> FreeCADCmd
+                                      CAD Agent Designer agent --> FreeCADCmd
 ```
 
 Registration alone does not connect ChatGPT. A public HTTPS backend, identity-provider deployment and separately registered OAuth client are required. **ChatGPT/Claude end-to-end connection is not yet certified.** See [deployment and MCP setup](docs/deployment.md).
@@ -184,7 +184,7 @@ See [security notes](SECURITY.md) before any Internet deployment.
 
 ## Uninstall
 
-First revoke the device in the dashboard. Windows: uninstall **CADGPT Bridge** from installed apps. macOS: quit the process and remove `CADGPT.app`. Linux: stop the process and delete its extracted directory.
+First revoke the device in the dashboard. Windows: uninstall **CAD Agent Designer Bridge** from installed apps. macOS: quit the process and remove `CADGPT.app`. Linux: stop the process and delete its extracted directory.
 
 Credentials and job files are retained intentionally to avoid deleting drawings. Remove the CADGPT keyring entry and, after backing up your jobs, its user-data directory: Windows `%LOCALAPPDATA%\CADGPT`, macOS `~/Library/Application Support/CADGPT`, Linux `~/.local/share/CADGPT`. Paths can vary with OS configuration.
 
