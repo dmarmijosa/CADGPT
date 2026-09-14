@@ -74,6 +74,33 @@ test('bounds reject NaN, infinity, negative, missing consent and extra code', ()
   assert.equal(boxSchema.safeParse({ ...p, confirmed: false }).success, false);
   assert.equal(boxSchema.safeParse({ ...p, code: 'run code' }).success, false);
 });
+test('jobs() reports type/documentId, defaulting a legacy NULL-type row to create_box/null', () => {
+  const { store, device } = setup();
+  const doc = store.createDocument('alice', device.deviceId!, 'FreeCAD', 'Bracket');
+  const input = {
+    deviceId: device.deviceId!,
+    cadId: 'cad',
+    length: 1,
+    width: 2,
+    height: 3,
+    confirmed: true as const,
+  };
+  store.enqueue('alice', input, 'modify', doc.id);
+  // Simulate a phase-1 row that predates the `type`/`document_id` columns
+  // being populated by `enqueue()` (matches `heartbeat()`'s null mapping).
+  store.db
+    .prepare(
+      'INSERT INTO jobs(id,device_id,owner,payload,status,expires,created,result,type,document_id) VALUES(?,?,?,?,?,?,?,NULL,NULL,NULL)',
+    )
+    .run('legacy-1', device.deviceId!, 'alice', '{}', 'succeeded', Date.now() + 60000, Date.now());
+  const rows = store.jobs('alice') as { id: string; type: string; documentId: string | null }[];
+  const withDoc = rows.find((r) => r.id !== 'legacy-1')!;
+  const legacy = rows.find((r) => r.id === 'legacy-1')!;
+  assert.equal(withDoc.type, 'modify');
+  assert.equal(withDoc.documentId, doc.id);
+  assert.equal(legacy.type, 'create_box');
+  assert.equal(legacy.documentId, null);
+});
 test('offline and expired jobs do not execute', () => {
   const { store, device, advance } = setup();
   const input = {

@@ -224,11 +224,13 @@ export class Store {
       )
       .all(owner) as Row[];
   }
+  // `type`/`documentId` mirror `heartbeat()`'s phase-1 mapping: a legacy row
+  // with no `type` reports the only op that existed before slice 1.
   jobs(owner: string) {
     this.expire();
     return this.db
       .prepare(
-        'SELECT id,device_id AS deviceId,status,created,result FROM jobs WHERE owner=? ORDER BY created DESC LIMIT 100',
+        "SELECT id,device_id AS deviceId,status,created,result,COALESCE(type,'create_box') AS type,document_id AS documentId FROM jobs WHERE owner=? ORDER BY created DESC LIMIT 100",
       )
       .all(owner);
   }

@@ -1,30 +1,72 @@
-<section class="section-title">
-  <div>
-    <p class="eyebrow">Recent jobs</p>
-    <h1>Jobs</h1>
-  </div>
-  <button class="quiet" type="button" (click)="refresh()" [disabled]="busy()">↻ Refresh</button>
-</section>
-@if (error()) {
-  <div class="message error" role="alert">{{ error() }}</div>
-}
-<section class="panel">
-  @for (job of jobs(); track job.id) {
-    <div class="job">
-      <code>{{ job.id }}</code>
-      <span
-        class="status"
-        [class.queued]="job.status === 'queued'"
-        [class.running]="job.status === 'running'"
-        [class.succeeded]="job.status === 'succeeded'"
-        [class.failed]="job.status === 'failed'"
-        >{{ job.status }}</span
-      >
-      @if (job.result) {
-        <p>{{ job.result }}</p>
-      }
+<section class="page-head">
+  <div class="section-title">
+    <div>
+      <h1>Jobs</h1>
+      <p>Recent jobs across every linked device. Files and CAD documents stay on that device.</p>
     </div>
-  } @empty {
-    <p>No jobs yet. Results will appear here; CAD files remain on the linked computer.</p>
-  }
+    <button
+      class="quiet"
+      type="button"
+      (click)="workspace.jobs.reload()"
+      [disabled]="workspace.jobs.isLoading()"
+    >
+      ↻ Refresh
+    </button>
+  </div>
 </section>
+
+@if (workspace.jobs.error(); as error) {
+  <div class="message error" role="alert">{{ errorMessage(error) }}</div>
+}
+
+@if (workspace.jobs.isLoading() && !workspace.jobs.hasValue()) {
+  <p>Loading jobs…</p>
+} @else if (workspace.jobs.hasValue() && workspace.jobs.value().length) {
+  <table class="data">
+    <thead>
+      <tr>
+        <th scope="col">Created</th>
+        <th scope="col">Type</th>
+        <th scope="col">Status</th>
+        <th scope="col">Device</th>
+        <th scope="col">Document</th>
+        <th scope="col">Result</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (job of workspace.jobs.value(); track job.id) {
+        <tr>
+          <td class="tabular-nums" [title]="job.created | date: 'medium'">
+            {{ relativeCreated(job.created) }}
+          </td>
+          <td>{{ typeLabel(job.type) }}</td>
+          <td>
+            <span class="status" [class]="job.status">{{ job.status }}</span>
+          </td>
+          <td>{{ deviceName(job.deviceId) }}</td>
+          <td>
+            @if (job.documentId) {
+              <a [routerLink]="['/designs', job.documentId]">{{ designLabel(job.documentId) }}</a>
+            } @else {
+              <span>—</span>
+            }
+          </td>
+          <td>
+            @if (job.result) {
+              <span [title]="resultSummary(job.result).full">{{
+                resultSummary(job.result).text
+              }}</span>
+            } @else {
+              <span>—</span>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+} @else {
+  <article class="panel empty">
+    <h2>No jobs yet</h2>
+    <p>Jobs appear here once a connected MCP client creates or modifies a design.</p>
+  </article>
+}

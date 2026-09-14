@@ -38,11 +38,9 @@ export interface Device {
 }
 
 /**
- * `Store.jobs()` response shape (`GET /api/jobs`). The `jobs` table has
- * carried `type`/`document_id` columns since slice 1, but the current query
- * in `store.ts` does not select them yet — slice 11 extends it. `type` and
- * `documentId` stay optional here rather than assuming data the API does
- * not return today.
+ * `Store.jobs()` response shape (`GET /api/jobs`). `type` defaults to
+ * `'create_box'` for a legacy row and `documentId` is `null` when the job
+ * has none — the same mapping `heartbeat()` already applies (slice 11).
  */
 export interface Job {
   id: string;
@@ -50,8 +48,8 @@ export interface Job {
   status: 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled' | 'expired' | 'unknown';
   created: number;
   result: string;
-  type?: string;
-  documentId?: string | null;
+  type: string;
+  documentId: string | null;
 }
 
 /** `listDocuments()` + the `hasMesh` field `meshRouter` adds (`GET /api/designs`). */

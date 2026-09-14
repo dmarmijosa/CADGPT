@@ -19,6 +19,8 @@ const job: Job = {
   status: 'succeeded',
   created: 1000,
   result: 'ok',
+  type: 'create_box',
+  documentId: null,
 };
 const design: Design = {
   id: 'doc-1',
