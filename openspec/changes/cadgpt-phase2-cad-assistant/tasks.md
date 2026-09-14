@@ -223,10 +223,10 @@ Acceptance: home/about render for an unauthenticated visitor; the left rail nav 
 
 ## Slice 10 — Dashboard devices/designs pages + `WorkspaceStore` (PR 13, depends on: 9)
 
-- [ ] 10.1 Implement `apps/web/src/app/core/state/workspace.store.ts`: signals + `resource()` for devices, jobs, designs (D16).
-- [ ] 10.2 Implement `apps/web/src/app/core/api/{api-client,models}.ts`: typed `fetch` + bearer client and DTOs.
-- [ ] 10.3 Build the devices page (list + status) and designs list page (backed by `list_documents`) under `apps/web/src/app/pages/{devices,designs}/*`.
-- [ ] 10.4 Tests: `WorkspaceStore` resource loading/error states (`TestBed`); designs list renders only the authenticated owner's documents (ties to spec document-registry "List scoped to owner").
+- [x] 10.1 Implement `apps/web/src/app/core/state/workspace.store.ts`: signals + `resource()` for devices, jobs, designs (D16).
+- [x] 10.2 Implement `apps/web/src/app/core/api/{api-client,models}.ts`: typed `fetch` + bearer client and DTOs.
+- [x] 10.3 Build the devices page (list + status) and designs list page (backed by `list_documents`) under `apps/web/src/app/pages/{devices,designs}/*`.
+- [x] 10.4 Tests: `WorkspaceStore` resource loading/error states (`TestBed`); designs list renders only the authenticated owner's documents (ties to spec document-registry "List scoped to owner").
 
 Acceptance: the designs list page renders only the authenticated owner's documents. ~240 changed lines.
 
