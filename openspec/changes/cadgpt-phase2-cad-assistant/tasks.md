@@ -232,8 +232,8 @@ Acceptance: the designs list page renders only the authenticated owner's documen
 
 ## Slice 11 — Dashboard jobs history (PR 14, depends on: 9, 10)
 
-- [ ] 11.1 Build the jobs history page under `apps/web/src/app/pages/jobs/*`, consuming `WorkspaceStore.jobs`; show status/type/document link.
-- [ ] 11.2 Tests: jobs list renders each status (queued/running/succeeded/failed) and links to `document_id` when present.
+- [x] 11.1 Build the jobs history page under `apps/web/src/app/pages/jobs/*`, consuming `WorkspaceStore.jobs`; show status/type/document link.
+- [x] 11.2 Tests: jobs list renders each status (queued/running/succeeded/failed) and links to `document_id` when present.
 
 Acceptance: the jobs history page shows each job's `type` and links to its `document_id` when present. ~120 changed lines.
 

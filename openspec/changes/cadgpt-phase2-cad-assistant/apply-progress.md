@@ -900,3 +900,58 @@ npm test        → api: 49/49 pass; web (Vitest via `ng test`): 20/20 pass
 
 ### Status
 4/4 slice-10 tasks (10.1-10.4) complete and tested (tasks.md marked `[x]`). `npm run format`, `npm run build`, and `npm test` all clean/green (api 49/49, web 20/20). Cumulative: 82/115 tasks complete across slices 1-10 (per `rg -c '\[x\]' tasks.md`; 33 remain, including the still-open 2c.5/4b.7 residuals and slices 11-15). Not committed, not pushed (per instructions). **877 changed lines exceeds this batch's 600-line session review budget by ~277 lines (~46%) — flagging for the user/orchestrator before merge**, consistent with this change's established precedent (slices 2b/4b/7/9). `sdd-verify` can still run against the working tree. Ready for `sdd-apply` again to continue with slice 11 (dashboard jobs history, depends on slices 9-10, both now done) once the budget decision is made.
+
+## Slice 11 — Dashboard jobs history (PR 14, depends on: 9, 10; branch `feat/phase2-11-jobs-history` stacked on `feat/phase2-10-devices-designs`)
+
+**Status**: done (tasks 11.1-11.2 complete). 442 authored lines, within the 600-line session review budget — no size:exception needed. Not committed, not pushed.
+
+### Completed Tasks
+- [x] 11.1 Extended `apps/api/src/store.ts`'s `Store.jobs()` SELECT to project `COALESCE(type,'create_box') AS type` and `document_id AS documentId` (mirrors `heartbeat()`'s existing phase-1 null mapping), and tightened `apps/web/src/app/core/api/models.ts`'s `Job` DTO so `type`/`documentId` are required fields (`documentId: string | null`) instead of optional placeholders — the API now actually sends both. Rewrote `apps/web/src/app/pages/jobs/{jobs.ts,jobs.html}` on `WorkspaceStore.jobs`/`table.data` (slice-9/10 pattern): columns for created (relative time + exact `title`, `.tabular-nums`), type (human label via `jobTypeLabel`, e.g. `boolean_cut` → "Boolean cut"), status (`.status` + a dynamic class equal to the raw status string — covers `queued`/`running`/`succeeded`/`failed`/`expired`/`unknown`/`cancelled` without one `[class.x]` binding per value; text is always shown too, never color-only), device (name via `WorkspaceStore.devices` lookup, id prefix fallback), document (`routerLink` to `/designs/:id` using the linked design's name via `WorkspaceStore.designs` when available, else a short id fallback, only rendered when `documentId` is present — otherwise "—"), and result (`jobResultSummary()` — see 11.2). Loading/empty/error states match the designs/devices pattern exactly. Added a `hasActiveJobs` computed plus a constructor `effect()` that starts a 10s `setInterval` calling `workspace.jobs.reload()` only while at least one job is `queued`/`running`, clears it the moment none are, and clears it again via `DestroyRef.onDestroy()` — the same `destroyRef.onDestroy(...)` cleanup shape `StlViewer` already uses.
+- [x] 11.2 Added `jobResultSummary(raw)` to `jobs.ts`: parses `result` defensively the same way `apps/api/src/tools.ts`'s `parseJobResult` does for the MCP `get_job` response (JSON `{message, scene?}` → `message` only; invalid JSON or JSON without a string `message` → the raw text as-is), truncates the cell text at ~140 chars with the full text kept in `title` — `scene` is never rendered on this page. Added `apps/web/src/app/pages/jobs/jobs.spec.ts` (13 tests): `jobTypeLabel`/`jobResultSummary` unit tests (label formatting; JSON `{message, scene}` shows only the message; plain text passthrough; truncation keeps the full text; empty/missing result); `JobsPage` tests (one row per job with each status class present, type label rendered, document link present iff `documentId`, loading/empty/error states); and three `vi.useFakeTimers()` auto-refresh tests (polls every 10s only while a job is active, never starts a timer when no job is active, clears the timer on destroy). Added `apps/api/test/store.test.ts`'s `jobs() reports type/documentId, defaulting a legacy NULL-type row to create_box/null` test: a job enqueued with `type='modify'`/a real `documentId` reports both back verbatim, and a raw row inserted with `type=NULL`/`document_id=NULL` (simulating a phase-1 row) reports `type: 'create_box'`, `documentId: null`.
+
+### Files Changed
+| File | Action | What Was Done |
+|------|--------|---------------|
+| `apps/api/src/store.ts` | Modified | `jobs()`'s SELECT now projects `type` (`COALESCE(...,'create_box')`) and `documentId`. |
+| `apps/api/test/store.test.ts` | Modified | Added the type/documentId JSON-shape test (task 11.1's acceptance line), covering both a document-linked job and a legacy NULL-type row. |
+| `apps/web/src/app/core/api/models.ts` | Modified | `Job.type`/`Job.documentId` are now required (`documentId: string \| null`), matching what the API sends as of this slice. |
+| `apps/web/src/app/pages/jobs/jobs.ts` | Rewrote | `WorkspaceStore`-backed page: `jobTypeLabel`, `jobResultSummary`, device/design name lookups, relative-time helper, active-jobs auto-refresh `effect()`. |
+| `apps/web/src/app/pages/jobs/jobs.html` | Rewrote | `table.data` layout with `scope="col"` headers: created/type/status/device/document/result columns, loading/empty/error states, refresh button. |
+| `apps/web/src/app/pages/jobs/jobs.spec.ts` | Created | 13 tests covering both pure helpers and the full page (rows, status classes, document links, result parsing, auto-refresh lifecycle). |
+| `apps/web/src/app/core/state/workspace.store.spec.ts` | Modified | Its fixture `Job` object gained the now-required `type`/`documentId` fields (mechanical fixture fix caused directly by the DTO tightening above; no behavior assertion changed). |
+
+### Deviations from Design
+None — matches design D16 (signals + `resource()` in `WorkspaceStore`, no new store/service) and the job-lifecycle spec's `type`/`document_id` projection. The status badge does not add new `.status.expired`/`.status.unknown`/`.status.cancelled` CSS rules: `.status`'s existing base style (muted background/text, no color assumption) already covers any status string that predates a dedicated color token, and the status text itself is always rendered alongside the class, so no information depends on color alone. No `apps/api/**` file other than `store.ts`'s `jobs()` SELECT was touched, per the constraint; `agent/**`, the shell, viewer, and every other page are untouched.
+
+### Issues Found
+None. `npm run format` reports clean; `npm run build` and `npm test` are both green (see Work Unit Evidence).
+
+### Remaining Tasks
+- [ ] 2c.5 (residual, unchanged) — apply the three commented-out optional-variable lines to `.env.example` once edit authority is granted.
+- [ ] 4b.7 — optional `label` parameter; still deprioritized, unchanged.
+- [ ] 12.1 onward through 15.1-15.2 (Slices 12-15, PRs 15-19; see tasks.md Dependency Graph)
+
+### Workload / PR Boundary
+- Mode: stacked-to-main chained PR slice, branch `feat/phase2-11-jobs-history` stacked on `feat/phase2-10-devices-designs`.
+- Current work unit: Slice 11 — Dashboard jobs history.
+- Boundary: starts at the phase-1 `JobsPage` (a plain signal + `ApiService.request()`, no type/status-class coverage beyond `queued/running/succeeded/failed`, no document link); ends with a `WorkspaceStore`-backed jobs history table showing every job's type, full status set, owning device, linked document, and a scene-free result summary, plus the one-line `store.ts` change that makes `type`/`documentId` actually reach the API response. No `agent/**`, shell, viewer, or other page was touched.
+- Estimated review budget impact: **442 authored lines** (`store.ts` +3/-1, `store.test.ts` +27, `models.ts` +5/-7, `workspace.store.spec.ts` +2, `jobs.html` +68/-26, `jobs.ts` +93/-24, `jobs.spec.ts` +186 new) — well within the 600-line session review budget; no exception needed.
+- Rollback boundary: revert `apps/api/src/store.ts`'s `jobs()` method and `apps/web/src/app/pages/jobs/{jobs.ts,jobs.html}` to their pre-slice-11 versions; delete `apps/web/src/app/pages/jobs/jobs.spec.ts`; revert `apps/web/src/app/core/api/models.ts`'s `Job` interface and `apps/web/src/app/core/state/workspace.store.spec.ts`'s fixture. Slices 1-10 are completely untouched.
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command and exact result | `npx ng test --include 'src/app/pages/jobs/jobs.spec.ts' --reporters verbose` (from `apps/web/`) → `Test Files 1 passed (1)`, `Tests 13 passed (13)`. `npx tsx --test test/store.test.ts` (from `apps/api/`) → includes the new `jobs()` test passing alongside the 7 pre-existing `store.test.ts` tests. |
+| Runtime harness command/scenario and exact result | `npm run build` (root) → API `tsc` succeeds; Angular `ng build` succeeds, `jobs` remains its own lazy chunk (4.28 kB raw / 1.70 kB transfer), confirming no page/shell regression. No live device/agent involved — this slice only reads already-stored job rows through the existing owner-scoped `GET /api/jobs` route (unchanged auth/ownership path), so the store-layer test above is the closest real boundary exercised. |
+| Rollback boundary | See "Workload / PR Boundary" above. |
+
+### Full Check (repo root)
+```
+npm run format  → all matched files use Prettier code style; only the files listed above touched (plus its own Prettier normalization of the new store.test.ts test)
+npm run build   → api tsc build OK; web (Angular) build OK, no errors
+npm test        → api: 50/50 pass; web (Vitest via `ng test`): 35/35 pass (13 test files)
+```
+
+### Status
+2/2 slice-11 tasks (11.1-11.2) complete and tested (tasks.md marked `[x]`). `npm run format`, `npm run build`, and `npm test` all clean/green (api 50/50, web 35/35). Cumulative: 84/115 tasks complete across slices 1-11 (per `rg -c '\[x\]' tasks.md`; 31 remain, including the still-open 2c.5/4b.7 residuals and slices 12-15). Not committed, not pushed (per instructions). 442 authored lines is within the 600-line budget — no exception needed for this slice. `sdd-verify` can run against slice 11 (and the still-pending slice-10 budget decision) independently. Ready for `sdd-apply` again to continue with slice 12 (AutoCAD discovery) once slice 10's budget decision is made — slice 12 depends on slice 2a, not slice 10/11, but this apply batch continues sequentially per the tasks.md dependency graph.
