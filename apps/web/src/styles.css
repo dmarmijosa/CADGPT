@@ -378,15 +378,50 @@ table.data th {
   font-weight: 600;
 }
 
-/* Home page. */
-.hero {
-  padding-bottom: var(--space-4);
+/* Home page — scroll-driven exploded-view hero (features/exploded).
+ * `.exploded-hero` is a tall scroll track; `.exploded-hero__sticky` pins the
+ * canvas + copy at one viewport height while the track scrolls underneath,
+ * which is what lets scroll position drive explosion progress. Bleeds past
+ * `main`'s padding so the hero reads as full width of the content column. */
+.exploded-hero {
+  position: relative;
+  height: 220vh;
+  margin: calc(-1 * var(--space-6)) calc(-1 * var(--space-7)) var(--space-6);
 }
-.hero h1 {
+.exploded-hero__sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+  display: grid;
+  background: linear-gradient(180deg, var(--color-surface), var(--color-paper));
+}
+.exploded-hero__canvas {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+}
+.exploded-hero__canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.exploded-hero__copy {
+  grid-area: 1 / 1;
+  align-self: center;
+  max-width: 46ch;
+  padding: 0 var(--space-7);
+}
+.exploded-hero__copy h1 {
   font-size: 2.1rem;
 }
-.hero .lead {
+.exploded-hero__copy .lead {
   max-width: 62ch;
+}
+.exploded-hero__note {
+  margin: var(--space-3) 0 0;
+  font-size: 0.85rem;
 }
 .hero-actions {
   display: flex;
@@ -394,6 +429,51 @@ table.data th {
   align-items: center;
   margin-top: var(--space-5);
   flex-wrap: wrap;
+}
+.exploded-hero__labels {
+  grid-area: 1 / 1;
+  align-self: center;
+  justify-self: end;
+  margin: 0;
+  padding: 0 var(--space-7) 0 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-5);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-ink-muted);
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+.exploded-hero__labels.is-visible {
+  opacity: 1;
+}
+.exploded-hero__labels li {
+  position: relative;
+  padding-left: var(--space-4);
+}
+.exploded-hero__labels li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 8px;
+  height: 1px;
+  background: var(--color-blue);
+  transform: translateY(-50%);
+}
+@media (max-width: 800px) {
+  .exploded-hero {
+    height: 180vh;
+    margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-4)) var(--space-5);
+  }
+  .exploded-hero__copy {
+    padding: 0 var(--space-4);
+    max-width: none;
+  }
+  .exploded-hero__labels {
+    display: none;
+  }
 }
 .steps {
   list-style: none;

@@ -1,0 +1,40 @@
+<section class="exploded-hero" #wrapper>
+  <div class="exploded-hero__sticky">
+    <div
+      #container
+      class="exploded-hero__canvas"
+      role="img"
+      aria-label="A CAD spark plug model separating into its five parts and reassembling as the page scrolls"
+      [hidden]="unavailable()"
+    ></div>
+
+    <div class="exploded-hero__copy">
+      <h1>Run CAD operations from the AI client you already use.</h1>
+      <p class="lead">
+        CAD Agent Designer links a computer you control to a fixed, allowlisted set of CAD
+        operations, so an MCP-connected assistant can create, modify, and read named designs — drawn
+        here, live, as a spark plug the CAD engine assembles from five parts.
+      </p>
+      <div class="hero-actions">
+        <ng-content></ng-content>
+      </div>
+      @if (unavailable()) {
+        <p class="exploded-hero__note" role="status">
+          3D preview is unavailable in this browser. The connector still works without it.
+        </p>
+      } @else if (reducedMotion()) {
+        <p class="exploded-hero__note">Motion reduced — showing the spark plug assembled.</p>
+      }
+    </div>
+
+    @if (!unavailable() && !reducedMotion()) {
+      <ul class="exploded-hero__labels" [class.is-visible]="labelsVisible()" aria-hidden="true">
+        <li>Terminal</li>
+        <li>Insulator</li>
+        <li>Hex body</li>
+        <li>Threaded shell</li>
+        <li>Electrode</li>
+      </ul>
+    }
+  </div>
+</section>

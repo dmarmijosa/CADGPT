@@ -1,19 +1,11 @@
-<section class="hero">
-  <h1>Run CAD operations from the AI client you already use.</h1>
-  <p class="lead">
-    CAD Agent Designer links a computer you control to a fixed, allowlisted set of CAD operations,
-    so an MCP-connected assistant can create, modify, and read named designs — with no free-form
-    code ever reaching that machine.
-  </p>
-  <div class="hero-actions">
-    @if (auth.user()) {
-      <a class="quiet" routerLink="/designs">Go to your designs</a>
-    } @else {
-      <button type="button" (click)="signIn()">Sign in</button>
-      <a class="quiet" [href]="releasesUrl">Download the connector ↗</a>
-    }
-  </div>
-</section>
+<app-exploded-plug>
+  @if (auth.user()) {
+    <a class="quiet" routerLink="/designs">Go to your designs</a>
+  } @else {
+    <button type="button" (click)="signIn()">Sign in</button>
+    <a class="quiet" [href]="releasesUrl">Download the connector ↗</a>
+  }
+</app-exploded-plug>
 
 <section class="panel">
   <h2>Three steps to connect</h2>
