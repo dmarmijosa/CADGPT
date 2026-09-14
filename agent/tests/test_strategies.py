@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from cadgpt_agent.executor import execute
+from cadgpt_agent.strategies.autocad import AutoCadStrategy, render_script, _LSP_PATH, _BLANK_DWG
 
 class BaselineArgvEnvTests(unittest.TestCase):
     """2a.1 (RED): capture today's FreeCAD argv/env before the strategy refactor.
@@ -170,6 +171,288 @@ class ExecutorSceneResultShapeTests(unittest.TestCase):
         small = self.run_with_scene(small_scene)
         self.assertEqual(small["scene"], small_scene)
         self.assertNotIn("truncated", small)
+
+
+class AutoCadScriptGoldenTests(unittest.TestCase):
+    """13a.1/14.1 (RED): golden `run.scr` equality per create op, written and
+    confirmed failing before `AutoCadStrategy`/`render_script` existed (13a),
+    then extended (14.1) to cover the `_STLOUT` preview-export block proven
+    live in the slice 14.0 spike (`docs/autocad-stl-spike.md`).
+
+    `render_script` is exercised directly with synthetic `lisp_path`/
+    `design_path`/`stl_path` values so the golden strings never depend on
+    where this checkout happens to live on disk.
+    """
+
+    LISP_PATH = Path("/opt/cadgpt/autocad/cadgpt.lsp")
+    DESIGN_PATH = Path("/opt/cadgpt/documents/doc-1/design.dwg")
+    # Job-dir-derived, distinct from DESIGN_PATH's doc-dir location — proves
+    # the STL path is never sourced from caller params.
+    STL_PATH = Path("/opt/cadgpt/jobs/job-1/preview.stl")
+
+    def expected(self, call):
+        return (
+            "FILEDIA\r\n0\r\n"
+            '(load "/opt/cadgpt/autocad/cadgpt.lsp")\r\n'
+            + call + "\r\n"
+            "_STLOUT\r\n_ALL\r\n\r\n_Y\r\n/opt/cadgpt/jobs/job-1/preview.stl\r\n"
+            "_SAVEAS\r\n2018\r\n/opt/cadgpt/documents/doc-1/design.dwg\r\n"
+            "_QUIT\r\n"
+        )
+
+    def test_create_box_golden_script(self):
+        data = {"length": 40, "width": 25, "height": 10}
+        script = render_script("create_box", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+        self.assertEqual(script, self.expected("(cadgpt-create-box 40.0 25.0 10.0 0.0 0.0 0.0)"))
+
+    def test_create_box_with_position_golden_script(self):
+        data = {"length": 1, "width": 2, "height": 3, "position": {"x": 5, "y": -5, "z": 2.5}}
+        script = render_script("create_box", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+        self.assertEqual(script, self.expected("(cadgpt-create-box 1.0 2.0 3.0 5.0 -5.0 2.5)"))
+
+    def test_create_cylinder_golden_script(self):
+        data = {"radius": 6, "height": 30}
+        script = render_script("create_cylinder", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+        self.assertEqual(script, self.expected("(cadgpt-create-cylinder 6.0 30.0 0.0 0.0 0.0)"))
+
+    def test_create_sphere_golden_script(self):
+        data = {"radius": 12.5}
+        script = render_script("create_sphere", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+        self.assertEqual(script, self.expected("(cadgpt-create-sphere 12.5 0.0 0.0 0.0)"))
+
+    def test_create_cone_golden_script(self):
+        data = {"radius1": 10, "radius2": 4, "height": 20}
+        script = render_script("create_cone", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+        self.assertEqual(script, self.expected("(cadgpt-create-cone 10.0 4.0 20.0 0.0 0.0 0.0)"))
+
+    def test_create_cone_apex_golden_script(self):
+        data = {"radius1": 10, "radius2": 0, "height": 20}
+        script = render_script("create_cone", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+        self.assertEqual(script, self.expected("(cadgpt-create-cone 10.0 0.0 20.0 0.0 0.0 0.0)"))
+
+    def test_extrude_rect_xy_golden_script(self):
+        data = {"width": 10, "height": 20, "depth": 5, "plane": "XY"}
+        script = render_script("extrude_rect", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+        self.assertEqual(script, self.expected("(cadgpt-extrude-rect 10.0 20.0 5.0 0.0 0.0 0.0)"))
+
+    def test_extrude_rect_xz_golden_script(self):
+        data = {"width": 10, "height": 20, "depth": 5, "plane": "XZ"}
+        script = render_script("extrude_rect", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+        self.assertEqual(script, self.expected("(cadgpt-extrude-rect 10.0 5.0 20.0 0.0 0.0 0.0)"))
+
+    def test_stl_path_is_job_dir_derived_not_caller_input(self):
+        """The STL path threaded into `run.scr` is whatever `stl_path` the
+        caller (`AutoCadStrategy.build_argv`) computes from `job_dir` — never
+        a value read out of `data`. Passing an attacker-shaped `data["stl_path"]`
+        must have zero effect on the rendered script."""
+        data = {"length": 1, "width": 1, "height": 1, "stl_path": "/etc/passwd"}
+        script = render_script("create_box", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+        self.assertIn(str(self.STL_PATH), script)
+        self.assertNotIn("/etc/passwd", script)
+
+
+class AutoCadMalformedInputTests(unittest.TestCase):
+    """13a.1 (RED): malformed numeric input must raise before any script text
+    is assembled — no free text or out-of-bounds number ever reaches a .scr."""
+
+    LISP_PATH = Path("/opt/cadgpt/autocad/cadgpt.lsp")
+    DESIGN_PATH = Path("/opt/cadgpt/documents/doc-1/design.dwg")
+    STL_PATH = Path("/opt/cadgpt/jobs/job-1/preview.stl")
+
+    def test_nan_is_rejected(self):
+        with self.assertRaises(ValueError):
+            render_script("create_box", {"length": float("nan"), "width": 1, "height": 1}, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+
+    def test_infinite_is_rejected(self):
+        with self.assertRaises(ValueError):
+            render_script("create_cylinder", {"radius": float("inf"), "height": 1}, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+
+    def test_negative_is_rejected(self):
+        with self.assertRaises(ValueError):
+            render_script("create_sphere", {"radius": -1}, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+
+    def test_over_range_is_rejected(self):
+        with self.assertRaises(ValueError):
+            render_script("create_box", {"length": 10001, "width": 1, "height": 1}, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+
+    def test_missing_value_is_rejected(self):
+        with self.assertRaises(ValueError):
+            render_script("create_cone", {"radius1": 10, "height": 20}, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+
+    def test_unsupported_op_is_rejected(self):
+        with self.assertRaises(ValueError):
+            render_script("boolean_cut", {"base": "Box", "tool": "Box001"}, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+
+
+class AutoCadStrategyArgvTests(unittest.TestCase):
+    """13a.2/13a.8: fixed six-token argv, blank.dwg vs existing design.dwg
+    selection, and CRLF `run.scr` on disk."""
+
+    def make_request(self, job_dir, op, params):
+        (job_dir / "request.json").write_text(json.dumps({"op": op, **params}), encoding="utf-8")
+
+    def test_argv_is_the_fixed_six_token_form_for_every_create_op(self):
+        strategy = AutoCadStrategy()
+        cases = [
+            ("create_box", {"length": 1, "width": 1, "height": 1}),
+            ("create_cylinder", {"radius": 1, "height": 1}),
+            ("create_sphere", {"radius": 1}),
+            ("create_cone", {"radius1": 1, "radius2": 0, "height": 1}),
+            ("extrude_rect", {"width": 1, "height": 1, "depth": 1, "plane": "XY"}),
+        ]
+        for op, params in cases:
+            with tempfile.TemporaryDirectory() as d:
+                job_dir = Path(d)
+                self.make_request(job_dir, op, params)
+                argv = strategy.build_argv(Path("/trusted/accoreconsole.exe"), job_dir, None)
+                self.assertEqual(len(argv), 6)
+                self.assertEqual(argv[0], "/trusted/accoreconsole.exe")
+                self.assertEqual(argv[1], "/i")
+                self.assertEqual(argv[2], str(_BLANK_DWG))
+                self.assertEqual(argv[3], "/s")
+                self.assertEqual(argv[4], str(job_dir / "run.scr"))
+                self.assertEqual(argv[5], "/isolate")
+
+    def test_input_dwg_is_design_dwg_when_it_already_exists(self):
+        strategy = AutoCadStrategy()
+        with tempfile.TemporaryDirectory() as d:
+            job_dir = Path(d) / "job"
+            doc_dir = Path(d) / "doc"
+            job_dir.mkdir()
+            doc_dir.mkdir()
+            (doc_dir / "design.dwg").write_bytes(b"existing")
+            self.make_request(job_dir, "create_box", {"length": 1, "width": 1, "height": 1})
+            argv = strategy.build_argv(Path("/trusted/accoreconsole.exe"), job_dir, doc_dir)
+            self.assertEqual(argv[2], str(doc_dir / "design.dwg"))
+
+    def test_run_scr_uses_crlf_line_endings(self):
+        strategy = AutoCadStrategy()
+        with tempfile.TemporaryDirectory() as d:
+            job_dir = Path(d)
+            self.make_request(job_dir, "create_box", {"length": 1, "width": 1, "height": 1})
+            strategy.build_argv(Path("/trusted/accoreconsole.exe"), job_dir, None)
+            raw = (job_dir / "run.scr").read_bytes()
+            self.assertNotIn(b"\r\r\n", raw)
+            self.assertIn(b"\r\n", raw)
+            self.assertTrue(raw.decode("utf-8").startswith("FILEDIA\r\n0\r\n"))
+
+    def test_malformed_request_raises_and_writes_no_script(self):
+        strategy = AutoCadStrategy()
+        with tempfile.TemporaryDirectory() as d:
+            job_dir = Path(d)
+            self.make_request(job_dir, "create_box", {"length": float("nan"), "width": 1, "height": 1})
+            with self.assertRaises(ValueError):
+                strategy.build_argv(Path("/trusted/accoreconsole.exe"), job_dir, None)
+            self.assertFalse((job_dir / "run.scr").exists())
+
+    def test_run_scr_load_line_points_at_the_real_cadgpt_lsp(self):
+        self.assertTrue(_LSP_PATH.is_file(), "agent/cadgpt_agent/autocad/cadgpt.lsp must exist")
+        strategy = AutoCadStrategy()
+        with tempfile.TemporaryDirectory() as d:
+            job_dir = Path(d)
+            self.make_request(job_dir, "create_box", {"length": 1, "width": 1, "height": 1})
+            strategy.build_argv(Path("/trusted/accoreconsole.exe"), job_dir, None)
+            script = (job_dir / "run.scr").read_text(encoding="utf-8")
+            self.assertIn('(load "' + _LSP_PATH.as_posix() + '")', script)
+
+    def test_supports_only_create_ops(self):
+        strategy = AutoCadStrategy()
+        for op in ("create_box", "create_cylinder", "create_sphere", "create_cone", "extrude_rect"):
+            self.assertTrue(strategy.supports(op))
+        for op in ("boolean_cut", "boolean_union", "boolean_intersect",
+                   "translate_object", "rotate_object", "scale_object",
+                   "read_scene", "export_design"):
+            self.assertFalse(strategy.supports(op))
+
+    def test_run_scr_contains_the_stlout_block_with_job_dir_stl_path(self):
+        """14.1 (RED): the rendered `run.scr` on disk must include the proven
+        `_STLOUT`/`_ALL`/`_Y` sequence targeting `job_dir/preview.stl`."""
+        strategy = AutoCadStrategy()
+        with tempfile.TemporaryDirectory() as d:
+            job_dir = Path(d)
+            self.make_request(job_dir, "create_box", {"length": 1, "width": 1, "height": 1})
+            strategy.build_argv(Path("/trusted/accoreconsole.exe"), job_dir, None)
+            # Read raw bytes (not `read_text`, which would normalize the
+            # embedded literal "\r\n" via universal-newline translation).
+            script = (job_dir / "run.scr").read_bytes().decode("utf-8")
+            self.assertIn("_STLOUT\r\n_ALL\r\n\r\n_Y\r\n" + str(job_dir / "preview.stl"), script)
+
+
+class AutoCadArtifactsTests(unittest.TestCase):
+    """14.2/14.3: `artifacts()` exposes the STL preview job-dir-derived,
+    independent of `doc_dir` (unlike the doc-scoped `native` DWG)."""
+
+    def test_mesh_is_job_dir_preview_stl(self):
+        strategy = AutoCadStrategy()
+        job_dir = Path("/opt/cadgpt/jobs/job-1")
+        artifacts = strategy.artifacts("create_box", job_dir, None)
+        self.assertEqual(artifacts["mesh"], job_dir / "preview.stl")
+        self.assertEqual(artifacts["native"], job_dir / "design.dwg")
+
+    def test_mesh_stays_job_scoped_even_with_a_doc_dir(self):
+        strategy = AutoCadStrategy()
+        job_dir = Path("/opt/cadgpt/jobs/job-1")
+        doc_dir = Path("/opt/cadgpt/documents/doc-1")
+        artifacts = strategy.artifacts("create_box", job_dir, doc_dir)
+        self.assertEqual(artifacts["mesh"], job_dir / "preview.stl")
+        self.assertEqual(artifacts["native"], doc_dir / "design.dwg")
+
+
+class AutoCadNoExportMechanismTests(unittest.TestCase):
+    """14 constraint: `_STLOUT` is the only proven headless export mechanism
+    (spike 14.0); `_-EXPORT`/`3DPRINT` hang under Core Console and must never
+    be reintroduced into the AutoCAD strategy source."""
+
+    def test_no_export_or_3dprint_command_in_autocad_strategy_source(self):
+        """The module docstring is allowed to mention `EXPORT`/`3DPRINT` to
+        explain why they are rejected; the actual command-token literals fed
+        into `run.scr` must never include them."""
+        source = Path(__file__).resolve().parent.parent / "cadgpt_agent" / "strategies" / "autocad.py"
+        text = source.read_text(encoding="utf-8")
+        # Strip the leading module docstring (delimited by the first pair of `"""`).
+        _, _, code_after_docstring = text.partition('"""')
+        _, _, code = code_after_docstring.partition('"""')
+        self.assertNotIn("3DPRINT", code.upper())
+        self.assertNotIn("-EXPORT", code.upper())
+
+
+class AutoCadExecutorGatingTests(unittest.TestCase):
+    """13a.5/13a.8: without `--enable-autocad`, discovery reports
+    `executable=False` for AutoCAD, so `executor.execute` must never select
+    it — the strategy is registered but unreachable through the gate."""
+
+    def job(self, **overrides):
+        base = dict(id=str(uuid.uuid4()), expires=time.time() * 1000 + 60000, cadId="cad",
+                    type="create_box", length=1, width=1, height=1, confirmed=True)
+        base.update(overrides)
+        return base
+
+    def test_autocad_entry_with_executable_false_is_unreachable(self):
+        cads = [dict(id="cad", name="AutoCAD", path="/trusted/accoreconsole.exe", executable=False)]
+        with tempfile.TemporaryDirectory() as d:
+            with patch("cadgpt_agent.executor.subprocess.Popen") as popen:
+                with self.assertRaises(ValueError):
+                    execute(self.job(), cads, d)
+                popen.assert_not_called()
+
+    def test_autocad_entry_with_executable_true_dispatches(self):
+        cads = [dict(id="cad", name="AutoCAD", path="/trusted/accoreconsole.exe", executable=True)]
+        job = self.job()
+        with tempfile.TemporaryDirectory() as d:
+            with patch("cadgpt_agent.executor.subprocess.Popen") as popen:
+                process = popen.return_value
+                process.stdout = io.BytesIO(b"done")
+
+                def finish(timeout):
+                    (Path(d) / job["id"] / "design.dwg").write_bytes(b"DWG")
+                    return 0
+
+                process.wait.side_effect = finish
+                execute(job, cads, d)
+            argv = popen.call_args.args[0]
+            self.assertFalse(popen.call_args.kwargs["shell"])
+            self.assertEqual(len(argv), 6)
+            self.assertEqual(argv[1], "/i")
 
 
 if __name__ == "__main__":

@@ -2,9 +2,11 @@
 
 Do not use this alpha for safety-critical drawings, untrusted shared computers or unattended production CAD work. Native installer signing, notarization and a security audit remain outstanding.
 
-Only a fixed FreeCAD box operation is implemented. There is no arbitrary code tool. Device possession is proven by a scoped credential, not an IP address or machine name; this does not prove physical ownership. Pairing consent belongs to the authenticated account.
+A fixed set of allowlisted FreeCAD primitive operations is implemented, plus an opt-in AutoCAD adapter behind `--enable-autocad`. There is no arbitrary code tool: the AutoCAD adapter loads only its own bundled `.lsp` file (`agent/cadgpt_agent/autocad/cadgpt.lsp`) via a rendered `.scr` script built from validated, bounds-checked numbers — never caller-supplied AutoLISP or free text. Device possession is proven by a scoped credential, not an IP address or machine name; this does not prove physical ownership. Pairing consent belongs to the authenticated account.
 
-A compromised OS account, CAD installation, identity provider or backend is outside the agent's isolation boundary. The FreeCAD process is not an OS sandbox. Do not point manual discovery to executables you do not trust.
+A compromised OS account, CAD installation, identity provider or backend is outside the agent's isolation boundary. Neither the FreeCAD nor the AutoCAD Core Console process is an OS sandbox. Do not point manual discovery to executables you do not trust.
+
+**AutoCAD opt-in and licensing.** `--enable-autocad` drives AutoCAD Core Console (`accoreconsole.exe`) unattended. Enabling it is an explicit choice you make on your own computer; CADGPT does not verify, warrant, or grant any Autodesk license, and you are solely responsible for confirming your AutoCAD license terms permit this unattended, scripted use. AutoCAD LT is never eligible regardless of the flag, since it ships no Core Console.
 
 The mesh preview channel (`POST /api/agent/jobs/:id/mesh`) accepts only a binary STL, bound to a `running` job the uploading device owns; it enforces a streamed 25 MiB size cap, a verified SHA-256, a structural binary-STL check, and a 500 MiB per-device quota, and never trusts a client-supplied file name. The uploaded STL is the only design data that leaves the agent's computer; native CAD files never do.
 

@@ -1,6 +1,6 @@
 ## autocad-execution-adapter (NEW)
 
-Purpose: DWG-artifact AutoCAD execution via Core Console; STL preview is conditional on an unproven spike (STLOUT is absent from Core Console and from LT per research).
+Purpose: DWG-artifact AutoCAD execution via Core Console; STL preview via `STLOUT`, proven feasible by the slice-14 live spike (2026-09-14, AutoCAD 2026 full).
 
 ### Requirement: Core Console Strategy
 The agent MUST execute AutoCAD jobs via `accoreconsole.exe /i <dwg> /s <script.scr>`, loading only allowlisted `.lsp` files, with `shell=False` and fixed argv.
@@ -16,14 +16,14 @@ Every successful AutoCAD job MUST produce a downloadable DWG artifact.
 - WHEN inspected
 - THEN a DWG file exists and is downloadable by the owner
 
-### Requirement: STL Preview Is Conditional On Spike
-STL export for AutoCAD MUST NOT be implemented unless the Windows EXPORT/3DPRINT headless spike confirms feasibility; `STLOUT` MUST NOT be used since it is unavailable in Core Console and in LT.
-#### Scenario: Conditional STL export (post-spike only)
-- GIVEN the spike confirmed headless STL export works via EXPORT/3DPRINT
-- WHEN an AutoCAD job completes
-- THEN the agent additionally uploads an STL mesh
-#### Scenario: No spike, no STL
-- GIVEN the spike has not run or failed
+### Requirement: STL Preview via STLOUT (spike-proven)
+The slice-14 live spike (docs/autocad-stl-spike.md) proved `STLOUT` exports a valid binary STL headless from Core Console on full AutoCAD, refuting research A4. AutoCAD STL preview MUST use `_STLOUT`; `EXPORT`/`3DPRINT` MUST NOT be used (they hang headless). `STLOUT` is absent in AutoCAD LT, but discovery gates AutoCAD execution to full editions only, so `capabilities.mesh` is true only for full editions.
+#### Scenario: STL export on full AutoCAD
+- GIVEN AutoCAD full with a console (capabilities.mesh true)
+- WHEN an AutoCAD create job completes
+- THEN the agent also writes preview.stl via STLOUT and uploads it, alongside the DWG artifact
+#### Scenario: LT or no console
+- GIVEN AutoCAD LT or no accoreconsole (capabilities.mesh false)
 - WHEN an AutoCAD job completes
 - THEN only the DWG artifact is produced; no STL upload is attempted
 

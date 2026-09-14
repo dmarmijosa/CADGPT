@@ -53,6 +53,48 @@ class Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d, self.assertRaises(ValueError):
             execute(self.job(), [], d)
 
+    def test_autocad_create_job_success_message_names_design_dwg(self):
+        """13b.4: the DWG-artifact-required postcondition (spec
+        autocad-execution-adapter "Job succeeds with DWG only") is enforced by
+        `execute()` checking `artifacts()["native"]` before reporting success;
+        this confirms the AutoCAD create path actually reports `design.dwg`,
+        mirroring `test_subprocess_is_fixed_and_replay_refused` for FreeCAD."""
+        with tempfile.TemporaryDirectory() as d:
+            job = dict(
+                id=str(uuid.uuid4()), expires=time.time() * 1000 + 60000, cadId="cad",
+                type="create_box", length=10, width=20, height=30, confirmed=True,
+            )
+            cads = [dict(id="cad", name="AutoCAD", path="/trusted/accoreconsole.exe", executable=True)]
+            with patch("cadgpt_agent.executor.subprocess.Popen") as popen:
+                process = popen.return_value
+                process.stdout = io.BytesIO(b"done")
+                def finish(timeout):
+                    (Path(d) / job["id"] / "design.dwg").write_bytes(b"test")
+                    return 0
+                process.wait.side_effect = finish
+                message = execute(job, cads, d)
+                self.assertFalse(popen.call_args.kwargs["shell"])
+                self.assertEqual(popen.call_args.args[0][0], "/trusted/accoreconsole.exe")
+                self.assertIn("design.dwg", message)
+                self.assertTrue(message.startswith("Created "))
+
+    def test_autocad_create_job_without_design_dwg_fails(self):
+        """The postcondition's negative case: `accoreconsole` exits 0 but never
+        wrote `design.dwg` (e.g. a silent script failure) — `execute()` must
+        raise instead of reporting success."""
+        with tempfile.TemporaryDirectory() as d:
+            job = dict(
+                id=str(uuid.uuid4()), expires=time.time() * 1000 + 60000, cadId="cad",
+                type="create_box", length=10, width=20, height=30, confirmed=True,
+            )
+            cads = [dict(id="cad", name="AutoCAD", path="/trusted/accoreconsole.exe", executable=True)]
+            with patch("cadgpt_agent.executor.subprocess.Popen") as popen:
+                process = popen.return_value
+                process.stdout = io.BytesIO(b"done")
+                process.wait.return_value = 0  # exits 0, no design.dwg ever written
+                with self.assertRaises(RuntimeError):
+                    execute(job, cads, d)
+
 
 class ConnectStepTests(unittest.TestCase):
     """15.6 (RED): after pairing completes, the agent guides the user to the

@@ -14,6 +14,22 @@ const freecad = {
   executable: true,
 };
 
+// 13b: create-only AutoCAD capability set, matching `discovery.AUTOCAD_OPS`.
+const autocad = {
+  id: 'autocad',
+  name: 'AutoCAD',
+  path: 'C:\\accoreconsole.exe',
+  version: 'test',
+  executable: true,
+  capabilities: {
+    execute: true,
+    edition: 'full',
+    console: 'C:\\accoreconsole.exe',
+    ops: ['create_box', 'create_cylinder', 'create_sphere', 'create_cone', 'extrude_rect'],
+    mesh: false,
+  },
+};
+
 function pairAndApprove(store: Store, owner: string, name: string, cads: unknown[]) {
   const pair = store.begin(name, cads);
   store.approve(owner, pair.userCode);
@@ -193,4 +209,98 @@ test('happy path: create_cone keeps radius1/radius2 as the worker expects', asyn
   assert.equal(picked.job?.radius1, 10);
   assert.equal(picked.job?.radius2, 0);
   assert.equal(picked.job?.height, 15);
+});
+
+test('13b.1/13b.5 (RED->GREEN): a create op in AutoCAD capabilities.ops enqueues against an AutoCAD document', async () => {
+  const store = new Store(':memory:');
+  const device = pairAndApprove(store, 'alice', 'Workstation', [autocad]);
+  const client = await connectClient(store, 'alice');
+  const res = await client.callTool({
+    name: 'create_box',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'autocad',
+      length: 10,
+      width: 10,
+      height: 10,
+      confirmed: true,
+    },
+  });
+  assert.equal(res.isError, undefined, JSON.stringify(res));
+  const body = JSON.parse((res.content as { type: string; text: string }[])[0].text);
+  assert.equal(body.status, 'queued');
+  const picked = store.heartbeat(device.credential!, [autocad]);
+  assert.equal(picked.job?.id, body.jobId);
+  assert.equal(picked.job?.type, 'create_box');
+});
+
+test('13b.1/13b.5: an op outside AutoCAD capabilities.ops is rejected before enqueue', async () => {
+  const store = new Store(':memory:');
+  const device = pairAndApprove(store, 'alice', 'Workstation', [autocad]);
+  const client = await connectClient(store, 'alice');
+  const created = await client.callTool({
+    name: 'create_box',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'autocad',
+      length: 10,
+      width: 10,
+      height: 10,
+      confirmed: true,
+    },
+  });
+  const documentId = JSON.parse(
+    (created.content as { type: string; text: string }[])[0].text,
+  ).documentId;
+  // boolean_cut is not in AutoCAD's advertised capabilities.ops (create-only, 13b re-scope).
+  const rejected = await client.callTool({
+    name: 'boolean_cut',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'autocad',
+      documentId,
+      base: 'Box',
+      tool: 'Box',
+      confirmed: true,
+    },
+  });
+  assert.equal(rejected.isError, true);
+  // Only the one create_box job from setup was enqueued; the rejected op never reached enqueue.
+  assert.equal(store.jobs('alice').length, 1);
+});
+
+test('13b.5: FreeCAD enqueue path (no capabilities field) is unaffected by the AutoCAD gate', async () => {
+  const store = new Store(':memory:');
+  const device = pairAndApprove(store, 'alice', 'Workstation', [freecad]);
+  const client = await connectClient(store, 'alice');
+  const created = await client.callTool({
+    name: 'create_box',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'cad',
+      length: 10,
+      width: 10,
+      height: 10,
+      confirmed: true,
+    },
+  });
+  const createdBody = JSON.parse((created.content as { type: string; text: string }[])[0].text);
+  const documentId = createdBody.documentId;
+  // D17 only allows one active job per document — clear it before targeting the same document again.
+  store.heartbeat(device.credential!, [freecad]);
+  store.complete(device.credential!, createdBody.jobId, 'ok', true);
+  // FreeCAD falls back to FREECAD_OPS (no `capabilities` field), which still covers boolean_cut.
+  const res = await client.callTool({
+    name: 'boolean_cut',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'cad',
+      documentId,
+      base: 'Box',
+      tool: 'Box',
+      confirmed: true,
+    },
+  });
+  assert.equal(res.isError, undefined, JSON.stringify(res));
+  assert.equal(store.jobs('alice').length, 2);
 });

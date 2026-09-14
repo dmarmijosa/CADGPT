@@ -239,44 +239,53 @@ Acceptance: the jobs history page shows each job's `type` and links to its `docu
 
 ## Slice 12 — Discovery: accoreconsole + full/LT detection (PR 15, depends on: 2a)
 
-- [ ] 12.1 (RED) Add `agent/tests/test_discovery.py` cases for the "Documentation-like/executable-file classification" threat row (applicable — one test per basename class): `notes.txt`, `README.sh`, `acad.exe` (GUI), `acadlt.exe` must all yield `execute=false`.
-- [ ] 12.2 Add `accoreconsole.exe` detection in `agent/cadgpt_agent/discovery.py` per D14: read `HKLM\SOFTWARE\Autodesk\AutoCAD\R*\ACAD-*` → `AcadLocation`; require `<AcadLocation>\accoreconsole.exe` to exist; glob fallback `Program Files\Autodesk\AutoCAD 20*\accoreconsole.exe`; manual `--cad-path` may point at `accoreconsole.exe` directly.
-- [ ] 12.3 Compute `executable` per-CAD capability replacing the hardcoded FreeCAD-only boolean: FreeCAD via `freecadcmd*` basename; AutoCAD via `accoreconsole.exe` presence + full edition (spec cad-discovery "Executable as Per-CAD Capability").
-- [ ] 12.4 Add `capabilities: {execute, edition, console, ops, mesh}` on the CAD entry; mirror the boolean `executable` for phase-1 agents; distinguish full vs LT via ProductID (spec "Full-vs-LT Signal").
-- [ ] 12.5 Tests: mocked `winreg`/glob — LT detected (`edition='lt'`, `executable=false`); full AutoCAD detected (`edition='full'`, `accoreconsole.exe` path reported); confirm all 12.1 cases pass.
+- [x] 12.1 (RED) Add `agent/tests/test_discovery.py` cases for the "Documentation-like/executable-file classification" threat row (applicable — one test per basename class): `notes.txt`, `README.sh`, `acad.exe` (GUI), `acadlt.exe` must all yield `execute=false`.
+- [x] 12.2 Add `accoreconsole.exe` detection in `agent/cadgpt_agent/discovery.py` per D14: read `HKLM\SOFTWARE\Autodesk\AutoCAD\R*\ACAD-*` → `AcadLocation`; require `<AcadLocation>\accoreconsole.exe` to exist; glob fallback `Program Files\Autodesk\AutoCAD 20*\accoreconsole.exe`; manual `--cad-path` may point at `accoreconsole.exe` directly.
+- [x] 12.3 Compute `executable` per-CAD capability replacing the hardcoded FreeCAD-only boolean: FreeCAD via `freecadcmd*` basename; AutoCAD via `accoreconsole.exe` presence + full edition (spec cad-discovery "Executable as Per-CAD Capability"). **Deviation (D12, stated explicitly per orchestrator instruction)**: `capabilities.execute`/`executable` for AutoCAD stay hardcoded `False` in this slice even when `accoreconsole.exe` + full edition are confirmed, because `--enable-autocad` does not exist yet — it lands in 13a.5. `edition`/`console` are still populated so 13a can flip `execute` once the flag threads through.
+- [x] 12.4 Add `capabilities: {execute, edition, console, ops, mesh}` on the CAD entry; mirror the boolean `executable` for phase-1 agents; distinguish full vs LT via ProductID (spec "Full-vs-LT Signal").
+- [x] 12.5 Tests: mocked `winreg`/glob — LT detected (`edition='lt'`, `executable=false`); full AutoCAD detected (`edition='full'`, `accoreconsole.exe` path reported); confirm all 12.1 cases pass.
 
 Acceptance: discovery never executes an untrusted binary to probe capability (verified by 12.1); edition distinction is registry/glob-based only. ~200 changed lines.
 
 ## Slice 13a — AutoCAD strategy + `.lsp`/create ops + `--enable-autocad` (PR 16, depends on: 12, 4b)
 
-- [ ] 13a.1 (RED) Add a golden `.scr` equality test per create op to `agent/tests/test_strategies.py`, plus a malformed numeric/handle rejection test, before the strategy exists (Subprocess argv composition threat row — applicable).
-- [ ] 13a.2 Implement `AutoCadStrategy.build_argv` in `agent/cadgpt_agent/strategies/autocad.py`: `[accoreconsole.exe, "/i", doc_dir/design.dwg | blank.dwg, "/s", job_dir/run.scr, "/isolate"]`, `shell=False`.
-- [ ] 13a.3 Create `agent/cadgpt_agent/autocad/blank.dwg` and per-op `.scr` templates rendering `repr(float)` numbers and validated handles only — no free text (design "AutoCAD strategy").
-- [ ] 13a.4 Create `agent/cadgpt_agent/autocad/cadgpt.lsp` exposing one `cadgpt-<op>` function per allowlisted create op, core AutoLISP only, no `vlax-*` (research A3).
-- [ ] 13a.5 Gate the strategy behind agent flag `--enable-autocad`; discovery reports `execute=false` without it (D12); add `--enable-autocad` to `agent/cadgpt_agent/main.py`.
-- [ ] 13a.6 Decode Core Console output with `utf-16-le`/`replace` fallback.
-- [ ] 13a.7 Update `README.md`/`SECURITY.md`: AutoCAD opt-in flag and Autodesk EULA/unattended-use note (docs travel with this behavior-changing slice, D12).
-- [ ] 13a.8 Confirm 13a.1's golden tests pass; add a `--enable-autocad`-off test proving the strategy is unreachable without the flag.
+- [x] 13a.1 (RED) Add a golden `.scr` equality test per create op to `agent/tests/test_strategies.py`, plus a malformed numeric/handle rejection test, before the strategy exists (Subprocess argv composition threat row — applicable). Confirmed RED: temporarily removed `strategies/autocad.py` and reran `test_strategies.py` — import failed (`ModuleNotFoundError: No module named 'cadgpt_agent.strategies.autocad'`), all new tests uncollectible. Restored and confirmed GREEN.
+- [x] 13a.2 Implement `AutoCadStrategy.build_argv` in `agent/cadgpt_agent/strategies/autocad.py`: `[accoreconsole.exe, "/i", doc_dir/design.dwg | blank.dwg, "/s", job_dir/run.scr, "/isolate"]`, `shell=False` (enforced by the executor's existing `Popen(..., shell=False)`, unchanged).
+- [x] 13a.3 Kept the pre-existing `agent/cadgpt_agent/autocad/blank.dwg` (orchestrator-provided, untouched). **Deviation**: rendered `run.scr` at runtime from validated numbers in `build_argv`/`render_script`, instead of static per-op `.scr` templates — safer (no template-substitution surface) and matches the task brief's own preferred alternative ("prefer runtime rendering from validated numbers (safer, no free text)").
+- [x] 13a.4 Created `agent/cadgpt_agent/autocad/cadgpt.lsp` exposing one `cadgpt-<op>` function per allowlisted create op (`cadgpt-create-box/-cylinder/-sphere/-cone`, `cadgpt-extrude-rect`), core AutoLISP only (`command`, `strcat`, `rtos`, `if`), no `vlax-*`/`vla-*` (research A3).
+- [x] 13a.5 Gated `AutoCadStrategy` selection behind `executable=True`, itself gated by agent flag `--enable-autocad` (D12): `discovery.discover()` gained `enable_autocad=False` param; `execute = enable_autocad and edition=='full' and console is not None`. Added `--enable-autocad` (`store_true`) to `agent/cadgpt_agent/main.py`, threaded into `discover(manual, enable_autocad=args.enable_autocad)`.
+- [x] 13a.6 Added `executor._decode_tail(tail, cad_kind)`: `utf-16-le`/`errors="replace"` for AutoCAD, `utf-8`/`errors="replace"` for other CADs; used to append a bounded (≤500 char) diagnostic snippet to the "CAD engine failed to create the document" error.
+- [x] 13a.7 Updated `README.md` (compatibility table + new "AutoCAD (opt-in, experimental)" section) and `SECURITY.md` (opt-in/licensing paragraph) with the `--enable-autocad` flag and an explicit Autodesk-EULA/unattended-use responsibility note (D12).
+- [x] 13a.8 Confirmed all 13a.1 golden/malformed tests pass (GREEN). Added `AutoCadExecutorGatingTests`: an AutoCAD `cads` entry with `executable=False` is unreachable through `executor.execute` (`popen.assert_not_called()`, `ValueError` raised) even though `AutoCadStrategy.supports(op)` is `True`; a matching entry with `executable=True` dispatches with the fixed 6-token argv. Added `EnableAutocadFlagTests` in `test_discovery.py`: full AutoCAD stays `execute=False` without the flag, becomes `execute=True` with it, LT stays `execute=False` even with the flag, FreeCAD is unaffected.
 
 Acceptance: without `--enable-autocad`, no AutoCAD job can be dispatched; with it, argv is exactly the fixed 6-token form for every create op (verified by 13a.1/13a.8). ~320 changed lines (near budget — do not add scope here).
 
-## Slice 13b — AutoCAD modify/read ops + API capability gating (PR 17, depends on: 13a)
+## Slice 13b — AutoCAD API capability gating (create-only) (PR 17, depends on: 13a)
 
-- [ ] 13b.1 (RED) Add a test asserting the API rejects any op outside `AUTOCAD_OPS` for an AutoCAD-targeted document, before the gate exists.
-- [ ] 13b.2 Add modify-op `.lsp` functions (boolean/transform equivalents applicable to AutoCAD) and matching `.scr` templates in `agent/cadgpt_agent/autocad/templates/`, saving via `_.SAVEAS 2018 "<doc_dir>/design.dwg" _.QUIT`.
-- [ ] 13b.3 Add read-op support only for ops present in `AUTOCAD_OPS`; enforce the DWG-artifact-required postcondition (spec autocad-execution-adapter "DWG Artifact Required").
-- [ ] 13b.4 Update `Store.enqueue()` in `apps/api/src/store.ts` so `cad.capabilities.ops` restricts which tools are reachable per CAD kind, closing the API-side half of D11 (satisfies 13b.1).
-- [ ] 13b.5 Tests: every successful AutoCAD job produces a downloadable DWG (spec "Job succeeds with DWG only"); confirm 13b.1 passes against the implemented gate.
+Re-scoped 2026-09-14 after a live spike: AutoCAD object addressing for modify ops
+needs handles from `read_scene`, and `read_scene` is not robust without ActiveX
+(`vlax-ename->vla-object` returns nil in Core Console; volume/bbox only via
+locale-dependent MASSPROP parsing). AutoCAD therefore ships as create + DWG +
+STL preview (slice 14); modify/read ops are deferred to a future phase with a
+dedicated non-vlax scene-readback design. The load-bearing API work still lands
+here so AutoCAD create jobs can be enqueued at all.
 
-Acceptance: an AutoCAD-targeted document rejects any op outside `AUTOCAD_OPS` at the API layer before a job is enqueued (13b.1/13b.5); every successful AutoCAD job has a downloadable DWG. ~260 changed lines.
+- [x] 13b.1 (RED) Add an API test asserting an AutoCAD-targeted document rejects any op outside its `capabilities.ops` before a job is enqueued, and accepts a create op that is in it.
+- [x] 13b.2 Accept and persist `capabilities` on the CAD entry: extend `cadSchema` in `apps/api/src/store.ts` with an optional `capabilities` object (`{execute?, edition?, console?, ops?, mesh?}`) and store/return it on the device's cad list so `enqueueOp` reads AutoCAD's real `ops`.
+- [x] 13b.3 Generalize `Store.enqueue()`'s hardcoded `name === 'FreeCAD' && executable` check to `executable` + a matching document `cadKind`, so AutoCAD create jobs enqueue; keep FreeCAD behavior identical. Generalize the same check in the `POST /api/jobs` create-box REST route if present.
+- [x] 13b.4 Enforce the DWG-artifact-required postcondition for AutoCAD create jobs (spec autocad-execution-adapter "Job succeeds with DWG only" / "DWG Artifact Required"): a successful AutoCAD job must leave a downloadable `design.dwg`.
+- [x] 13b.5 Tests: AutoCAD create op with `capabilities.ops` enqueues and produces a DWG; an op absent from `capabilities.ops` is rejected at the API before enqueue (confirms 13b.1); FreeCAD enqueue path unchanged.
+- [ ] 13b.6 (deferred, documented) AutoCAD modify (boolean/transform) and read_scene/export ops: record as a follow-up requiring a non-vlax per-solid scene readback (handle enumeration works; volume/bbox need a robust source). Do NOT implement here. **Deferral recorded 2026-09-14**: intentionally left unimplemented per the re-scope note above; `AUTOCAD_OPS`/`AutoCadStrategy._CREATE_OPS` stay at the 5 create ops, no boolean/transform/read/export AutoCAD code was added in this slice.
+
+Acceptance: AutoCAD create jobs enqueue and produce a downloadable DWG; any op not in the CAD's advertised `capabilities.ops` is rejected at the API before enqueue; FreeCAD is unaffected. ~260 changed lines.
 
 ## Slice 14 — Conditional: AutoCAD STL preview (PR 18, depends on: 13b, 6)
 
-- [ ] 14.0 **SPIKE (blocking, run first)**: on a Windows host with full AutoCAD, attempt headless STL export via `EXPORT`/`3DPRINT` from Core Console against a representative DWG. **Pass**: a valid binary STL (`size == 84 + 50*facets`) is produced with `accoreconsole.exe` and no interactive dialog. **Fail**: no STL produced, a hang, or a required interactive prompt. Record the result in `docs/` before proceeding to 14.1.
-- [ ] 14.1 (conditional on 14.0 = pass, RED) Add a golden command-sequence test for the export step and an STL byte-shape assertion, before implementing it.
-- [ ] 14.2 (conditional on 14.0 = pass) Implement STL export in `AutoCadStrategy.artifacts()` (`agent/cadgpt_agent/strategies/autocad.py`) via the proven `EXPORT`/`3DPRINT` sequence; `STLOUT` MUST NOT be used (unavailable in Core Console and LT per research A4, spec autocad-execution-adapter "STL Preview Is Conditional On Spike").
-- [ ] 14.3 (conditional on 14.0 = pass) Set `capabilities.mesh=true` for AutoCAD in `agent/cadgpt_agent/discovery.py` once export is proven; the slice 6 upload step already covers AutoCAD jobs unchanged.
-- [ ] 14.4 (conditional on 14.0 = fail) Leave `capabilities.mesh=false` for AutoCAD (already the default from slices 12/13); no further code changes — the slice 8 pending/unavailable path already covers "no mesh" for any CAD kind (spec "No spike, no STL").
+- [x] 14.0 **SPIKE (done 2026-09-14, PASS)**: on the live AutoCAD 2026 host, `_STLOUT _ALL _Y <path>` produced a valid binary STL (684 bytes = 84 + 50*12 facets) non-interactively via accoreconsole; `_-EXPORT` hangs headless. Research A4 (STLOUT excluded from Core Console) is REFUTED for AutoCAD 2026. Recorded in `docs/autocad-stl-spike.md`.
+- [x] 14.1 (conditional on 14.0 = pass, RED) Added `AutoCadScriptGoldenTests`/`AutoCadStrategyArgvTests` golden-string assertions for the `_STLOUT`/`_ALL`/empty-line/`_Y`/path export block (exact CRLF sequence) plus `test_stl_path_is_job_dir_derived_not_caller_input`, before `render_script`'s `stl_path` parameter existed (confirmed RED: `TypeError: missing 1 required positional argument`).
+- [x] 14.2 (14.0 passed) Implemented STL export in `AutoCadStrategy.render_script`: appends `_STLOUT`, `_ALL`, an empty line (finish selection), `_Y` (binary), and the job-dir-derived STL path right after the create-op call and before `_SAVEAS`/`_QUIT` (solid already exists in the drawing by then); `artifacts()["mesh"]` now returns `job_dir / "preview.stl"` (was `None`). `EXPORT`/`3DPRINT` are not used anywhere (enforced by `AutoCadNoExportMechanismTests`).
+- [x] 14.3 (conditional on 14.0 = pass) Set `capabilities.mesh = (edition == "full")` for AutoCAD in `agent/cadgpt_agent/discovery.py` (was unconditionally `False`); LT stays `mesh=False` (STLOUT/Core Console unavailable there). The slice 6 upload step (`agent/cadgpt_agent/main.py::run_job`, branch `feat/phase2-06-agent-upload`) already checks `jobs/<job_id>/preview.stl` generically by file existence, independent of CAD kind — confirmed by inspection, no change needed there.
+- [ ] 14.4 (conditional on 14.0 = fail) N/A — the spike passed (14.0), so this fail-only branch does not apply. Left unchecked as a record that the fail path was never taken, not as outstanding work.
 
 Acceptance: `capabilities.mesh` for AutoCAD is `true` only if 14.0 passed and is verified by the 14.1 golden test; otherwise it stays `false` and no `STLOUT` call exists anywhere in the codebase. ~150 changed lines if the spike passes; 0 (skipped, aside from the recorded spike result) if it fails.
 
