@@ -139,6 +139,21 @@ Angular dashboard -- OIDC/PKCE -------->      |
 
 Registration alone does not connect ChatGPT. A public HTTPS backend, identity-provider deployment and separately registered OAuth client are required. **ChatGPT/Claude end-to-end connection is not yet certified.** See [deployment and MCP setup](docs/deployment.md).
 
+### After pairing: connect Claude or ChatGPT
+
+Once a device finishes pairing, the dashboard's **Connect** step (`/connect`) shows this
+deployment's MCP resource URL with a copy-to-clipboard control, plus separate instructions for
+Claude (Settings → Connectors → Add custom connector → paste the URL → sign in) and ChatGPT
+(Settings → Connectors → Developer mode → Add → paste the URL). It also shows whether the linked
+computer is online. That page only walks through the client-side half of connecting; the backend
+still needs the public HTTPS deployment and registered OAuth client(s) described in
+[Connect an MCP client](docs/deployment.md#connect-an-mcp-client) before a connector actually
+authenticates. Try `list_devices` first to confirm the connection before running a mutating
+operation. As with every other surface, only the device's UUID and the public MCP URL ever appear
+on that page — never a device secret or credential. AutoCAD remains detection-only today (see
+[Compatibility](#compatibility)); only FreeCAD operations run through a connected client until an
+execution adapter ships.
+
 For the automated VPS deployment via GitHub Actions, see [Production on the VPS via GitHub Actions](docs/deployment.md#production-on-the-vps-via-github-actions).
 
 ## Security and limitations

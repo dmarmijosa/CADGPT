@@ -26,6 +26,17 @@ def server_url(value):
         raise ValueError("HTTPS is required except for loopback development")
     return value.rstrip("/")
 
+def open_connect_step(server, device_id, headless):
+    """After pairing completes, guide the user to the post-pairing "connect
+    your MCP client" step (spec mcp-client-onboarding). The URL carries only
+    the device UUID -- never the device secret/credential the poll response
+    also returns -- so it is always safe to print or open in a browser."""
+    url = server + "/connect?device=" + device_id
+    print("Next: connect your MCP client at " + url, flush=True)
+    if not headless:
+        webbrowser.open(url)
+    return url
+
 def request(server, route, payload, credential=None):
     headers = {"Content-Type": "application/json"}
     if credential:
@@ -153,6 +164,7 @@ def main():
                         json.dump({"server": server, "credential": credential}, stream)
                 else:
                     keyring.set_password(SERVICE, server, credential)
+                open_connect_step(server, state["deviceId"], args.headless)
                 break
         if not credential:
             raise RuntimeError("Pairing expired. Restart the agent to try again.")

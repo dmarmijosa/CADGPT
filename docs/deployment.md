@@ -104,6 +104,16 @@ Client setup screens, plan availability and OAuth registration requirements vary
 
 MCP is implemented using the official TypeScript SDK v1.30 maintenance line. The handler authenticates every request and creates no cross-user MCP session. ChatGPT/Claude live account integration remains a deployment acceptance test, not a completed certification.
 
+### The dashboard's guided step
+
+After a device is paired and approved, its owner can open `/connect` in the dashboard for a
+copy-pasteable resource URL and the same Claude/ChatGPT steps summarized above, plus a live status
+card for the paired computer. That page is a client-side walkthrough only — it does not replace the
+OAuth client registration steps above, and it never displays a device secret or credential, only
+the device's UUID and the public MCP URL. See the [mesh preview exception](../README.md#security-and-limitations)
+for what a connected client can retrieve today, and note that AutoCAD remains detection-only (no
+execution adapter shipped yet) regardless of which client connects.
+
 ## Operational boundaries
 
 Polling runs every five seconds while the foreground agent is alive. No auto-start service is installed. A job is accepted only if its device recently polled. Work claimed before disconnection is not requeued; an unknown outcome needs human inspection of local files.

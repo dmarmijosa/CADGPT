@@ -8,9 +8,6 @@
   @if (error()) {
     <div class="message error" role="alert">{{ error() }}</div>
   }
-  @if (notice()) {
-    <div class="message" role="status">{{ notice() }}</div>
-  }
   <form (submit)="$event.preventDefault(); approve()">
     <label for="code">12-character pairing code</label>
     <input id="code" autocomplete="off" placeholder="A1B2C3D4E5F6" [formField]="fields.code" />
@@ -18,5 +15,4 @@
       Confirm &amp; link device
     </button>
   </form>
-  <p><a routerLink="/connect">Next: connect an MCP client →</a></p>
 </section>

@@ -54,6 +54,36 @@ class Tests(unittest.TestCase):
             execute(self.job(), [], d)
 
 
+class ConnectStepTests(unittest.TestCase):
+    """15.6 (RED): after pairing completes, the agent guides the user to the
+    post-pairing "connect your MCP client" step (spec mcp-client-onboarding).
+    The opened URL MUST carry only the device UUID -- never the device
+    secret/credential returned alongside it by `/api/pairings/poll`."""
+
+    DEVICE_ID = "11111111-2222-3333-4444-555555555555"
+    SECRET = "super-secret-device-credential-do-not-leak"
+
+    def test_opens_the_connect_url_with_only_the_device_id(self):
+        from cadgpt_agent.main import open_connect_step
+
+        with patch("cadgpt_agent.main.webbrowser.open") as browser_open:
+            url = open_connect_step("https://cadgpt.example", self.DEVICE_ID, False)
+
+        browser_open.assert_called_once_with("https://cadgpt.example/connect?device=" + self.DEVICE_ID)
+        self.assertIn(self.DEVICE_ID, url)
+        self.assertNotIn(self.SECRET, url)
+
+    def test_headless_prints_the_url_instead_of_opening_a_browser(self):
+        from cadgpt_agent.main import open_connect_step
+
+        with patch("cadgpt_agent.main.webbrowser.open") as browser_open:
+            url = open_connect_step("https://cadgpt.example", self.DEVICE_ID, True)
+
+        browser_open.assert_not_called()
+        self.assertEqual(url, "https://cadgpt.example/connect?device=" + self.DEVICE_ID)
+        self.assertNotIn(self.SECRET, url)
+
+
 class FreecadWorkerValidationTests(unittest.TestCase):
     """2b.1 (RED): malformed request.json values are rejected before any
     FreeCAD call. None of these need FreeCAD/Part/MeshPart stubbed: if the
