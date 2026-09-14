@@ -1,14 +1,25 @@
-"""AutoCAD Core Console strategy: create ops only (slice 13a).
+"""AutoCAD Core Console strategy: create ops only (slice 13a), plus STL
+preview export (slice 14).
 
 Renders a per-job `run.scr` from validated numeric input and invokes
 `accoreconsole.exe` with a fixed six-token argv. No caller free text ever
 reaches the script: every number is validated through the same bounds as the
 FreeCAD worker (`agent/cadgpt_agent/freecad_worker.py`) and written back out
-via `repr(float(...))`; only fixed command tokens, the `(load ...)` path, and
-the resulting numeric literals appear in `run.scr`.
+via `repr(float(...))`; only fixed command tokens, the `(load ...)` path, the
+resulting numeric literals, and the job-dir-derived STL/DWG paths appear in
+`run.scr`.
+
+STL preview export uses `_STLOUT` (proven live on AutoCAD 2026 Core Console
+per `docs/autocad-stl-spike.md`, slice 14.0): `_STLOUT` + `_ALL` + an empty
+line to finish selection + `_Y` (binary) + the STL path produces a valid
+binary STL non-interactively. `_-EXPORT`/`3DPRINT` are NOT used — both hang
+on an interactive prompt under Core Console (spike result), which is why
+research finding A4 ("STLOUT excluded from Core Console") was refuted for
+AutoCAD 2026 and is no longer treated as a constraint here.
 
 Modify/read ops (booleans, transforms, `read_scene`, `export_design`) are
-slice 13b/14 and are intentionally unsupported here (`supports()` is False).
+deferred (slice 13b.6) and are intentionally unsupported here (`supports()`
+is False).
 """
 import json
 from pathlib import Path
@@ -91,14 +102,18 @@ _CREATE_OPS = {
 }
 
 
-def render_script(op, data, lisp_path, design_path):
+def render_script(op, data, lisp_path, design_path, stl_path):
     """Build the exact CRLF `run.scr` body for one allowlisted create op.
 
     Only fixed command tokens, the `(load ...)` path, the rendered
-    `(cadgpt-<op> ...)` call (validated numbers only), and the SAVEAS target
-    path ever appear here — never caller free text. Raises `ValueError`
-    before any text is assembled if a parameter is missing, non-finite, or
-    out of bounds.
+    `(cadgpt-<op> ...)` call (validated numbers only), and the job-dir/
+    doc-dir-derived STL/SAVEAS target paths ever appear here — never caller
+    free text. Raises `ValueError` before any text is assembled if a
+    parameter is missing, non-finite, or out of bounds.
+
+    Order: create the solid first, then `_STLOUT` it (the solid must already
+    exist in the drawing), then `_SAVEAS` the DWG, then `_QUIT` — matching the
+    slice 14.0 spike's proven sequence.
     """
     builder = _CREATE_OPS.get(op)
     if builder is None:
@@ -113,6 +128,14 @@ def render_script(op, data, lisp_path, design_path):
         "0",
         '(load "' + lisp_path.as_posix() + '")',
         call,
+        # STLOUT prompts: "Select objects:" -> _ALL, then an empty line to
+        # finish selection, then "Create a binary STL file? [Yes/No]" -> _Y,
+        # then the filename prompt -> the STL path. Proven live (spike 14.0).
+        "_STLOUT",
+        "_ALL",
+        "",
+        "_Y",
+        str(stl_path),
         "_SAVEAS",
         "2018",
         str(design_path),
@@ -130,8 +153,11 @@ class AutoCadStrategy:
     def build_argv(self, cad_path: Path, job_dir: Path, doc_dir: Path | None) -> list[str]:
         design_dir = doc_dir if doc_dir is not None else job_dir
         design_path = design_dir / "design.dwg"
+        # The STL preview is always job-scoped (never caller input), mirroring
+        # `FreeCadStrategy.artifacts()`'s `mesh = job_dir / "preview.stl"`.
+        stl_path = job_dir / "preview.stl"
         request = json.loads((job_dir / "request.json").read_text(encoding="utf-8"))
-        script = render_script(request.get("op"), request, _LSP_PATH, design_path)
+        script = render_script(request.get("op"), request, _LSP_PATH, design_path, stl_path)
         script_path = job_dir / "run.scr"
         # `newline=""` is required: the string already carries literal CRLF,
         # and without it Python's text-mode translation would corrupt every
@@ -147,6 +173,7 @@ class AutoCadStrategy:
         design_dir = doc_dir if doc_dir is not None else job_dir
         return {
             "native": design_dir / "design.dwg",
-            "mesh": None,
+            # Proven live via `_STLOUT` (slice 14.0 spike, docs/autocad-stl-spike.md).
+            "mesh": job_dir / "preview.stl",
             "scene": None,
         }

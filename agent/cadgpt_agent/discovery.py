@@ -23,9 +23,10 @@ FREECAD_OPS = [
 # Ops the AutoCAD adapter can actually run today. Kept in lockstep with
 # `strategies.autocad._CREATE_OPS` (the agent's own gate) so the API's
 # capability check (`cad.capabilities.ops`) never advertises an op the agent
-# would then reject. Slice 13a ships create ops only; slice 13b widens this
-# to booleans/transforms as their `.lsp`/`.scr` mapping lands, and adds
-# read_scene/export for AutoCAD.
+# would then reject. Slice 13a shipped create ops only; boolean/transform/
+# read_scene/export ops are deferred (13b.6) pending a non-vlax scene-readback
+# design. STL preview (`capabilities.mesh`) is proven for these create ops as
+# of slice 14 (see `strategies.autocad.render_script`'s `_STLOUT` sequence).
 AUTOCAD_OPS = [
     "create_box", "create_cylinder", "create_sphere", "create_cone", "extrude_rect",
 ]
@@ -165,6 +166,11 @@ def discover(manual=None, enable_autocad=False):
             # accoreconsole.exe stays non-executable without it; LT never
             # becomes executable regardless of the flag (no Core Console).
             executable = bool(enable_autocad and edition == "full" and console is not None)
-            capabilities = dict(execute=executable, edition=edition, console=console, ops=AUTOCAD_OPS, mesh=False)
+            # STL preview (`_STLOUT`) is proven on full editions only (slice
+            # 14.0 spike); STLOUT is absent from LT (no Core Console at all),
+            # so LT never advertises mesh regardless of the `--enable-autocad`
+            # flag or `execute`.
+            mesh = edition == "full"
+            capabilities = dict(execute=executable, edition=edition, console=console, ops=AUTOCAD_OPS, mesh=mesh)
         result[identity] = dict(id=identity, name=name, path=p, version="Not verified", executable=executable, capabilities=capabilities)
     return list(result.values())[:30]

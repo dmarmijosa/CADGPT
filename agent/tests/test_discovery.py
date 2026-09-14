@@ -169,7 +169,8 @@ class AutoCadRegistryDetectionTests(unittest.TestCase):
             self.assertFalse(cad["capabilities"]["execute"])
             self.assertFalse(cad["executable"])
             self.assertEqual(cad["capabilities"]["ops"], discovery.AUTOCAD_OPS)
-            self.assertFalse(cad["capabilities"]["mesh"])
+            # Slice 14: STL preview is proven on full editions via `_STLOUT`.
+            self.assertTrue(cad["capabilities"]["mesh"])
 
     def test_lt_has_no_console_and_reports_lt_edition_via_gui_binary(self):
         # LT never ships accoreconsole.exe (spec cad-discovery "Full-vs-LT
@@ -195,6 +196,8 @@ class AutoCadRegistryDetectionTests(unittest.TestCase):
             self.assertEqual(cad["capabilities"]["edition"], "lt")
             self.assertFalse(cad["capabilities"]["execute"])
             self.assertFalse(cad["executable"])
+            # LT never ships accoreconsole.exe/STLOUT: no execute, no mesh.
+            self.assertFalse(cad["capabilities"]["mesh"])
 
     def test_glob_fallback_detects_full_when_registry_has_no_acadlocation(self):
         # The real verified host (AutoCAD 2026) has NO AcadLocation registry
