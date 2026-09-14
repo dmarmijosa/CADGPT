@@ -1,0 +1,171 @@
+<section class="page-head">
+  <div class="section-title">
+    <div>
+      <h1>API keys</h1>
+      <p>
+        Per-user keys for connecting Claude, ChatGPT, or a programmatic MCP client to this
+        deployment.
+      </p>
+    </div>
+    <button
+      class="quiet"
+      type="button"
+      (click)="workspace.apiKeys.reload()"
+      [disabled]="workspace.apiKeys.isLoading()"
+    >
+      ↻ Refresh
+    </button>
+  </div>
+</section>
+
+@if (workspace.apiKeys.error(); as error) {
+  <div class="message error" role="alert">{{ errorMessage(error) }}</div>
+}
+@if (revokeError()) {
+  <div class="message error" role="alert">{{ revokeError() }}</div>
+}
+
+@if (createdKey(); as created) {
+  <article class="panel key-reveal" role="alert" data-testid="key-reveal">
+    <h2>Save this key now</h2>
+    <p>
+      This is the full secret for <strong>{{ created.name }}</strong
+      >. It is shown only once — CAD Agent Designer never stores or displays it again.
+    </p>
+    <p class="key-value">
+      <code>{{ created.key }}</code>
+    </p>
+    <div class="hero-actions">
+      <button type="button" class="quiet" (click)="copyKey()">
+        {{ copied() ? 'Copied!' : 'Copy key' }}
+      </button>
+      <button type="button" (click)="dismissCreatedKey()">Done — I've saved it</button>
+    </div>
+  </article>
+} @else {
+  <section class="panel">
+    <h2>Create a new key</h2>
+    @if (error()) {
+      <div class="message error" role="alert">{{ error() }}</div>
+    }
+    <form (submit)="$event.preventDefault(); createKey()">
+      <label for="key-name">Name</label>
+      <input
+        id="key-name"
+        autocomplete="off"
+        placeholder="e.g. Claude desktop"
+        [formField]="fields.name"
+      />
+      <fieldset>
+        <legend>Scopes</legend>
+        <label class="check">
+          <input
+            type="radio"
+            name="scope"
+            value="read_write"
+            [checked]="scope() === 'read_write'"
+            (change)="setScope('read_write')"
+          />
+          Read + write (default) — full CAD access
+        </label>
+        <label class="check">
+          <input
+            type="radio"
+            name="scope"
+            value="read"
+            [checked]="scope() === 'read'"
+            (change)="setScope('read')"
+          />
+          Read only
+        </label>
+      </fieldset>
+      <button type="submit" [disabled]="busy() || !model().name.trim()">Create key →</button>
+    </form>
+  </section>
+}
+
+@if (workspace.apiKeys.isLoading() && !workspace.apiKeys.hasValue()) {
+  <p>Loading API keys…</p>
+} @else if (workspace.apiKeys.hasValue() && workspace.apiKeys.value().length) {
+  <table class="data">
+    <thead>
+      <tr>
+        <th scope="col">Name</th>
+        <th scope="col">Key</th>
+        <th scope="col">Scopes</th>
+        <th scope="col">Created</th>
+        <th scope="col">Last used</th>
+        <th scope="col">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (key of workspace.apiKeys.value(); track key.id) {
+        <tr [class.revoked]="key.revoked">
+          <td>{{ key.name }}</td>
+          <td>
+            <code>cad_{{ key.prefix }}_…</code>
+          </td>
+          <td>{{ scopeLabel(key.scopes) }}</td>
+          <td class="tabular-nums" [title]="key.created | date: 'medium'">
+            {{ key.created | date: 'medium' }}
+          </td>
+          <td class="tabular-nums">
+            {{ key.lastUsed ? (key.lastUsed | date: 'medium') : 'Never' }}
+          </td>
+          <td>
+            @if (key.revoked) {
+              <span class="status">Revoked</span>
+            } @else if (confirmingRevoke() === key.id) {
+              <div class="confirm-row">
+                <span>Revoke this key?</span>
+                <button
+                  class="danger quiet"
+                  type="button"
+                  (click)="confirmRevoke(key.id)"
+                  [disabled]="revoking()"
+                >
+                  Confirm revoke
+                </button>
+                <button
+                  class="quiet"
+                  type="button"
+                  (click)="cancelRevoke()"
+                  [disabled]="revoking()"
+                >
+                  Cancel
+                </button>
+              </div>
+            } @else {
+              <button
+                class="danger quiet"
+                type="button"
+                (click)="askRevoke(key.id)"
+                [attr.aria-label]="'Revoke ' + key.name"
+              >
+                Revoke
+              </button>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+} @else {
+  <article class="panel empty">
+    <h2>No API keys yet</h2>
+    <p>Create one above to connect Claude, ChatGPT, or a programmatic MCP client.</p>
+  </article>
+}
+
+<section class="panel">
+  <h2>How to connect</h2>
+  <p>Point your MCP client at this deployment's resource URL:</p>
+  <p>
+    <code>{{ mcpUrl }}</code>
+  </p>
+  <p>
+    Authenticate with the full key from above as a bearer token:
+    <code>Authorization: Bearer cad_&lt;prefix&gt;_&lt;secret&gt;</code>. Any client that supports a
+    bearer-token MCP connection — Claude, ChatGPT, or a CI job — can connect this way.
+  </p>
+</section>

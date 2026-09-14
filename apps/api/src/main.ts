@@ -9,11 +9,11 @@ import { resolve } from 'node:path';
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { Store, DomainError, cadSchema, boxSchema } from './store.js';
+import { Store, DomainError, cadSchema, boxSchema, API_KEY_SCOPES } from './store.js';
 import { meshRouter } from './mesh.js';
 import { registerTools } from './tools.js';
 import { registerGuidance, SERVER_INSTRUCTIONS } from './guidance.js';
-import { authenticator } from './auth.js';
+import { authenticator, combinedAuthenticator } from './auth.js';
 import { browserSecurityPolicy } from './security.js';
 import { envs } from './config/envs.js';
 
@@ -36,6 +36,8 @@ const data = envs.dataDir ?? resolve('../../data');
 mkdirSync(data, { recursive: true, mode: 0o700 });
 mkdirSync(resolve(data, 'meshes'), { recursive: true, mode: 0o700 });
 const store = new Store(resolve(data, 'cadgpt.db'));
+// Complementary MCP auth (/mcp only — REST routes stay OIDC-only via `auth`).
+const authAny = combinedAuthenticator(auth, (key, scope) => store.verifyApiKey(key, scope));
 const app = await NestFactory.create(AppModule, { bodyParser: false });
 const http = app.getHttpAdapter().getInstance();
 http.disable('x-powered-by');
@@ -108,6 +110,39 @@ http.delete(
     ),
   ),
 );
+// Key management (dashboard/user session routes): OIDC-only, like every
+// other /api/* route. `authAny` (which also accepts an API key) is wired
+// only into /mcp, so an API key can never manage other API keys.
+http.post(
+  '/api/keys',
+  rateLimit({ windowMs: 60000, limit: 10 }),
+  wrap(async (q, r) => {
+    const owner = await auth(q.headers.authorization, 'cad:write');
+    const b = z
+      .object({
+        name: z.string().min(1).max(60),
+        scopes: z.array(z.enum(API_KEY_SCOPES)).optional(),
+      })
+      .strict()
+      .parse(q.body);
+    r.status(201).json(store.createApiKey(owner, b.name, b.scopes ?? []));
+  }),
+);
+http.get(
+  '/api/keys',
+  wrap(async (q, r) => r.json(store.listApiKeys(await auth(q.headers.authorization)))),
+);
+http.delete(
+  '/api/keys/:id',
+  wrap(async (q, r) =>
+    r.json(
+      store.revokeApiKey(
+        await auth(q.headers.authorization, 'cad:write'),
+        z.uuid().parse(q.params.id),
+      ),
+    ),
+  ),
+);
 http.get(
   '/api/jobs',
   wrap(async (q, r) => r.json(store.jobs(await auth(q.headers.authorization)))),
@@ -152,12 +187,12 @@ http.get(
 http.post(
   '/mcp',
   wrap(async (q, r) => {
-    const owner = await auth(q.headers.authorization);
+    const owner = await authAny(q.headers.authorization);
     const server = new McpServer(
       { name: 'cad-agent-designer', version: '0.1.0' },
       { instructions: SERVER_INSTRUCTIONS },
     );
-    registerTools(server, store, owner, () => auth(q.headers.authorization, 'cad:write'));
+    registerTools(server, store, owner, () => authAny(q.headers.authorization, 'cad:write'));
     registerGuidance(server);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,

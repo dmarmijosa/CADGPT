@@ -1,6 +1,13 @@
 import { DatabaseSync } from 'node:sqlite';
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
+
+// Complementary auth for the MCP endpoint (custom/programmatic clients, CI,
+// end-to-end certification) alongside OIDC — never replaces it. A key is
+// `cad_<prefix>_<secret>`: `prefix` is plaintext (12 hex chars) for O(1)
+// lookup, `secret` is high-entropy and never stored — only `hash(fullKey)` is.
+export const API_KEY_SCOPES = ['cad:read', 'cad:write'] as const;
+export type ApiKeyScope = (typeof API_KEY_SCOPES)[number];
 
 // D11: additive capability object. Optional throughout so a phase-1/2a agent
 // that never sends `capabilities` still validates (falls back to
@@ -75,6 +82,11 @@ export class Store {
       CREATE TABLE IF NOT EXISTS meshes (
         job_id TEXT PRIMARY KEY, document_id TEXT NOT NULL, device_id TEXT NOT NULL,
         size INTEGER NOT NULL, sha256 TEXT NOT NULL, created INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS api_keys (
+        id TEXT PRIMARY KEY, owner TEXT NOT NULL, name TEXT NOT NULL, prefix TEXT UNIQUE NOT NULL,
+        key_hash TEXT NOT NULL, scopes TEXT NOT NULL, created INTEGER NOT NULL, last_used INTEGER,
+        revoked INTEGER NOT NULL DEFAULT 0);
+      CREATE INDEX IF NOT EXISTS api_keys_owner ON api_keys(owner, created DESC);
     `);
     this.migrate();
   }
@@ -156,6 +168,74 @@ export class Store {
       .prepare("UPDATE jobs SET status='cancelled' WHERE device_id=? AND status='queued'")
       .run(id);
     return { revoked: true };
+  }
+  // Mints a new API key for `owner`. `scopes` defaults to full access when
+  // empty; anything outside API_KEY_SCOPES is rejected. The full key is
+  // returned exactly once here — only its hash is ever persisted.
+  createApiKey(owner: string, name: string, scopes: string[] = []) {
+    const chosen = scopes.length ? [...new Set(scopes)] : [...API_KEY_SCOPES];
+    for (const s of chosen)
+      if (!(API_KEY_SCOPES as readonly string[]).includes(s))
+        throw new DomainError(400, `Unknown scope: ${s}.`);
+    const id = randomUUID();
+    const prefix = randomBytes(6).toString('hex');
+    const key = `cad_${prefix}_${secret()}`;
+    const created = this.now();
+    this.db
+      .prepare(
+        'INSERT INTO api_keys(id,owner,name,prefix,key_hash,scopes,created,last_used,revoked) VALUES(?,?,?,?,?,?,?,NULL,0)',
+      )
+      .run(id, owner, name, prefix, hash(key), chosen.join(' '), created);
+    return { id, name, scopes: chosen as ApiKeyScope[], prefix, key, created };
+  }
+  // Redacted listing: never the hash, never the full key. Owner-scoped.
+  listApiKeys(owner: string) {
+    return (
+      this.db
+        .prepare(
+          // `rowid DESC` breaks ties within the same millisecond by insertion order.
+          'SELECT id,name,prefix,scopes,created,last_used AS lastUsed,revoked FROM api_keys WHERE owner=? ORDER BY created DESC, rowid DESC',
+        )
+        .all(owner) as Row[]
+    ).map((r) => ({
+      id: r.id as string,
+      name: r.name as string,
+      prefix: r.prefix as string,
+      scopes: String(r.scopes).split(' ') as ApiKeyScope[],
+      created: r.created as number,
+      lastUsed: (r.lastUsed as number | null) ?? null,
+      revoked: !!r.revoked,
+    }));
+  }
+  // Owner-scoped: a foreign owner's id updates zero rows, so it reads
+  // identically to "not found" and never leaks whether the id exists.
+  revokeApiKey(owner: string, id: string) {
+    if (
+      !this.db.prepare('UPDATE api_keys SET revoked=1 WHERE id=? AND owner=?').run(id, owner)
+        .changes
+    )
+      throw new DomainError(404, 'API key not found.');
+    return { revoked: true };
+  }
+  // Resolves a presented `cad_<prefix>_<secret>` key to its owner. A key maps
+  // to exactly one owner — the caller never chooses it. `prefix` narrows the
+  // lookup to one row; the full presented string is then hashed and compared
+  // to `key_hash` with a timing-safe equality check (never a plain `===`).
+  verifyApiKey(presented: string, requiredScope: string): string {
+    const parsed = /^cad_([0-9a-f]{12})_/.exec(presented);
+    if (!parsed) throw new DomainError(401, 'API key is invalid or revoked.');
+    const row = this.db.prepare('SELECT * FROM api_keys WHERE prefix=?').get(parsed[1]) as
+      Row | undefined;
+    if (!row || row.revoked) throw new DomainError(401, 'API key is invalid or revoked.');
+    const presentedHash = Buffer.from(hash(presented), 'hex');
+    const storedHash = Buffer.from(row.key_hash as string, 'hex');
+    const valid =
+      presentedHash.length === storedHash.length && timingSafeEqual(presentedHash, storedHash);
+    if (!valid) throw new DomainError(401, 'API key is invalid or revoked.');
+    if (!String(row.scopes).split(' ').includes(requiredScope))
+      throw new DomainError(403, 'Required scope missing.');
+    this.db.prepare('UPDATE api_keys SET last_used=? WHERE id=?').run(this.now(), row.id);
+    return row.owner as string;
   }
   // Callers validate their own per-op Zod schema before calling `enqueue()`;
   // this method only re-checks device ownership/online state, D17, and the cap.

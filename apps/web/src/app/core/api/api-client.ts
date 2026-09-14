@@ -1,6 +1,15 @@
 import { Injectable, inject } from '@angular/core';
 import { ApiService } from './api.service';
-import { CreateBoxPayload, Design, DesignDetail, Device, Job } from './models';
+import {
+  ApiKey,
+  ApiKeyCreated,
+  ApiKeyScope,
+  CreateBoxPayload,
+  Design,
+  DesignDetail,
+  Device,
+  Job,
+} from './models';
 
 /**
  * Typed methods over the low-level bearer client (`ApiService`). Pages and
@@ -38,5 +47,18 @@ export class ApiClient {
 
   createBoxJob(payload: CreateBoxPayload): Promise<{ id: string }> {
     return this.api.request<{ id: string }>('/api/jobs', 'POST', payload);
+  }
+
+  apiKeys(): Promise<ApiKey[]> {
+    return this.api.request<ApiKey[]>('/api/keys');
+  }
+
+  /** Full secret is returned only in this one response — never persist it beyond the session. */
+  createApiKey(name: string, scopes: ApiKeyScope[]): Promise<ApiKeyCreated> {
+    return this.api.request<ApiKeyCreated>('/api/keys', 'POST', { name, scopes });
+  }
+
+  revokeApiKey(id: string): Promise<{ revoked: boolean }> {
+    return this.api.request<{ revoked: boolean }>('/api/keys/' + id, 'DELETE');
   }
 }

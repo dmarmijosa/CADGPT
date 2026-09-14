@@ -79,3 +79,35 @@ export interface CreateBoxPayload {
   height: number;
   confirmed: boolean;
 }
+
+/** `API_KEY_SCOPES` in `apps/api/src/store.ts`. */
+export type ApiKeyScope = 'cad:read' | 'cad:write';
+
+/**
+ * `Store.listApiKeys()` response shape (`GET /api/keys`). Redacted — the
+ * server never sends the hash or the full secret here, only `prefix`
+ * (plaintext, safe to display as `cad_<prefix>_…`).
+ */
+export interface ApiKey {
+  id: string;
+  name: string;
+  prefix: string;
+  scopes: ApiKeyScope[];
+  created: number;
+  lastUsed: number | null;
+  revoked: boolean;
+}
+
+/**
+ * `Store.createApiKey()` response shape (`POST /api/keys`). `key` is the
+ * full secret (`cad_<prefix>_<secret>`) and is sent only in this one
+ * response — the server never returns it again.
+ */
+export interface ApiKeyCreated {
+  id: string;
+  name: string;
+  scopes: ApiKeyScope[];
+  prefix: string;
+  key: string;
+  created: number;
+}

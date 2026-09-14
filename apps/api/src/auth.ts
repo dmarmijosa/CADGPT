@@ -1,6 +1,24 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { DomainError } from './store.js';
 
+/**
+ * Combines OIDC with the complementary API-key path (custom/programmatic MCP
+ * clients, CI, end-to-end certification): a `cad_`-prefixed bearer resolves
+ * through `verifyApiKey`; anything else keeps going through `oidcAuth`
+ * unchanged. Intended for `/mcp` only — REST routes, including key
+ * management itself, stay on `oidcAuth` directly so an API key can never
+ * manage other API keys.
+ */
+export function combinedAuthenticator(
+  oidcAuth: (header: string | undefined, scope?: string) => Promise<string>,
+  verifyApiKey: (presented: string, scope: string) => string,
+) {
+  return async (header: string | undefined, scope = 'cad:read') =>
+    header?.startsWith('Bearer cad_')
+      ? verifyApiKey(header.slice(7), scope)
+      : oidcAuth(header, scope);
+}
+
 export function authenticator(issuer: string, audience: string, jwksUrl: string) {
   const keys = createRemoteJWKSet(new URL(jwksUrl));
   return async (header: string | undefined, scope = 'cad:read') => {

@@ -14,6 +14,7 @@ export class WorkspaceStore {
   readonly devices = resource({ loader: () => this.api.devices() });
   readonly jobs = resource({ loader: () => this.api.jobs() });
   readonly designs = resource({ loader: () => this.api.designs() });
+  readonly apiKeys = resource({ loader: () => this.api.apiKeys() });
 
   // `.value()` throws while a resource is in its error state (no prior
   // successful load) — always gate it behind `hasValue()` rather than `??`.
