@@ -282,11 +282,13 @@ Acceptance: `capabilities.mesh` for AutoCAD is `true` only if 14.0 passed and is
 
 ## Slice 15 — Post-pairing connect step + agent open + docs (PR 19, depends on: 9)
 
-- [ ] 15.1 (RED) Add a Vitest test asserting `ConnectPage` renders both Claude-specific and ChatGPT-specific instruction sets, distinct from each other (spec mcp-client-onboarding).
-- [ ] 15.2 In `agent/cadgpt_agent/main.py`, after `poll` returns a credential, open `server + '/connect?device=' + deviceId` (UUID only, never the secret); `--headless` prints it instead of opening a browser.
-- [ ] 15.3 Build `apps/web/src/app/pages/connect/*`: MCP resource URL (`origin + '/mcp'`), Claude-specific steps (Settings → Connectors → Add custom connector → paste URL → sign in), ChatGPT-specific steps (Settings → Connectors → Developer mode → Add → paste URL), a live device-status card polling `/api/devices`, a "Try `list_devices`" callout.
-- [ ] 15.4 Link `apps/web/src/app/pages/pair/*` → `/connect` after approval.
-- [ ] 15.5 Update `README.md`/`docs/`: MCP connect guide, cross-reference to the AutoCAD opt-in and mesh-preview exception notes already added in slices 5 and 13a.
-- [ ] 15.6 Tests: confirm 15.1 passes; add an agent test (mocked `webbrowser.open`) asserting the opened URL contains only the device UUID, never the secret.
+- [x] 15.1 (RED) Add a Vitest test asserting `ConnectPage` renders both Claude-specific and ChatGPT-specific instruction sets, distinct from each other (spec mcp-client-onboarding).
+- [x] 15.2 In `agent/cadgpt_agent/main.py`, after `poll` returns a credential, open `server + '/connect?device=' + deviceId` (UUID only, never the secret); `--headless` prints it instead of opening a browser.
+- [x] 15.3 Build `apps/web/src/app/pages/connect/*`: MCP resource URL (`origin + '/mcp'`), Claude-specific steps (Settings → Connectors → Add custom connector → paste URL → sign in), ChatGPT-specific steps (Settings → Connectors → Developer mode → Add → paste URL), a live device-status card polling `/api/devices`, a "Try `list_devices`" callout.
+- [x] 15.4 Link `apps/web/src/app/pages/pair/*` → `/connect` after approval.
+- [x] 15.5 Update `README.md`/`docs/`: MCP connect guide, cross-reference to the AutoCAD opt-in and mesh-preview exception notes already added in slices 5 and 13a.
+- [x] 15.6 Tests: confirm 15.1 passes; add an agent test (mocked `webbrowser.open`) asserting the opened URL contains only the device UUID, never the secret.
+
+**Note (2026-09-14)**: slices 13a (AutoCAD strategy/opt-in note) and 12 are not yet delivered (pending Windows/AutoCAD host access), so this slice's docs phrase AutoCAD as detection-only today rather than referencing an opt-in note that does not exist yet; the cross-reference will be added when slice 13a lands. Delivered at 331 changed lines (well within the 600-line session budget).
 
 Acceptance: the connect step never displays the device secret, only its UUID (15.6); Claude and ChatGPT instructions are visibly distinct (15.1). ~220 changed lines.

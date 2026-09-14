@@ -955,3 +955,67 @@ npm test        → api: 50/50 pass; web (Vitest via `ng test`): 35/35 pass (13 
 
 ### Status
 2/2 slice-11 tasks (11.1-11.2) complete and tested (tasks.md marked `[x]`). `npm run format`, `npm run build`, and `npm test` all clean/green (api 50/50, web 35/35). Cumulative: 84/115 tasks complete across slices 1-11 (per `rg -c '\[x\]' tasks.md`; 31 remain, including the still-open 2c.5/4b.7 residuals and slices 12-15). Not committed, not pushed (per instructions). 442 authored lines is within the 600-line budget — no exception needed for this slice. `sdd-verify` can run against slice 11 (and the still-pending slice-10 budget decision) independently. Ready for `sdd-apply` again to continue with slice 12 (AutoCAD discovery) once slice 10's budget decision is made — slice 12 depends on slice 2a, not slice 10/11, but this apply batch continues sequentially per the tasks.md dependency graph.
+
+## Slice 15 — Post-pairing connect step + agent open + docs (PR 19, depends on: 9; branch `feat/phase2-15-connect-step`, delivered out of order — slices 12-14 are AutoCAD-dependent and pending Windows/AutoCAD host access)
+
+**Status**: done (tasks 15.1-15.6 complete). 331 authored lines, well within the 600-line session review budget — no exception needed. Not committed, not pushed.
+
+### Completed Tasks
+- [x] 15.1 (RED) Added `apps/web/src/app/pages/connect/connect.spec.ts` first, against the pre-existing slice-7 stub (`ConnectPage` only showed one placeholder sentence and no Claude/ChatGPT content) — confirmed all three initial assertions failed (empty `[data-testid="claude-steps"]`/`[data-testid="chatgpt-steps"]`, no `/mcp` text, no `list_devices` text) before implementing. Then implemented and re-ran to GREEN (7/7, including 4 fake-timer polling tests added alongside).
+- [x] 15.2 In `agent/cadgpt_agent/main.py`, added `open_connect_step(server, device_id, headless)`: builds `server + "/connect?device=" + device_id`, always prints it, and calls `webbrowser.open(url)` only when not `--headless`. Wired into `main()`'s pairing-poll loop: called with `state["deviceId"]` (the poll response's `{pending: false, deviceId, credential}` shape, per `apps/api/src/store.ts`'s `poll()`) immediately after a fresh credential is obtained and persisted, right before `break` — so it never runs when a previously-saved credential is reused (only on a genuinely new pairing). The existing `/pair` open behavior (during pairing, before a credential exists) is untouched.
+- [x] 15.3 Rewrote `apps/web/src/app/pages/connect/{connect.ts,connect.html}`: `resourceUrl = location.origin + '/mcp'` (same `location.origin` pattern `AuthService` already uses for redirect URIs) with a copy-to-clipboard button (`navigator.clipboard.writeText`, a transient "Copied!" label, silently no-ops if the Clipboard API is unavailable); two visibly distinct `.panel` sections (`data-testid="claude-steps"` / `data-testid="chatgpt-steps"`) with Claude's Settings → Connectors → Add custom connector → paste → sign in steps and ChatGPT's Settings → Connectors → Developer mode → Add → paste steps, in plain `<ol>` (not the `.steps` custom-counter class — design's "no numbered markers except the genuine pairing→connect sequence" reserves that visual treatment for home's 3-step list); a device-status card reading `WorkspaceStore.devices` — keyed by the `device` input UUID when present (shows that device's name/online state, or "not found" with a link to `/devices`), otherwise lists every linked device's status; and a "Try it" callout naming `list_devices`. `.eyebrow`/`.page-head`/`.panel`/`.status`/`.message` are all reused slice-9 tokens; no new colors.
+- [x] 15.4 `apps/web/src/app/pages/pair/pair.ts`'s `approve()` now calls `this.router.navigateByUrl('/connect')` on success instead of setting a `notice` signal. `/api/pairings/approve` (`apps/api/src/store.ts`'s `approve()`) returns only `{ approved: true }` — no device id — so this always navigates to plain `/connect`, per the task's explicit fallback; a comment in `pair.ts` documents that a future `deviceId` in the response should be forwarded as `?device=<id>`. Removed the now-dead `notice` signal/template block and the static "Next: connect an MCP client →" link (both superseded by the automatic navigation); `RouterLink` import dropped from `pair.ts` since nothing in `pair.html` uses it anymore.
+- [x] 15.5 Added an "After pairing: connect Claude or ChatGPT" subsection to `README.md`'s "Remote access and ChatGPT / Claude" section, and a "The dashboard's guided step" subsection to `docs/deployment.md`'s "Connect an MCP client" section. Both cross-reference the mesh-preview exception (`README.md#security-and-limitations`, added slice 5) and explicitly phrase AutoCAD as "detection-only today" rather than referencing an opt-in note — slice 13a (which adds that note) has not landed yet; this slice was delivered out of order while Windows/AutoCAD host access is arranged for slices 12-14.
+- [x] 15.6 Added `ConnectStepTests` to `agent/tests/test_agent.py` (RED-first, confirmed `ImportError: cannot import name 'open_connect_step'` before implementing): asserts the opened URL is exactly `server + "/connect?device=" + device_id` and contains a fixture device UUID but never a fixture secret string, for both the browser-open and `--headless`/print-only paths.
+
+### Files Changed
+| File | Action | What Was Done |
+|------|--------|---------------|
+| `agent/cadgpt_agent/main.py` | Modified | Added `open_connect_step()`; wired it into the pairing-poll success branch with `state["deviceId"]`. |
+| `agent/tests/test_agent.py` | Modified | Added `ConnectStepTests` (2 tests, RED-first). |
+| `apps/web/src/app/pages/connect/connect.ts` | Rewrote | Resource URL + clipboard copy, bound-device lookup, offline-polling `effect()`. |
+| `apps/web/src/app/pages/connect/connect.html` | Rewrote | MCP URL panel, distinct Claude/ChatGPT panels, device-status card, "Try it" callout. |
+| `apps/web/src/app/pages/connect/connect.spec.ts` | Created | 7 tests: distinct instructions, `/mcp` URL + no-secret text, `list_devices` callout, 4 fake-timer polling tests. |
+| `apps/web/src/app/pages/pair/pair.ts` | Modified | `approve()` navigates to `/connect` on success; removed dead `notice` signal and unused `RouterLink` import. |
+| `apps/web/src/app/pages/pair/pair.html` | Modified | Removed the dead `notice` message block and the now-redundant static connect link. |
+| `README.md` | Modified | "After pairing: connect Claude or ChatGPT" subsection. |
+| `docs/deployment.md` | Modified | "The dashboard's guided step" subsection. |
+
+### Deviations from Design
+- **No `?device=` query param after approval, by design-permitted fallback.** Design's own connect-route note only says the route accepts a `device` query input; task 15.4 explicitly allows "otherwise just go to `/connect`" when the approval response carries no device id — which is the case today (`store.approve()` returns `{ approved: true }` only). Not a deviation from a literal requirement, just exercising the documented fallback.
+- **Claude/ChatGPT steps use a plain `<ol>`, not the `.steps` custom-counter class.** Design's "Design-system intent" line reserves numbered markers for "the genuine pairing→connect sequence" (home page's 3-step list, already `.steps`). Reusing `.steps` for two more numbered lists on this page would contradict that constraint, so both instruction blocks use unstyled `<ol>` elements instead — no new CSS, no new colors.
+- **`pair.ts`'s `notice` signal was removed, not left dead.** The task only asked to add navigation after approval; the prior "Pairing approved…" notice text is now unreachable (the page navigates away before it could render), so it and its now-orphaned template block were deleted rather than left as inert code.
+
+### Issues Found
+None. `npm run format` reports clean; `npm run build` and `npm test` are both green; the full agent suite (35 tests) passes.
+
+### Remaining Tasks
+- [ ] 2c.5 (residual, unchanged) — apply the three commented-out optional-variable lines to `.env.example` once edit authority is granted.
+- [ ] 4b.7 — optional `label` parameter; still deprioritized, unchanged.
+- [ ] 12.1 onward through 14.4 (Slices 12-14, PRs 15-18 — AutoCAD discovery/strategy/STL preview; pending Windows/AutoCAD host access, delivered after slice 15 out of dependency order since slice 15 only depended on slice 9)
+
+### Workload / PR Boundary
+- Mode: stacked-to-main chained PR slice, branch `feat/phase2-15-connect-step` stacked on `feat/phase2-11-jobs-history` (the web-chain tip; slices 12-14 are agent/AutoCAD-only and do not block this web-side slice).
+- Current work unit: Slice 15 — Post-pairing connect step + agent open + docs.
+- Boundary: starts at the slice-7 `ConnectPage`/`PairPage` stubs (one placeholder sentence, a static "Next: connect" link, no agent-side open-URL call); ends with a full Claude/ChatGPT connect walkthrough, a live device-status card, automatic pair→connect navigation, the agent opening that page right after pairing completes, and the MCP connect guide cross-referenced in both docs files. No `apps/api/**` file was touched (read-only, to confirm `/mcp` and `/api/config`); no other web page, the shell, or the viewer was touched.
+- Estimated review budget impact: **331 authored lines** (`README.md` +15, `main.py` +12, `test_agent.py` +30, `connect.html` +78/-6, `connect.spec.ts` +100 new, `connect.ts` +58/-5, `pair.html` -4, `pair.ts` +7/-6, `docs/deployment.md` +10) — well within the 600-line session budget; no exception needed.
+- Rollback boundary: revert `agent/cadgpt_agent/main.py`'s `open_connect_step()` addition and its call site; revert `apps/web/src/app/pages/connect/{connect.ts,connect.html}` and `apps/web/src/app/pages/pair/{pair.ts,pair.html}` to their slice-7 versions; delete `apps/web/src/app/pages/connect/connect.spec.ts`; revert `README.md`/`docs/deployment.md`'s new subsections. Slices 1-11 are completely untouched.
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command and exact result | `npx ng test --include 'src/app/pages/connect/connect.spec.ts' --watch=false` (from `apps/web/`) → `Test Files 1 passed (1)`, `Tests 7 passed (7)`. `<scratch-venv>/bin/python -m unittest agent.tests.test_agent.ConnectStepTests -v` → `Ran 2 tests` / `OK`. |
+| Runtime harness command/scenario and exact result | Manual, as specified: full pairing flow (agent `--pair` against a local dev server, approve the code in `/pair`, confirm the agent opens/prints `<server>/connect?device=<uuid>` with no secret in the URL) — not run against a live host in this sandbox; verified structurally via `open_connect_step`'s unit tests (exact URL shape) and by reading `store.poll()`'s response shape (`{pending: false, deviceId, credential}`) to confirm `state["deviceId"]` is the right source, since no live agent/browser is available here. |
+| Rollback boundary | See "Workload / PR Boundary" above. |
+
+### Full Check (repo root)
+```
+npm run format  → all matched files use Prettier code style; only the files listed above touched (plus its own formatting of connect.html/connect.ts)
+npm run build   → api tsc build OK; web (Angular) build OK, no errors; `connect` remains its own lazy chunk (4.63 kB raw / 1.75 kB transfer)
+npm test        → api: 50/50 pass; web (Vitest via `ng test`): 42/42 pass (14 test files)
+python -m unittest discover -s agent/tests -v → 35/35 pass
+```
+
+### Status
+6/6 slice-15 tasks (15.1-15.6) complete and tested (tasks.md marked `[x]`). `npm run format`, `npm run build`, and `npm test` all clean/green (api 50/50, web 42/42); full agent suite 35/35 green. Cumulative: 90/115 tasks complete across slices 1-11 and 15 (slices 12-14 — AutoCAD discovery/strategy/STL preview — remain pending Windows/AutoCAD host access, delivered out of dependency order since slice 15 only depended on slice 9). Not committed, not pushed (per instructions). 331 authored lines is well within the 600-line budget — no exception needed. Ready for `sdd-verify` on slice 15, or for `sdd-apply` again once Windows/AutoCAD access is arranged to continue with slice 12.
