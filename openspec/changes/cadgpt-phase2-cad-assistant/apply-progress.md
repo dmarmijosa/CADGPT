@@ -455,3 +455,56 @@ agent suite     → 25/25 pass
 
 ### Status
 6/6 mandatory slice-4b tasks (4b.1-4b.6) complete and tested (tasks.md marked `[x]`); 4b.7 not implemented (deprioritized, left `[ ]`, correctly). `npm run format && npm run build && npm test` all green (api 40/40, web 1/1); agent suite 25/25 pass. Cumulative: 47/115 tasks complete across slices 1-4b (per tasks.md's current `[x]` count, excluding the still-open 2c.5 residual; 4b.7 not counted). Not committed, not pushed (per instructions). **711 changed lines exceeds this batch's 600-line session review budget by 111 lines — flagging for the user/orchestrator before merge**: please confirm `size:exception` for this batch, or request the 4b-i/4b-ii split above. `sdd-verify` can still run against the working tree. `sdd-apply` should not start slice 5 until the budget decision is made.
+
+## Slice 12 — Discovery: accoreconsole + full/LT detection (PR 15, depends on: 2a; branch `feat/phase2-12-autocad-discovery` branched off `feat/phase2-04b-mcp-tools-b2`)
+
+**Status**: done (tasks 12.1-12.5 complete). 380 authored lines (126 additions/7 deletions in `discovery.py` + 247 new lines in `test_discovery.py`), within this session's 600-line review budget — no exception needed. Not committed, not pushed. Delivered out of local-branch dependency order: slices 5-11 and 15 exist on sibling stacked branches not present in this branch's working tree (this branch stacks on `feat/phase2-04b-mcp-tools-b2`), so this file's own `[x]` history only covers 1-4b plus this slice; the cross-branch cumulative count lives in `state.yaml`/Engram.
+
+### Completed Tasks
+- [x] 12.1 (RED) Added `agent/tests/test_discovery.py`, one test per basename class from the "Documentation-like/executable-file classification" threat row (`notes.txt`, `README.sh`, `acad.exe`, `acadlt.exe`), asserting both the legacy `executable` flag and the new `capabilities.execute` field are `false`. Confirmed RED against the pre-change `discovery.py` (`git stash` the implementation, rerun): all 10 tests in the new file failed — 4 with `AttributeError: ... does not have the attribute 'winreg'` (module-level guard didn't exist yet) and the rest with `KeyError: 'capabilities'` (field didn't exist yet).
+- [x] 12.2 Added `_autocad_registry_installs()` in `agent/cadgpt_agent/discovery.py`: walks `HKLM\SOFTWARE\Autodesk\AutoCAD\R*\ACAD-*` via `winreg.EnumKey`/`OpenKey`/`QueryValueEx` only (no candidate execution), reads `AcadLocation` off the product key, requires `<AcadLocation>\accoreconsole.exe` to exist via `Path.exists()` before reporting an install; glob fallback `Program Files\Autodesk\AutoCAD 20*\accoreconsole.exe`; manual `--cad-path`/`manual` param detected as a console when its basename is exactly `accoreconsole.exe`.
+- [x] 12.3 Replaced the hardcoded FreeCAD-only `executable` boolean with a per-name computation: FreeCAD via `freecadcmd`/`freecadcmd.exe` basename (unchanged); AutoCAD's `capabilities.execute` computed from `accoreconsole.exe` presence + full edition, then hardcoded to `False` regardless (see Deviations — D12).
+- [x] 12.4 Added `capabilities: {execute, edition, console, ops, mesh}` to every returned CAD entry (both FreeCAD and AutoCAD), plus the mirrored top-level `executable` boolean (unchanged key, still present for phase-1 agents). `edition` distinguishes `'full'`/`'lt'`/`'unknown'`/`None` (`None` for FreeCAD entries, since edition is an AutoCAD-only concept) via `ProductName` substring match (`"lt" in product_name.lower()`) when read from the registry, or via the candidate's own basename (`"lt" in path.name.lower()`) for GUI-only detections (`acad.exe`/`acadlt.exe`) that never resolved through the registry.
+- [x] 12.5 Added `AutoCadRegistryDetectionTests` in `agent/tests/test_discovery.py` with a hand-built `FakeWinreg`/`_PatchedOpenKey` fake (modeled on the real `R25.1`/`ACAD-9101`/`ACAD-9101:40A` tree from the verified Windows host) covering: full AutoCAD detected via registry (`edition='full'`, `accoreconsole.exe` path reported in `capabilities.console`, `capabilities.execute=false` per D12); LT detected with no `accoreconsole.exe` present anywhere, edition inferred from the `acadlt.exe` GUI path (`edition='lt'`, `executable=false`); manual `--cad-path` pointed straight at `accoreconsole.exe`; a registry-open failure (`OSError`) yielding zero AutoCAD entries instead of crashing; a guard test asserting `discovery.winreg is None` on this (macOS) test host; and a FreeCAD regression test confirming `capabilities` doesn't disturb the existing FreeCAD path. All 10 tests pass (GREEN) with the implementation in place; confirmed the 4 basename-classification tests from 12.1 pass unchanged.
+
+### Files Changed
+| File | Action | What Was Done |
+|------|--------|---------------|
+| `agent/cadgpt_agent/discovery.py` | Modified | Guarded `winreg` import (Windows-only, `None` elsewhere, fully mockable); added `FREECAD_OPS`/`AUTOCAD_OPS`; added `_iter_subkeys`/`_registry_value`/`_autocad_product_name`/`_autocad_registry_installs`; `discover()` now builds a `console_editions` map from registry + glob + manual detections, computes `capabilities` per entry, and mirrors `executable`. 126 insertions, 7 deletions. |
+| `agent/tests/test_discovery.py` | Created | 10 tests: 4 basename-classification (12.1), 6 registry/edition/capability tests (12.5), including the `FakeWinreg` test double. 247 lines. |
+
+### Deviations from Design
+- **D12 honored literally over the Discovery section's informal example and the spec scenario's literal wording, per explicit instruction for this batch.** design.md's "Discovery" narrative line writes `execute = edition=='full' and enable_autocad_flag` (implying the flag already exists as a discovery input), and `specs/cad-discovery/spec.md`'s "AutoCAD full becomes executable" scenario says `executable=true` GIVEN `accoreconsole.exe` found and full install — with no flag mentioned. Neither is literally implementable in this slice: `--enable-autocad` does not exist until task 13a.5, and this slice's tasks.md explicitly excludes adding it ("Do not add `--enable-autocad` (that is 13a)"). D12 itself states unambiguously: "discovery reports `execute=false` without it". I honored D12: `capabilities.execute`/`executable` for AutoCAD are hardcoded `False` in this slice, unconditionally, even when `accoreconsole.exe` is confirmed and the edition is `full`. `edition` and `console` are still populated correctly so slice 13a only needs to change the one `execute` computation once the flag threads through discovery — no re-detection logic will be needed. This is flagged explicitly in tasks.md 12.3 as well.
+- No other deviations — `AUTOCAD_OPS` excludes `read_scene`/`export_design` (no AutoLISP mapping in this phase; added in 13b per design/tasks), matching the task brief exactly.
+
+### Issues Found
+None. One pre-existing quirk noted but not changed (out of scope): a manual `--cad-path` pointing at an arbitrary non-CAD file (e.g. `notes.txt`) is still labeled `name="FreeCAD"` by the generic string-matching classifier (a path is only classified `"AutoCAD"` if it looks like one) — this predates this slice and does not affect `execute`/`executable`, which stay `false` for any such path since its basename never matches `freecadcmd`/`freecadcmd.exe`.
+
+### Remaining Tasks
+- [ ] 2c.5 (residual, unchanged from prior batches) — apply the three commented-out optional-variable lines to `.env.example` once edit authority is granted.
+- [ ] 4b.7 — optional `label` parameter, deprioritized (unchanged from prior batches).
+- [ ] 13a.1-13a.8 (Slice 13a — AutoCAD strategy + `.lsp`/create ops + `--enable-autocad`) — now unblocked: real Windows AutoCAD 2026 host reachable and an STL+AutoLISP spike already passed per this session's ground truth, so no further Windows-access blocker remains.
+- [ ] 13b.1-13b.5, 14.0-14.4 — pending 13a; 14's STL spike (14.0) result should be re-confirmed against `EXPORT`/`3DPRINT` from Core Console once 13a lands, per its own blocking-spike task.
+
+### Workload / PR Boundary
+- Mode: stacked-to-main chained PR slice (per session `chain_strategy: stacked-to-main`), branch `feat/phase2-12-autocad-discovery` branched off `feat/phase2-04b-mcp-tools-b2`.
+- Current work unit: Slice 12 — Discovery: accoreconsole + full/LT detection.
+- Boundary: starts at the pre-slice-12 `discovery.py` (FreeCAD-only `executable` boolean, no AutoCAD registry detection, no `capabilities`); ends with accoreconsole.exe registry/glob/manual detection, full-vs-LT edition distinction, and a per-CAD `capabilities` dict on every entry, with zero binary execution anywhere in the detection path. No worker/executor/strategy/apps changes (explicitly out of scope for this slice).
+- Estimated review budget impact: 380 authored lines against the 600-line session budget — no exception needed.
+- Rollback boundary: revert `agent/cadgpt_agent/discovery.py` to its pre-slice-12 version; delete `agent/tests/test_discovery.py`. No other file touched; slices 1-4b are unaffected.
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command and exact result | `<scratch-venv>/bin/python -m unittest agent.tests.test_discovery -v` → `Ran 10 tests` / `OK`. Confirmed RED first: same command against the pre-change `discovery.py` (via `git stash`) → `Ran 10 tests`, `FAILED (errors=10)`. |
+| Runtime harness command/scenario and exact result | N/A on this (macOS) sandbox — no real Windows registry or `accoreconsole.exe` binary available. Coverage instead uses a hand-built `FakeWinreg` fake modeled exactly on the verified real-host registry tree (`R25.1`/`ACAD-9101`/`ACAD-9101:40A`, `AcadLocation`, `ProductName`) plus real temp-directory files standing in for `accoreconsole.exe`/`acadlt.exe` so `Path.exists()` checks are genuine filesystem checks, not mocked. Detection never executes a binary in any code path (verified by inspection: only `Path.exists()`, `winreg.*` read calls, and `Path.glob()` touch candidate paths). |
+| Rollback boundary | See "Workload / PR Boundary" above. |
+
+### Full Check
+```
+<scratch-venv>/bin/python -m unittest discover -s agent/tests -v → Ran 35 tests, OK (25 pre-existing + 10 new in test_discovery.py)
+```
+
+### Status
+5/5 slice-12 tasks complete (tasks.md 12.1-12.5 marked `[x]`). 380 authored lines within the 600-line session budget — no exception needed. Not committed, not pushed. Ready for `sdd-verify` on slice 12. Slices 13a/13b/14 are now unblocked per this session's ground truth (real Windows AutoCAD 2026 host reachable, STL+AutoLISP spike already passed) and can proceed in a future `sdd-apply` batch.

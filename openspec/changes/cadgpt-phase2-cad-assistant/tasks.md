@@ -237,11 +237,11 @@ Acceptance: the jobs history page shows each job's `type` and links to its `docu
 
 ## Slice 12 — Discovery: accoreconsole + full/LT detection (PR 15, depends on: 2a)
 
-- [ ] 12.1 (RED) Add `agent/tests/test_discovery.py` cases for the "Documentation-like/executable-file classification" threat row (applicable — one test per basename class): `notes.txt`, `README.sh`, `acad.exe` (GUI), `acadlt.exe` must all yield `execute=false`.
-- [ ] 12.2 Add `accoreconsole.exe` detection in `agent/cadgpt_agent/discovery.py` per D14: read `HKLM\SOFTWARE\Autodesk\AutoCAD\R*\ACAD-*` → `AcadLocation`; require `<AcadLocation>\accoreconsole.exe` to exist; glob fallback `Program Files\Autodesk\AutoCAD 20*\accoreconsole.exe`; manual `--cad-path` may point at `accoreconsole.exe` directly.
-- [ ] 12.3 Compute `executable` per-CAD capability replacing the hardcoded FreeCAD-only boolean: FreeCAD via `freecadcmd*` basename; AutoCAD via `accoreconsole.exe` presence + full edition (spec cad-discovery "Executable as Per-CAD Capability").
-- [ ] 12.4 Add `capabilities: {execute, edition, console, ops, mesh}` on the CAD entry; mirror the boolean `executable` for phase-1 agents; distinguish full vs LT via ProductID (spec "Full-vs-LT Signal").
-- [ ] 12.5 Tests: mocked `winreg`/glob — LT detected (`edition='lt'`, `executable=false`); full AutoCAD detected (`edition='full'`, `accoreconsole.exe` path reported); confirm all 12.1 cases pass.
+- [x] 12.1 (RED) Add `agent/tests/test_discovery.py` cases for the "Documentation-like/executable-file classification" threat row (applicable — one test per basename class): `notes.txt`, `README.sh`, `acad.exe` (GUI), `acadlt.exe` must all yield `execute=false`.
+- [x] 12.2 Add `accoreconsole.exe` detection in `agent/cadgpt_agent/discovery.py` per D14: read `HKLM\SOFTWARE\Autodesk\AutoCAD\R*\ACAD-*` → `AcadLocation`; require `<AcadLocation>\accoreconsole.exe` to exist; glob fallback `Program Files\Autodesk\AutoCAD 20*\accoreconsole.exe`; manual `--cad-path` may point at `accoreconsole.exe` directly.
+- [x] 12.3 Compute `executable` per-CAD capability replacing the hardcoded FreeCAD-only boolean: FreeCAD via `freecadcmd*` basename; AutoCAD via `accoreconsole.exe` presence + full edition (spec cad-discovery "Executable as Per-CAD Capability"). **Deviation (D12, stated explicitly per orchestrator instruction)**: `capabilities.execute`/`executable` for AutoCAD stay hardcoded `False` in this slice even when `accoreconsole.exe` + full edition are confirmed, because `--enable-autocad` does not exist yet — it lands in 13a.5. `edition`/`console` are still populated so 13a can flip `execute` once the flag threads through.
+- [x] 12.4 Add `capabilities: {execute, edition, console, ops, mesh}` on the CAD entry; mirror the boolean `executable` for phase-1 agents; distinguish full vs LT via ProductID (spec "Full-vs-LT Signal").
+- [x] 12.5 Tests: mocked `winreg`/glob — LT detected (`edition='lt'`, `executable=false`); full AutoCAD detected (`edition='full'`, `accoreconsole.exe` path reported); confirm all 12.1 cases pass.
 
 Acceptance: discovery never executes an untrusted binary to probe capability (verified by 12.1); edition distinction is registry/glob-based only. ~200 changed lines.
 
