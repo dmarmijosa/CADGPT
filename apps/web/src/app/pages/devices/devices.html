@@ -1,0 +1,44 @@
+<section class="section-title">
+  <div>
+    <p class="eyebrow">YOUR WORKSPACE</p>
+    <h1>Linked computers</h1>
+  </div>
+  <button class="quiet" type="button" (click)="refresh()" [disabled]="busy()">
+    ↻ Refresh status
+  </button>
+</section>
+@if (error()) {
+  <div class="message error" role="alert">{{ error() }}</div>
+}
+@for (device of devices(); track device.id) {
+  <article class="panel">
+    <div class="device-heading">
+      <h2>{{ device.name }}</h2>
+      <span class="status" [class.online]="device.online">{{
+        device.revoked ? 'Revoked' : device.online ? 'Online' : 'Offline'
+      }}</span>
+    </div>
+    @for (cad of device.cads; track cad.id) {
+      <div class="cad">
+        <div>
+          <strong>{{ cad.name }}</strong>
+          <p>{{ cad.version || 'Version not verified' }}</p>
+          <small>{{ cad.path }}</small>
+        </div>
+        <span class="status">{{ cad.executable ? 'Executable' : 'Detection only' }}</span>
+      </div>
+    } @empty {
+      <p>No CAD installation detected. Configure a manual path in the agent.</p>
+    }
+    @if (!device.revoked) {
+      <button class="danger quiet" type="button" (click)="revoke(device.id)" [disabled]="busy()">
+        Revoke access
+      </button>
+    }
+  </article>
+} @empty {
+  <article class="panel empty">
+    <h2>No linked computers yet</h2>
+    <p>Install the agent, keep it running, and enter its pairing code from the Pair page.</p>
+  </article>
+}

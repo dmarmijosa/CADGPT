@@ -1,0 +1,28 @@
+<header>
+  <a class="brand" routerLink="/"
+    ><span class="mark">C</span> CADGPT <small>BRIDGE / ALPHA</small></a
+  >
+  <nav aria-label="Account">
+    @if (auth.user(); as user) {
+      <span>{{ user.profile.preferred_username ?? 'Your account' }}</span>
+      <button class="quiet" type="button" (click)="signOut()">Sign out</button>
+    } @else {
+      <a href="https://github.com/dmarmijosa/CADGPT/releases">Downloads ↗</a>
+    }
+  </nav>
+</header>
+<div class="shell">
+  <nav class="rail" aria-label="Primary">
+    <a routerLink="/devices" routerLinkActive="active">Devices</a>
+    <a routerLink="/designs" routerLinkActive="active">Designs</a>
+    <a routerLink="/jobs" routerLinkActive="active">Jobs</a>
+    <a routerLink="/connect" routerLinkActive="active">Connect</a>
+    <a routerLink="/about" routerLinkActive="active">About</a>
+  </nav>
+  <main>
+    <router-outlet />
+  </main>
+</div>
+<footer>
+  <span>CADGPT / 0.1 ALPHA</span><span>FreeCAD execution · AutoCAD discovery · Remote MCP</span>
+</footer>

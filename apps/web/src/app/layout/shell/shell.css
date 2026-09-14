@@ -1,0 +1,105 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  height: 74px;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #dde3dc;
+  flex: none;
+}
+.brand {
+  text-decoration: none;
+  font-size: 1.1rem;
+  font-weight: 750;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #1c302e;
+}
+.brand small {
+  font-size: 0.6rem;
+  letter-spacing: 2px;
+  color: #687a6b;
+  margin-left: 6px;
+}
+.mark {
+  background: #173e34;
+  color: #d5fa7e;
+  padding: 6px 11px;
+  border-radius: 8px;
+}
+nav[aria-label='Account'] {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  font-size: 0.85rem;
+}
+.shell {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+}
+.rail {
+  border-right: 1px solid #dde3dc;
+  padding: 24px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rail a {
+  text-decoration: none;
+  color: #46574f;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: 8px;
+}
+.rail a.active {
+  background: #eaf1de;
+  color: #173e34;
+}
+.rail a:focus-visible,
+.brand:focus-visible,
+button:focus-visible {
+  outline: 2px solid #244b3d;
+  outline-offset: 2px;
+}
+main {
+  padding: 32px 40px;
+  max-width: 1100px;
+}
+footer {
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  font-size: 0.65rem;
+  letter-spacing: 1px;
+  color: #6b7d70;
+  padding: 20px 28px;
+  border-top: 1px solid #eef1ec;
+}
+@media (max-width: 760px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+  .rail {
+    border-right: none;
+    border-bottom: 1px solid #dde3dc;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 14px;
+  }
+  main {
+    padding: 24px 20px;
+  }
+  footer {
+    flex-direction: column;
+  }
+}

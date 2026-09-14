@@ -1,0 +1,53 @@
+<section class="section-title">
+  <div>
+    <p class="eyebrow">YOUR DESIGNS</p>
+    <h1>Designs</h1>
+  </div>
+</section>
+@if (error()) {
+  <div class="message error" role="alert">{{ error() }}</div>
+}
+@if (notice()) {
+  <div class="message" role="status">{{ notice() }}</div>
+}
+<section class="panel">
+  @for (design of designs(); track design.id) {
+    <div class="job">
+      <a [routerLink]="['/designs', design.id]">{{ design.name }}</a>
+      <strong>{{ design.cadKind }}</strong>
+      <span class="status">{{ design.hasMesh ? 'Preview ready' : 'No preview yet' }}</span>
+    </div>
+  } @empty {
+    <p>No designs yet. Create one below, or ask your connected MCP client to create one.</p>
+  }
+</section>
+<section class="panel">
+  <p class="eyebrow">CREATE A DESIGN</p>
+  <h2>New FreeCAD box</h2>
+  <p>Dimensions are in millimeters. A new file is saved in the agent's job directory.</p>
+  <form (submit)="$event.preventDefault(); createBox()">
+    <label for="target">Device / CAD</label>
+    <select
+      id="target"
+      (change)="selectOption($any($event.target).value)"
+      [disabled]="!freecadOptions().length"
+    >
+      <option value="">Select a linked FreeCAD installation…</option>
+      @for (option of freecadOptions(); track option.cadId) {
+        <option [value]="option.deviceId + '|' + option.cadId">{{ option.label }}</option>
+      }
+    </select>
+    <div class="dimensions">
+      <label>Length (mm)<input type="number" step="any" [formField]="fields.length" /></label>
+      <label>Width (mm)<input type="number" step="any" [formField]="fields.width" /></label>
+      <label>Height (mm)<input type="number" step="any" [formField]="fields.height" /></label>
+    </div>
+    <label class="check">
+      <input type="checkbox" [formField]="fields.confirmed" /> I confirm these dimensions and
+      authorize creating a new file on this computer.
+    </label>
+    <button type="submit" [disabled]="busy() || !model().deviceId || !model().confirmed">
+      Create new FreeCAD box →
+    </button>
+  </form>
+</section>

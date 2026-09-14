@@ -1,0 +1,23 @@
+<section class="section-title">
+  <div>
+    <p class="eyebrow">RECENT JOBS</p>
+    <h1>Jobs</h1>
+  </div>
+  <button class="quiet" type="button" (click)="refresh()" [disabled]="busy()">↻ Refresh</button>
+</section>
+@if (error()) {
+  <div class="message error" role="alert">{{ error() }}</div>
+}
+<section class="panel">
+  @for (job of jobs(); track job.id) {
+    <div class="job">
+      <code>{{ job.id }}</code>
+      <strong>{{ job.status }}</strong>
+      @if (job.result) {
+        <p>{{ job.result }}</p>
+      }
+    </div>
+  } @empty {
+    <p>No jobs yet. Results will appear here; CAD files remain on the linked computer.</p>
+  }
+</section>

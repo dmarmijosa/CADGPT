@@ -1,0 +1,13 @@
+<section class="panel">
+  <p class="eyebrow">YOUR TOOLS. ONE CONNECTION.</p>
+  <h1>Your CAD workspace, connected.</h1>
+  <p>
+    Link a computer you trust, discover its CAD tools, and send precise, controlled jobs from one
+    place.
+  </p>
+  @if (auth.user()) {
+    <a routerLink="/devices">Go to your devices →</a>
+  } @else {
+    <button type="button" (click)="signIn()">Sign in / Register →</button>
+  }
+</section>
