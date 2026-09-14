@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { Store, DomainError, cadSchema, boxSchema } from './store.js';
+import { meshRouter } from './mesh.js';
 import { registerTools } from './tools.js';
 import { registerGuidance, SERVER_INSTRUCTIONS } from './guidance.js';
 import { authenticator } from './auth.js';
@@ -33,6 +34,7 @@ const auth = authenticator(
 );
 const data = envs.dataDir ?? resolve('../../data');
 mkdirSync(data, { recursive: true, mode: 0o700 });
+mkdirSync(resolve(data, 'meshes'), { recursive: true, mode: 0o700 });
 const store = new Store(resolve(data, 'cadgpt.db'));
 const app = await NestFactory.create(AppModule, { bodyParser: false });
 const http = app.getHttpAdapter().getInstance();
@@ -136,6 +138,7 @@ http.post(
     r.json(store.complete(token(q), z.uuid().parse(q.params.id), b.result, b.ok));
   }),
 );
+http.use(meshRouter(store, { dataDir: data, auth }));
 const metadata = {
   resource: origin + '/mcp',
   authorization_servers: [issuer],

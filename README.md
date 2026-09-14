@@ -74,15 +74,15 @@ Use `CADGPT.exe` or `./CADGPT` instead of `cadgpt-agent` for packaged builds. A 
 1. In the dashboard, select a detected FreeCAD command-line installation on an online computer.
 2. Enter box dimensions in millimeters and explicitly confirm.
 3. Click **Create new FreeCAD box**. Refresh to see the result.
-4. Find `box.FCStd` and `box.step` in the job directory reported in the result.
+4. Find `design.FCStd` and `preview.stl` in the job directory reported in the result; `box.step` is no longer produced. An `export.*` file (STEP, STL or DXF) appears only after an explicit export operation.
 
-Files remain on that computer. The alpha does not upload models or download them through MCP. It creates a fresh directory for every job and never modifies an open drawing.
+Native CAD files (`design.FCStd`) remain on that computer. Only the STL preview mesh — never the native file — is uploaded to the dashboard for a 3D preview; see [Security and limitations](#security-and-limitations). The agent creates a fresh directory for every job and never modifies an open drawing.
 
 ## Compatibility
 
 | CAD / platform | Alpha behavior |
 |---|---|
-| FreeCAD with working `FreeCADCmd` / `freecadcmd`, Windows/macOS/Linux | Fixed headless box operation; installation-specific testing required |
+| FreeCAD with working `FreeCADCmd` / `freecadcmd`, Windows/macOS/Linux | Headless create/modify/export operations on named designs; an STL preview mesh uploads for the dashboard viewer; installation-specific testing required |
 | FreeCAD GUI-only installation, AppImage, Flatpak or Snap | May need manual path or a separate command-line installation; no wrapper support promised |
 | AutoCAD / AutoCAD LT | Installation discovery only; no execution adapter shipped |
 | AutoCAD on Linux | Not a supported target |
@@ -149,6 +149,7 @@ For the automated VPS deployment via GitHub Actions, see [Production on the VPS 
 - Devices initiate outbound HTTPS requests; no open incoming port, SSH or Tailscale is required.
 - Revocation blocks new agent requests and cancels queued jobs. **It cannot undo an operation already running locally.**
 - Jobs expire, are claimed once, have dimension limits and a 120-second worker timeout. Lost results become unknown rather than silently replaying operations.
+- **Exception: the STL preview mesh leaves the machine.** Native CAD files (`.FCStd`, `.dwg`) stay on the agent's computer; the agent uploads only the rendered STL preview so the dashboard can show a 3D viewer. Uploads are capped at 25 MiB per file with a 500 MiB per-device quota; only the newest 5 previews per design are kept.
 - The SQLite store supports **one backend instance**. Back up it and identity data; do not horizontally scale this alpha.
 - Limits are per backend IP. Shared NAT users may hit them. Put production abuse controls at the reverse proxy.
 - Pairing/account audit history, credential rotation, signed updates, remote file transfer, rich CAD commands, active-document integration and administrative recovery are future work.

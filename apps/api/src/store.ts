@@ -265,6 +265,64 @@ export class Store {
         }
       : { job: null };
   }
+  // Sum of `meshes.size` for a device — the running total against the 500 MiB
+  // per-device quota (mesh-preview-upload "Size Cap and Per-Device Quota").
+  meshBytesForDevice(deviceId: string): number {
+    const row = this.db
+      .prepare('SELECT COALESCE(SUM(size),0) AS total FROM meshes WHERE device_id=?')
+      .get(deviceId) as Row;
+    return row.total as number;
+  }
+  // Device + job ownership/state check for the mesh upload route: the device
+  // credential must own a `running` job that already has a document (every
+  // job enqueued via `enqueueOp` does). Returns 404 for a foreign device or
+  // a non-running job alike, matching the existing no-existence-leak pattern.
+  jobForMeshUpload(token: string, jobId: string) {
+    const d = this.device(token);
+    const row = this.db
+      .prepare(
+        "SELECT document_id AS documentId FROM jobs WHERE id=? AND device_id=? AND status='running'",
+      )
+      .get(jobId, d.id) as Row | undefined;
+    if (!row || !row.documentId)
+      throw new DomainError(404, 'Job not found, not running on this device, or has no document.');
+    return { deviceId: d.id as string, documentId: row.documentId as string };
+  }
+  // Job-bound file naming (mesh-preview-upload "Job-Bound File Naming"): the
+  // row key is the job id, never a client-supplied name.
+  recordMesh(input: {
+    jobId: string;
+    documentId: string;
+    deviceId: string;
+    size: number;
+    sha256: string;
+  }) {
+    this.db
+      .prepare(
+        'INSERT OR REPLACE INTO meshes(job_id,document_id,device_id,size,sha256,created) VALUES(?,?,?,?,?,?)',
+      )
+      .run(input.jobId, input.documentId, input.deviceId, input.size, input.sha256, this.now());
+  }
+  // Newest first, used both for retention (keep the newest 5) and for
+  // `hasMesh`/detail listings.
+  meshesForDocument(documentId: string) {
+    return this.db
+      .prepare(
+        // `rowid DESC` breaks ties within the same millisecond by insertion order.
+        'SELECT job_id AS jobId, size FROM meshes WHERE document_id=? ORDER BY created DESC, rowid DESC',
+      )
+      .all(documentId) as { jobId: string; size: number }[];
+  }
+  latestMeshForDocument(documentId: string) {
+    return this.db
+      .prepare(
+        'SELECT job_id AS jobId FROM meshes WHERE document_id=? ORDER BY created DESC, rowid DESC LIMIT 1',
+      )
+      .get(documentId) as { jobId: string } | undefined;
+  }
+  deleteMesh(jobId: string) {
+    this.db.prepare('DELETE FROM meshes WHERE job_id=?').run(jobId);
+  }
   complete(token: string, id: string, result: string, ok: boolean, nativePath?: string) {
     const d = this.device(token);
     this.db.exec('BEGIN IMMEDIATE');
