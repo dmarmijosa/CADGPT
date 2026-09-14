@@ -135,10 +135,10 @@ def render_script(op, data, lisp_path, design_path, stl_path):
         "_ALL",
         "",
         "_Y",
-        str(stl_path),
+        stl_path.as_posix(),
         "_SAVEAS",
         "2018",
-        str(design_path),
+        design_path.as_posix(),
         "_QUIT",
     ]
     return "\r\n".join(lines) + "\r\n"

@@ -3,6 +3,7 @@ per-CAD capabilities. Detection only: no test here ever executes a candidate
 binary, and `winreg` is always mocked so macOS/Linux never import the real
 module (guarded import in `discovery.py`).
 """
+import platform
 import tempfile
 import unittest
 from pathlib import Path
@@ -266,8 +267,14 @@ class AutoCadRegistryDetectionTests(unittest.TestCase):
             cads = discover()
         self.assertFalse(any(c["name"] == "AutoCAD" for c in cads))
 
-    def test_never_imports_real_winreg_on_macos(self):
-        self.assertIsNone(discovery.winreg)
+    def test_never_imports_real_winreg_off_windows(self):
+        """The guarded import in `discovery.py` only binds a real `winreg`
+        module on Windows; everywhere else it stays `None` (module import,
+        not the patched `discovery.winreg` used by the other tests here)."""
+        if platform.system() == "Windows":
+            self.assertIsNotNone(discovery.winreg)
+        else:
+            self.assertIsNone(discovery.winreg)
 
     def test_freecad_capabilities_unaffected(self):
         with tempfile.TemporaryDirectory() as d:

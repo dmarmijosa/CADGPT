@@ -4,7 +4,7 @@ import tempfile
 import time
 import unittest
 import uuid
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from unittest.mock import patch
 
 from cadgpt_agent.executor import execute
@@ -47,7 +47,7 @@ class BaselineArgvEnvTests(unittest.TestCase):
             kwargs = popen.call_args.kwargs
             self.assertFalse(kwargs["shell"])
             self.assertEqual(len(argv), 2)
-            self.assertEqual(argv[0], "/trusted/FreeCADCmd")
+            self.assertEqual(argv[0], str(Path("/trusted/FreeCADCmd")))
             self.assertTrue(argv[1].endswith("freecad_worker.py"))
             env = kwargs["env"]
             self.assertEqual(env["CADGPT_JOB_DIR"], str((Path(d) / "jobs" / job["id"]).resolve()))
@@ -273,7 +273,7 @@ class AutoCadScriptGoldenTests(unittest.TestCase):
         must have zero effect on the rendered script."""
         data = {"length": 1, "width": 1, "height": 1, "stl_path": "/etc/passwd"}
         script = render_script("create_box", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
-        self.assertIn(str(self.STL_PATH), script)
+        self.assertIn(self.STL_PATH.as_posix(), script)
         self.assertNotIn("/etc/passwd", script)
 
 
@@ -332,7 +332,7 @@ class AutoCadStrategyArgvTests(unittest.TestCase):
                 self.make_request(job_dir, op, params)
                 argv = strategy.build_argv(Path("/trusted/accoreconsole.exe"), job_dir, None)
                 self.assertEqual(len(argv), 6)
-                self.assertEqual(argv[0], "/trusted/accoreconsole.exe")
+                self.assertEqual(argv[0], str(Path("/trusted/accoreconsole.exe")))
                 self.assertEqual(argv[1], "/i")
                 self.assertEqual(argv[2], str(_BLANK_DWG))
                 self.assertEqual(argv[3], "/s")
@@ -401,7 +401,9 @@ class AutoCadStrategyArgvTests(unittest.TestCase):
             # Read raw bytes (not `read_text`, which would normalize the
             # embedded literal "\r\n" via universal-newline translation).
             script = (job_dir / "run.scr").read_bytes().decode("utf-8")
-            self.assertIn("_STLOUT\r\n_ALL\r\n\r\n_Y\r\n" + str(job_dir / "preview.stl"), script)
+            self.assertIn(
+                "_STLOUT\r\n_ALL\r\n\r\n_Y\r\n" + (job_dir / "preview.stl").as_posix(), script
+            )
 
 
 class AutoCadArtifactsTests(unittest.TestCase):
@@ -479,6 +481,32 @@ class AutoCadExecutorGatingTests(unittest.TestCase):
             self.assertFalse(popen.call_args.kwargs["shell"])
             self.assertEqual(len(argv), 6)
             self.assertEqual(argv[1], "/i")
+
+
+class AutoCadWindowsPathRenderingTests(unittest.TestCase):
+    """Regression for the Windows-only .scr path bug (release build caught it):
+    AutoLISP `(load ...)` requires forward slashes, and AutoCAD accepts them in
+    the STLOUT/SAVEAS filename prompts, so every path written into run.scr must
+    be forward-slashed even when the agent runs on Windows. Using
+    PureWindowsPath here reproduces the Windows behavior on any host."""
+
+    def _render(self):
+        return render_script(
+            "create_box",
+            {"length": 40.0, "width": 25.0, "height": 10.0},
+            PureWindowsPath(r"C:\Program Files\CAD Agent Designer\autocad\cadgpt.lsp"),
+            PureWindowsPath(r"C:\Users\u\AppData\Local\CADGPT\documents\d1\design.dwg"),
+            PureWindowsPath(r"C:\Users\u\AppData\Local\CADGPT\jobs\j1\preview.stl"),
+        )
+
+    def test_windows_paths_render_with_forward_slashes_only(self):
+        script = self._render()
+        # No path line may contain a backslash — that would break `(load ...)`.
+        for line in script.splitlines():
+            self.assertNotIn("\\", line)
+        self.assertIn('(load "C:/Program Files/CAD Agent Designer/autocad/cadgpt.lsp")', script)
+        self.assertIn("C:/Users/u/AppData/Local/CADGPT/jobs/j1/preview.stl", script)
+        self.assertIn("C:/Users/u/AppData/Local/CADGPT/documents/d1/design.dwg", script)
 
 
 if __name__ == "__main__":

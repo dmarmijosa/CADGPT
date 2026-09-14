@@ -46,7 +46,7 @@ class Tests(unittest.TestCase):
                 process.wait.side_effect = finish
                 execute(job, cads, d)
                 self.assertFalse(popen.call_args.kwargs["shell"])
-                self.assertEqual(popen.call_args.args[0][0], "/trusted/FreeCADCmd")
+                self.assertEqual(popen.call_args.args[0][0], str(Path("/trusted/FreeCADCmd")))
                 with self.assertRaises(FileExistsError):
                     execute(job, cads, d)
     def test_unknown_cad_rejected(self):
@@ -74,7 +74,7 @@ class Tests(unittest.TestCase):
                 process.wait.side_effect = finish
                 message = execute(job, cads, d)
                 self.assertFalse(popen.call_args.kwargs["shell"])
-                self.assertEqual(popen.call_args.args[0][0], "/trusted/accoreconsole.exe")
+                self.assertEqual(popen.call_args.args[0][0], str(Path("/trusted/accoreconsole.exe")))
                 self.assertIn("design.dwg", message)
                 self.assertTrue(message.startswith("Created "))
 
