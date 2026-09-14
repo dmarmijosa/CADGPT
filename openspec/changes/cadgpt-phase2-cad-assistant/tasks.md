@@ -199,14 +199,14 @@ Acceptance: navigating to `/designs/:id` without a session redirects to sign-in 
 
 ## Slice 8 — STL viewer on `/designs/:id` (PR 11, depends on: 7, 5)
 
-- [ ] 8.1 Add `three@0.186` and `@types/three` (dev) to `apps/web/package.json`.
-- [ ] 8.2 (RED) Add a Vitest test (SSR-pass guard) asserting zero three.js/WebGL loading occurs during a simulated server-rendered pass (spec mesh-viewer "SSR pass skips three.js").
-- [ ] 8.3 Implement `apps/web/src/app/features/viewer/stl-viewer.ts`: `meshUrl = input.required<string>()`, `afterNextRender` → dynamic `import('./three-scene')` only in the browser.
-- [ ] 8.4 Implement `apps/web/src/app/features/viewer/three-scene.ts`: scene setup, `STLLoader` from `three/addons/loaders`, `OrbitControls`, `ResizeObserver`, `DestroyRef` disposes the renderer.
-- [ ] 8.5 Wire `apps/web/src/app/pages/design-detail/*`: fetch `GET /api/designs/:id` and `GET /api/designs/:id/mesh` (bearer), pass the mesh URL into `StlViewer` only when a mesh exists.
-- [ ] 8.6 (RED, F1) Add a Vitest test for the pending-state scenario: a document with only a queued/running job renders a pending UI state and never constructs a mesh URL or invokes `STLLoader` (spec mesh-viewer "Pending State Without Mesh").
-- [ ] 8.7 Implement the pending state in `design-detail`: when no mesh exists yet, render pending copy instead of attempting a mesh fetch/load (satisfies 8.6).
-- [ ] 8.8 Tests: `StlViewer` mounts a canvas only when `meshUrl` is present (`three-scene` mocked); preview renders after job completion (spec "Preview renders after job completion").
+- [x] 8.1 Add `three@0.186` and `@types/three` (dev) to `apps/web/package.json`.
+- [x] 8.2 (RED) Add a Vitest test (SSR-pass guard) asserting zero three.js/WebGL loading occurs during a simulated server-rendered pass (spec mesh-viewer "SSR pass skips three.js").
+- [x] 8.3 Implement `apps/web/src/app/features/viewer/stl-viewer.ts`: `mesh = input.required<ArrayBuffer>()` (deviation from `meshUrl`, see below), `afterNextRender` → dynamic `import('./three-scene')` only in the browser.
+- [x] 8.4 Implement `apps/web/src/app/features/viewer/three-scene.ts`: scene setup, `STLLoader` from `three/addons/loaders`, `OrbitControls`, `ResizeObserver`, `DestroyRef` disposes the renderer.
+- [x] 8.5 Wire `apps/web/src/app/pages/design-detail/*`: fetch `GET /api/designs/:id` and `GET /api/designs/:id/mesh` (bearer), pass the mesh buffer into `StlViewer` only when a mesh exists.
+- [x] 8.6 (RED, F1) Add a Vitest test for the pending-state scenario: a document with only a queued/running job renders a pending UI state and never fetches the mesh binary or invokes `STLLoader` (spec mesh-viewer "Pending State Without Mesh").
+- [x] 8.7 Implement the pending state in `design-detail`: when no mesh exists yet, render pending copy and poll every 5 s instead of attempting a mesh fetch/load (satisfies 8.6).
+- [x] 8.8 Tests: `StlViewer` mounts a container and calls the scene factory only when `mesh` resolves (`three-scene` mocked via `SCENE_FACTORY` DI token); preview renders after job completion (spec "Preview renders after job completion").
 
 Acceptance: opening `/designs/:id` for a document with only a queued job shows pending — not an error — and never calls `STLLoader` (8.6/8.7); after job completion the same route renders the STL geometry (8.8); no three.js/WebGL code runs during any server-rendered pass (8.2). ~280 changed lines.
 
