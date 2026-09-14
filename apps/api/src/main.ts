@@ -61,7 +61,11 @@ http.get('/api/config', (_: Request, r: Response) =>
   r.json({
     issuer,
     clientId: 'cadgpt-web',
-    scopes: 'openid profile cad:read cad:write',
+    // `profile` is intentionally omitted: the realm defines only the cad:* client
+    // scopes (not the stock profile/email scopes), so requesting `profile` makes
+    // Keycloak reject the whole authorize request with invalid_scope. The app
+    // needs none of it — the owner is derived from `sub` and loadUserInfo is off.
+    scopes: 'openid cad:read cad:write',
     publicOrigin: origin,
   }),
 );
