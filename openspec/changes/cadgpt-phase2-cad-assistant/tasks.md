@@ -187,13 +187,13 @@ Acceptance: a failed mesh upload never flips a successful CAD job to a failed st
 
 ## Slice 7 — Web routing skeleton + auth guard (PR 10, depends on: —)
 
-- [ ] 7.1 (RED) Add a Vitest test asserting an unauthenticated navigation to `/designs/:id` redirects to sign-in before any component renders (spec dashboard-routing "Unauthenticated redirect").
-- [ ] 7.2 Define lazy routes in `apps/web/src/app/app.routes.ts` (currently empty): `''` (home, public), `about` (public), `callback`, `pair`, `connect`, `devices`, `designs`, `designs/:id`, `jobs`, `**` → `''`.
-- [ ] 7.3 Implement `apps/web/src/app/core/auth/auth.service.ts` wrapping `UserManager`, with signals for `user`/`token`/`ready`.
-- [ ] 7.4 Implement the functional `apps/web/src/app/core/auth/auth.guard.ts`: `await auth.ready(); return auth.user() ? true : (auth.login(state.url), false)`.
-- [ ] 7.5 Implement `apps/web/src/app/layout/shell/*` (header, left rail nav, footer, `<router-outlet>`).
-- [ ] 7.6 Add stub `loadComponent` pages under `apps/web/src/app/pages/{home,about,callback,pair,connect,devices,designs,design-detail,jobs}/` sufficient to compile and navigate; full content lands in slices 8–11 and 15.
-- [ ] 7.7 Add a lazy-loading test: `/designs` loads its module on demand (spec dashboard-routing "Lazy route loads on navigation").
+- [x] 7.1 (RED) Add a Vitest test asserting an unauthenticated navigation to `/designs/:id` redirects to sign-in before any component renders (spec dashboard-routing "Unauthenticated redirect").
+- [x] 7.2 Define lazy routes in `apps/web/src/app/app.routes.ts` (currently empty): `''` (home, public), `about` (public), `callback`, `pair`, `connect`, `devices`, `designs`, `designs/:id`, `jobs`, `**` → `''`.
+- [x] 7.3 Implement `apps/web/src/app/core/auth/auth.service.ts` wrapping `UserManager`, with signals for `user`/`token`/`ready`.
+- [x] 7.4 Implement the functional `apps/web/src/app/core/auth/auth.guard.ts`: `await auth.ready(); return auth.user() ? true : (auth.login(state.url), false)`.
+- [x] 7.5 Implement `apps/web/src/app/layout/shell/*` (header, left rail nav, footer, `<router-outlet>`).
+- [x] 7.6 Add stub `loadComponent` pages under `apps/web/src/app/pages/{home,about,callback,pair,connect,devices,designs,design-detail,jobs}/` sufficient to compile and navigate; full content lands in slices 8–11 and 15.
+- [x] 7.7 Add a lazy-loading test: `/designs` loads its module on demand (spec dashboard-routing "Lazy route loads on navigation").
 
 Acceptance: navigating to `/designs/:id` without a session redirects to sign-in before rendering (verified by 7.1); `/designs` loads lazily. ~260 changed lines.
 

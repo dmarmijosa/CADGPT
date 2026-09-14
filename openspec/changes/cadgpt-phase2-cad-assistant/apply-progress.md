@@ -603,3 +603,77 @@ Expected: step 4 returns `200` with `Content-Type: model/stl` and a binary STL b
 
 ### Status
 4/4 mandatory slice-6 tasks (6.1-6.4) complete and tested (tasks.md marked `[x]`). Full agent suite green (33/33). Not committed, not pushed (per instructions). ~326 changed lines is within this batch's 600-line session review budget — no exception needed. Ready for `sdd-verify` on slice 6, or `sdd-apply` again to continue with slice 7 (dashboard routing skeleton — no dependency on slice 6, but next in tasks.md's numbering).
+
+## Slice 7 — Web routing skeleton + auth guard (PR 10, depends on: —)
+
+**Status**: done (tasks 7.1-7.7 complete). Branch `feat/phase2-07-web-routing`, stacked on `feat/phase2-06-agent-upload`.
+
+### Completed Tasks
+- [x] 7.1 (RED) Added `apps/web/src/app/core/auth/auth.guard.spec.ts`: an unauthenticated navigation to a guarded route calls `login(state.url)` and never activates the outlet. Ran RED first — temporarily stubbed the guard to `return true` after `await auth.ready()`, confirmed the "redirects to sign-in" case failed while the "session active" case still passed, then restored the real check (GREEN). Full command/output in Work Unit Evidence below.
+- [x] 7.2 Defined all ten routes in `apps/web/src/app/app.routes.ts`: `''`/`about`/`callback` public; `pair`/`connect`/`devices`/`designs`/`designs/:id`/`jobs` behind `authGuard`; `**` → `''`. Every route uses `loadComponent`.
+- [x] 7.3 Implemented `core/auth/auth.service.ts`: wraps `UserManager` (oidc-client-ts), loads `/api/config` once in `init()`, signals `user`/`token` (computed from `user()?.access_token`), `ready()` returns the init promise. `login(returnUrl)` stores the URL in `sessionStorage` then calls `signinRedirect`; `completeSignIn()` awaits readiness, runs `signinRedirectCallback`, sets `user`, and returns the stored return URL (default `/`). The bearer `request<T>()` helper moved to a new `core/api/api.service.ts` (kept AuthService focused on identity; ApiService depends on it for the token).
+- [x] 7.4 Implemented the functional `core/auth/auth.guard.ts` exactly per the design pseudocode: `await auth.ready(); return auth.user() ? true : (auth.login(state.url), false)`.
+- [x] 7.5 Implemented `layout/shell/{shell.ts,shell.html,shell.css}`: header (brand + sign-in/out), left rail nav (Devices, Designs, Jobs, Connect, About), `<router-outlet>`, footer. `App` is now a thin host (`<app-shell />`, no logic).
+- [x] 7.6 Added all nine page components under `pages/`. Home/about/connect/design-detail are stubs (design-detail placeholder text: "The 3D viewer arrives in the next slice."; connect shows the `device` query input bound via `withComponentInputBinding()`). Callback, pair, devices, jobs, and designs are working: callback completes sign-in and navigates to the stored return URL; pair posts to `/api/pairings/approve`; devices lists + revokes (ported from the old `app.ts`); jobs lists recent jobs (ported); designs lists `GET /api/designs` and keeps a minimal "create a FreeCAD box" form (device+CAD dropdown sourced from `/api/devices`, dimensions, confirm checkbox → `POST /api/jobs`) because README's "Try the first operation" section still documents that dashboard flow.
+- [x] 7.7 Added `apps/web/src/app/app.routes.spec.ts`: spies on the `designs` route's `loadComponent` function, asserts it is not called merely by importing/configuring the route table, and is called exactly once after `navigateByUrl('/designs')`.
+
+### Files Changed
+| File | Action | What Was Done |
+|------|--------|---------------|
+| `apps/web/src/app/core/auth/auth.service.ts` | Created | `UserManager` wrapper, `user`/`token` signals, `ready()`/`login()`/`completeSignIn()`/`logout()`. |
+| `apps/web/src/app/core/auth/auth.guard.ts` | Created | Functional `CanActivateFn` per design pseudocode. |
+| `apps/web/src/app/core/auth/auth.guard.spec.ts` | Created | RED-first unauthenticated-redirect test + a passing-session control test. |
+| `apps/web/src/app/core/api/api.service.ts` | Created | Shared bearer `request<T>()` JSON client, moved out of the old `app.ts`. |
+| `apps/web/src/app/app.routes.ts` | Rewrote (was empty) | All 10 routes, guards, lazy `loadComponent`. |
+| `apps/web/src/app/app.routes.spec.ts` | Created | Lazy-loading spy test (7.7). |
+| `apps/web/src/app/app.config.ts` | Modified | Added `withComponentInputBinding()` to `provideRouter`. |
+| `apps/web/src/app/app.ts` | Rewrote | Thin host rendering `<app-shell />`; all phase-1 dashboard logic removed (now lives in `pages/*`). |
+| `apps/web/src/app/app.html`, `app.css` | Deleted | Superseded by `layout/shell/*` and `pages/*`. |
+| `apps/web/src/app/app.spec.ts` | Rewrote | Now asserts the shell (header + primary nav + router outlet) renders, instead of the old phase-1 device/job signals. |
+| `apps/web/src/app/layout/shell/{shell.ts,shell.html,shell.css}` | Created | Header, left rail nav (Devices/Designs/Jobs/Connect/About), footer, `<router-outlet>`. |
+| `apps/web/src/app/pages/home/*` | Created | Public stub: hero copy + sign-in or "go to devices" CTA. |
+| `apps/web/src/app/pages/about/*` | Created | Public stub: compatibility/security blurb. |
+| `apps/web/src/app/pages/callback/{callback.ts,callback.spec.ts}` | Created | Completes sign-in, navigates to the stored return URL; test mocks `AuthService.completeSignIn`. |
+| `apps/web/src/app/pages/pair/{pair.ts,pair.html}` | Created | Working pairing-code approval form (ported from the old `app.ts`). |
+| `apps/web/src/app/pages/connect/{connect.ts,connect.html}` | Created | Guarded stub; `device` query-bound input. |
+| `apps/web/src/app/pages/devices/{devices.ts,devices.html}` | Created | Working device list + revoke (ported). |
+| `apps/web/src/app/pages/designs/{designs.ts,designs.html}` | Created | `GET /api/designs` list + minimal create-box form (ported/adapted; see README note above). |
+| `apps/web/src/app/pages/design-detail/{design-detail.ts,design-detail.html}` | Created | Guarded stub; `:id` route-bound input; "viewer arrives in the next slice" placeholder. |
+| `apps/web/src/app/pages/jobs/{jobs.ts,jobs.html}` | Created | Working recent-jobs list (ported). |
+| `apps/web/src/styles.css` | Modified | Promoted shared component classes (`button`, `.quiet`, `.danger`, `.panel`, `.message`, `.status`, `.section-title`, `.device-heading`, `.cad`, `.job`, `.dimensions`, `.check`, `.empty`, focus-visible via existing `outline-offset`) from the old `app.css` so every page can reuse them without duplication. |
+
+### Deviations from Design
+- **Bearer `request<T>()` moved to a new `core/api/api.service.ts` rather than staying on `AuthService`.** The task brief offered both options ("or stays on AuthService — pick one"); a separate `ApiService` avoids a circular-dependency shape (pages depending on auth-plus-http) and matches the file layout design.md already names for slice 10 (`core/api/{api-client,models}.ts`) — this slice's `api.service.ts` is the seam slice 10 will extend with typed DTOs, not a throwaway.
+- **`designs` page keeps a functional "create a box" form**, per the task brief's explicit fallback ("if it still references the dashboard form, keep a minimal form on the designs page"): README's "Try the first operation" section (checked, unchanged since slice 5) still walks through the dashboard box-creation flow, so dropping it would break documented behavior. The form is simplified from the phase-1 version — a single device+CAD `<select>` instead of per-device-card "Select" buttons — since the card-based selection UX depended on devices and the job form sharing one page, which the new routed layout no longer does.
+- **`devices` page drops the "Select this CAD" button** that used to scroll to the create-box panel, since devices and designs are now separate routes; the devices page is list+revoke only, matching task 7.6's "sufficient to compile and navigate" stub bar for what isn't explicitly "working" in the task brief. No functionality is lost — the designs page's own device dropdown reaches the same devices.
+- **No `core/state/workspace.store.ts`** in this slice — task 10.1 owns that; devices/designs/jobs pages call `ApiService.request()` directly for now, consistent with "full content lands in slices 8–11."
+- **`app.css`/`app.html` deleted rather than trimmed**, per design's own File Changes table (`apps/web/src/app/**` | Rewrite | "app.html/app.ts shrink to shell + outlet"). Their content did not disappear: the styling moved to `styles.css` (shared classes) and `layout/shell/shell.css` (shell-only layout); the markup moved into `pages/*` templates.
+
+### Issues Found
+None. `npm run build` succeeds with 9 lazy chunks (one per route); all web tests pass (5/5 across 4 spec files); the full API suite is unchanged and green (49/49).
+
+### Remaining Tasks
+- [ ] 2c.5 (residual, unchanged) — apply the three commented-out optional-variable lines to `.env.example` once edit authority is granted.
+- [ ] 4b.7 — optional `label` parameter; still deprioritized, unchanged.
+- [ ] 8.1 onward through 15.1-15.2 (Slices 8-15, PRs 11-19; see tasks.md Dependency Graph)
+
+### Workload / PR Boundary
+- Mode: stacked-to-main chained PR slice, branch `feat/phase2-07-web-routing` stacked on `feat/phase2-06-agent-upload`.
+- Current work unit: Slice 7 — Web routing skeleton + auth guard.
+- Boundary: starts at the phase-1 single-component dashboard (`app.ts`/`app.html`/`app.css`, empty `app.routes.ts`); ends with the full routed shell (auth guard, lazy routes, shell layout, 9 page stubs/working pages) in place, no `three.js`/viewer code (slice 8), no `WorkspaceStore` (slice 10), no `frontend-design` pass (slice 9). No `apps/api/**` or `agent/**` changes.
+- Estimated review budget impact: **1,068 insertions + 673 deletions = 1,741 changed lines** (`git diff --numstat` under `apps/web/`), well above this batch's 600-line session review budget. See "Review budget note" below — **`size:exception` recommended**, matching the accepted precedent from slices 2b (495), 3a (580), and 4b (711) in this same change.
+- Rollback boundary: restore `apps/web/src/app/app.ts`/`app.html`/`app.css` from git history and delete `core/`, `layout/`, `pages/`, `app.routes.spec.ts`; revert `app.routes.ts` to empty, `app.config.ts`'s `withComponentInputBinding()`, and the `styles.css` additions. Slices 1-6 (all `apps/api/**` and `agent/**`) are completely untouched.
+
+### Review budget note
+This slice's real diff (1,741 changed lines) is roughly 3x the raised 600-line session budget and well past the task brief's own ~260-line estimate. The overage is structural, not scope creep: design.md's File Changes table explicitly calls this a **Rewrite** of `apps/web/src/app/**`, and the phase-1 app was one 168-line component + one 175-line template + one 328-line stylesheet, all of which had to be deleted (in `git diff`, a full-file rewrite counts as delete-old + add-new, not a small diff) to split into a routed shell, an auth layer, and 9 page components — the exact shape design.md's "Web Architecture" section specifies. A split was considered and rejected: the acceptance criterion for this slice is one behavior (`/designs/:id` redirects unauthenticated; `/designs` loads lazily), which only holds once routing, the guard, the shell, and enough real pages exist to navigate between — splitting the file moves without splitting that behavior would not reduce a reviewer's actual verification burden, only the diff's cosmetic line count. No comments, tests, or code were compressed or removed to chase the budget number, per the apply skill's explicit instruction not to do that.
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command and exact result | `npm test -w web -- --watch=false` → `Test Files 4 passed (4)`, `Tests 5 passed (5)` (`app.spec.ts`, `app.routes.spec.ts`, `core/auth/auth.guard.spec.ts` [2 tests], `pages/callback/callback.spec.ts`). RED evidence for 7.1: with the guard temporarily stubbed to `return true` (skipping the `auth.user()` check), the same command reported `1 failed` — `redirects to sign-in before rendering when no session is active` — while `lets the navigation through when a session is active` still passed; restoring the real guard body made both pass (GREEN). |
+| Runtime harness command/scenario and exact result | `npm run build` (root, runs both workspaces) → API `tsc` succeeds; Angular `ng build` succeeds, `Application bundle generation complete`, 9 named lazy chunks (`designs`, `devices`, `pair`, `jobs`, `home`, `connect`, `about`, `design-detail`, `callback`) confirming route-level code splitting, not just unit-level route-table assertions. `npm test` (root) also reruns the full API suite: `tests 49`, `pass 49`, `fail 0` — unaffected by this web-only slice. |
+| Rollback boundary | See "Workload / PR Boundary" above. |
+
+### Status
+7/7 slice-7 tasks (7.1-7.7) complete and tested (tasks.md marked `[x]`). `npm run build` and `npm test` both green (web 5/5, api 49/49, unchanged). Not committed, not pushed (per instructions). **1,741 changed lines exceeds the 600-line session review budget — `size:exception` requested**, consistent with this change's established precedent (2b/3a/4b). Ready for `sdd-verify` on slice 7 pending that exception decision, or `sdd-apply` again to continue with slice 8 (STL viewer on `/designs/:id`, depends on slice 7 + 5, both now done).
