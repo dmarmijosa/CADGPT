@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 
 /** App shell: header, persistent left rail nav, `<router-outlet>`, footer. */
@@ -11,6 +11,11 @@ import { AuthService } from '../../core/auth/auth.service';
 })
 export class Shell {
   readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+
+  signIn(): void {
+    this.auth.login(this.router.url);
+  }
 
   signOut(): void {
     void this.auth.logout();

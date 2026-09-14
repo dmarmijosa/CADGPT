@@ -1,9 +1,69 @@
+<section class="page-head">
+  <h1>About CADGPT</h1>
+  <p>Project status, compatibility, and where security and limitations live.</p>
+</section>
+
 <section class="panel">
-  <p class="eyebrow">BUILT WITH BOUNDARIES</p>
-  <h1>Your files stay on your computer.</h1>
+  <h2>Status</h2>
   <p>
-    CADGPT pairs a computer you control with an MCP-connected AI client. Native CAD files never
-    leave that computer; only a generated STL preview mesh is uploaded for the dashboard viewer.
+    CADGPT is an <strong>experimental alpha</strong>, not a hosted service. Installers are unsigned
+    and macOS builds are not notarized; you deploy and operate your own backend.
   </p>
-  <a href="https://github.com/dmarmijosa/CADGPT#compatibility">See compatibility ↗</a>
+</section>
+
+<section class="panel">
+  <h2>Compatibility</h2>
+  <table class="data">
+    <thead>
+      <tr>
+        <th>CAD / platform</th>
+        <th>Alpha behavior</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>FreeCAD, working <code>FreeCADCmd</code> / <code>freecadcmd</code></td>
+        <td>
+          Headless create, modify, read, and export; an STL preview mesh uploads for the dashboard.
+        </td>
+      </tr>
+      <tr>
+        <td>FreeCAD GUI-only, AppImage, Flatpak or Snap</td>
+        <td>May need a manual path or a separate command-line install.</td>
+      </tr>
+      <tr>
+        <td>AutoCAD / AutoCAD LT</td>
+        <td>Installation discovery only — no execution adapter shipped.</td>
+      </tr>
+      <tr>
+        <td>AutoCAD on Linux</td>
+        <td>Not a supported target.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <h2>Security and limitations</h2>
+  <ul class="security-list">
+    <li>Identity comes from a validated OIDC token; a request cannot choose its own owner.</li>
+    <li>
+      Device pairing codes are one-use and expire in
+      <span class="tabular-nums">10</span> minutes.
+    </li>
+    <li>
+      Revoking a device blocks new requests and cancels queued jobs, but cannot stop one already
+      running locally.
+    </li>
+    <li>
+      Native CAD files stay on the linked computer. The STL preview mesh is the exception: capped at
+      <span class="tabular-nums">25</span> MiB per file, with a
+      <span class="tabular-nums">500</span> MiB per-device quota.
+    </li>
+    <li>The store supports one backend instance; this alpha is not built to scale horizontally.</li>
+  </ul>
+  <p>
+    <a [href]="readmeUrl">Read the full README ↗</a> or <a [href]="securityUrl">SECURITY.md ↗</a> on
+    GitHub.
+  </p>
 </section>

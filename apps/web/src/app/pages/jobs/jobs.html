@@ -1,6 +1,6 @@
 <section class="section-title">
   <div>
-    <p class="eyebrow">RECENT JOBS</p>
+    <p class="eyebrow">Recent jobs</p>
     <h1>Jobs</h1>
   </div>
   <button class="quiet" type="button" (click)="refresh()" [disabled]="busy()">↻ Refresh</button>
@@ -12,7 +12,14 @@
   @for (job of jobs(); track job.id) {
     <div class="job">
       <code>{{ job.id }}</code>
-      <strong>{{ job.status }}</strong>
+      <span
+        class="status"
+        [class.queued]="job.status === 'queued'"
+        [class.running]="job.status === 'running'"
+        [class.succeeded]="job.status === 'succeeded'"
+        [class.failed]="job.status === 'failed'"
+        >{{ job.status }}</span
+      >
       @if (job.result) {
         <p>{{ job.result }}</p>
       }
