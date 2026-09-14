@@ -127,8 +127,10 @@ http.post(
 http.post(
   '/api/agent/results/:id',
   wrap((q, r) => {
+    // 16000 accommodates the JSON-wrapped `{ message, scene }` contract
+    // (scene capped at ~12 kB) while staying inside the 32 kb JSON body cap.
     const b = z
-      .object({ ok: z.boolean(), result: z.string().max(4000) })
+      .object({ ok: z.boolean(), result: z.string().max(16000) })
       .strict()
       .parse(q.body);
     r.json(store.complete(token(q), z.uuid().parse(q.params.id), b.result, b.ok));

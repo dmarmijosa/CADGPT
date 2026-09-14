@@ -208,6 +208,49 @@ def _read_scene(data, doc_dir):
     return _open_document(doc_dir)
 
 
+def _top_level_objects(document):
+    """Objects with an empty `InList`: not consumed by another feature."""
+    return [obj for obj in document.Objects if not obj.InList]
+
+
+def _export_stl(document, path):
+    import MeshPart
+    top_level = _top_level_objects(document)
+    if len(top_level) == 1:
+        shape = top_level[0].Shape
+    else:
+        import Part
+        shape = Part.makeCompound([obj.Shape for obj in top_level])
+    mesh = MeshPart.meshFromShape(Shape=shape, LinearDeflection=0.1, AngularDeflection=0.26, Relative=False)
+    mesh.write(str(path))
+
+
+_EXPORT_FORMATS = ("step", "stl", "dxf")
+
+
+def _export_design(data, doc_dir):
+    # Validated before any FreeCAD import, per the general worker contract:
+    # malformed input must never reach a single FreeCAD call.
+    fmt = data.get("format")
+    if fmt not in _EXPORT_FORMATS:
+        raise ValueError("format must be one of step, stl, dxf")
+    document = _open_document(doc_dir)
+    top_level = _top_level_objects(document)
+    export_path = Path(doc_dir) / f"export.{fmt}"
+    if fmt == "step":
+        import Part
+        Part.export(top_level, str(export_path))
+    elif fmt == "stl":
+        _export_stl(document, export_path)
+    else:
+        try:
+            import importDXF
+            importDXF.export(top_level, str(export_path))
+        except Exception as exc:
+            raise ValueError("dxf export unavailable in this FreeCAD installation") from exc
+    return document
+
+
 OPS = {
     "create_box": _create_box,
     "create_cylinder": _create_cylinder,
@@ -221,27 +264,11 @@ OPS = {
     "rotate_object": _rotate_object,
     "scale_object": _scale_object,
     "read_scene": _read_scene,
+    "export_design": _export_design,
 }
 
-# Every op except the read-only one persists a mutation back to disk.
-MUTATING_OPS = set(OPS) - {"read_scene"}
-
-
-def _top_level_objects(document):
-    """Objects with an empty `InList`: not consumed by another feature."""
-    return [obj for obj in document.Objects if not obj.InList]
-
-
-def _export_stl(document, job_dir):
-    import MeshPart
-    top_level = _top_level_objects(document)
-    if len(top_level) == 1:
-        shape = top_level[0].Shape
-    else:
-        import Part
-        shape = Part.makeCompound([obj.Shape for obj in top_level])
-    mesh = MeshPart.meshFromShape(Shape=shape, LinearDeflection=0.1, AngularDeflection=0.26, Relative=False)
-    mesh.write(str(Path(job_dir) / "preview.stl"))
+# Every op except the two read-only/non-mutating ones persists a change to disk.
+MUTATING_OPS = set(OPS) - {"read_scene", "export_design"}
 
 
 def _write_scene(document, job_dir):
@@ -271,7 +298,7 @@ def run(job_dir, doc_dir, data):
             document.saveAs(str(_document_path(doc_dir)))
     if op == "read_scene":
         _write_scene(document, job_dir)
-    _export_stl(document, job_dir)
+    _export_stl(document, Path(job_dir) / "preview.stl")
     import FreeCAD
     FreeCAD.closeDocument(document.Name)
 

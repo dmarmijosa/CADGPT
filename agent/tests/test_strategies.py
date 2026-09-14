@@ -1,4 +1,5 @@
 import io
+import json
 import tempfile
 import time
 import unittest
@@ -119,6 +120,57 @@ class CallerControlledPathTests(unittest.TestCase):
             expected_doc_dir = Path(d) / "documents" / document_id
             self.assertEqual(env["CADGPT_DOC_DIR"], str(expected_doc_dir.resolve()))
             self.assertTrue(expected_doc_dir.is_dir())
+
+
+class ExecutorSceneResultShapeTests(unittest.TestCase):
+    """4b.6/4b.8: when `scene.json` exists, the executor posts `result` as a
+    JSON string `{message, scene}`, capping `scene` at ≤12 kB independently
+    of the worker (defense in depth, mirroring `apps/api/src/tools.ts`)."""
+
+    def job(self, **overrides):
+        base = dict(id=str(uuid.uuid4()), expires=time.time() * 1000 + 60000, cadId="cad",
+                    type="read_scene", documentId=str(uuid.uuid4()), confirmed=True)
+        base.update(overrides)
+        return base
+
+    def cads(self):
+        return [dict(id="cad", name="FreeCAD", path="/trusted/FreeCADCmd", executable=True)]
+
+    def run_with_scene(self, scene):
+        job = self.job()
+        with tempfile.TemporaryDirectory() as d:
+            with patch("cadgpt_agent.executor.subprocess.Popen") as popen:
+                process = popen.return_value
+                process.stdout = io.BytesIO(b"done")
+
+                def finish(timeout):
+                    # `execute()` already created doc_dir (exist_ok=True) before Popen.
+                    doc_dir = Path(d) / "documents" / job["documentId"]
+                    (doc_dir / "design.FCStd").write_bytes(b"test")
+                    (Path(d) / job["id"] / "scene.json").write_text(json.dumps(scene), encoding="utf-8")
+                    return 0
+
+                process.wait.side_effect = finish
+                return json.loads(execute(job, self.cads(), d))
+
+    def test_oversized_scene_is_capped_and_marked_truncated_small_scene_is_not(self):
+        big_scene = [
+            {"name": f"Obj{i}", "label": f"Obj{i}", "type": "Part::Feature",
+             "bbox": [0, 0, 0, 10, 10, 10], "volume": 1000.0}
+            for i in range(400)
+        ]
+        big = self.run_with_scene(big_scene)
+        self.assertIn("message", big)
+        self.assertLess(len(json.dumps(big["scene"]).encode("utf-8")), 12100)
+        self.assertLess(len(big["scene"]), len(big_scene))
+        self.assertTrue(big["truncated"])
+
+        small_scene = [{"name": "Box", "label": "Box", "type": "Part::Feature",
+                         "bbox": [0, 0, 0, 10, 10, 10], "volume": 1000.0}]
+        small = self.run_with_scene(small_scene)
+        self.assertEqual(small["scene"], small_scene)
+        self.assertNotIn("truncated", small)
+
 
 if __name__ == "__main__":
     unittest.main()

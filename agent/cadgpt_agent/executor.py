@@ -13,6 +13,22 @@ from .strategies.freecad import FreeCadStrategy
 # Keyed by cad["name"]; extended with an AutoCAD strategy in a later slice.
 STRATEGIES = {"FreeCAD": FreeCadStrategy()}
 
+# Mirrors the server-side re-enforcement in `apps/api/src/tools.ts`.
+SCENE_CAP_BYTES = 12_000
+
+def _cap_scene(scene):
+    """Drop trailing scene entries once the JSON-encoded prefix would exceed
+    the ≤12 kB contract (design "MCP Tool Catalog")."""
+    kept = []
+    size = 2  # "[]"
+    for entry in scene:
+        chunk_size = len(json.dumps(entry).encode("utf-8")) + 1
+        if size + chunk_size > SCENE_CAP_BYTES:
+            break
+        size += chunk_size
+        kept.append(entry)
+    return kept, len(kept) < len(scene)
+
 def validate(job):
     if str(uuid.UUID(job["id"])) != job["id"]:
         raise ValueError("Invalid job identifier")
@@ -69,7 +85,7 @@ def execute(job, cads, root):
     # request.json carries the op discriminator plus every non-envelope job
     # field as-is; the worker re-validates each value before touching FreeCAD.
     # No path ever crosses this boundary: only the UUID document_id does.
-    envelope_keys = {"id", "cadId", "expires", "confirmed", "type", "documentId"}
+    envelope_keys = {"id", "cadId", "expires", "confirmed", "type", "documentId", "deviceId"}
     params = {k: v for k, v in job.items() if k not in envelope_keys}
     request.write_text(json.dumps({"op": op, "document_id": job.get("documentId"), **params}), encoding="utf-8")
     base_env = {k: v for k, v in os.environ.items() if k not in ("PYTHONHOME", "PYTHONPATH", "LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH")}
@@ -105,4 +121,17 @@ def execute(job, cads, root):
     output = artifacts["native"]
     if code != 0 or not output.is_file():
         raise RuntimeError("FreeCAD failed to create the document. Check local installation compatibility.")
+    scene_path = artifacts.get("scene")
+    if scene_path is not None and scene_path.is_file():
+        scene, truncated = _cap_scene(json.loads(scene_path.read_text(encoding="utf-8")))
+        payload = {"message": "Read scene from " + str(output) + ".", "scene": scene}
+        if truncated:
+            payload["truncated"] = True
+        return json.dumps(payload)
+    if op == "export_design":
+        export_path = (doc_dir or directory) / ("export." + str(job.get("format")))
+        if not export_path.is_file():
+            raise RuntimeError("FreeCAD failed to export the design.")
+        size = export_path.stat().st_size
+        return "Exported " + export_path.name + " (" + str(size) + " bytes). CAD files remain on this device."
     return "Created " + str(output) + ". CAD files remain on this device."

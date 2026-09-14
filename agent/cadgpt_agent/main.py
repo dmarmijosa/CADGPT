@@ -131,8 +131,9 @@ def main():
                     ok = True
                 except Exception as exc:
                     result, ok = str(exc)[:4000], False
-                # Never replay a CAD operation if reporting fails.
-                request(server, "/api/agent/results/" + state["job"]["id"], {"ok": ok, "result": result[:4000]}, credential)
+                # 16000 matches the server's `/api/agent/results/:id` cap and
+                # must not cut a JSON-wrapped `{message, scene}` payload in half.
+                request(server, "/api/agent/results/" + state["job"]["id"], {"ok": ok, "result": result[:16000]}, credential)
         except urllib.error.HTTPError as exc:
             if exc.code in (401, 403):
                 raise RuntimeError("Device access revoked or invalid. Stop and re-pair explicitly.") from exc

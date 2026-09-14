@@ -93,6 +93,14 @@ class FreecadWorkerValidationTests(unittest.TestCase):
                 freecad_worker.OPS["extrude_rect"](
                     {"width": 10, "height": 10, "depth": 10, "plane": value}, Path("/unused"))
 
+    def test_export_design_rejects_unknown_format_before_any_freecad_import(self):
+        """4b.6/4b.7: `format` must be validated before `_open_document()` is
+        called; FreeCAD/Part are not stubbed here, so a premature import
+        would raise `ModuleNotFoundError` instead of `ValueError`."""
+        for value in ("obj", "STL", "", None, 42):
+            with self.assertRaises(ValueError):
+                freecad_worker.OPS["export_design"]({"format": value}, Path("/unused"))
+
 
 class _FakeVector:
     """The only fake needing a real class: `Placement.Base + Vector(...)`."""
@@ -202,6 +210,17 @@ class _FakeMeshPart:
         return SimpleNamespace(write=lambda path: Path(path).write_bytes(payload))
 
 
+class _FakeImportDXF:
+    """Fakes FreeCAD's `importDXF` module (only its `.export` entry point)."""
+
+    def __init__(self):
+        self.calls = []
+
+    def export(self, objs, path):
+        self.calls.append((objs, path))
+        Path(path).write_text("DXF", encoding="utf-8")
+
+
 class FreecadWorkerOpsTests(unittest.TestCase):
     """2b.9: one test per op class (create/modify+boolean/transform/read_scene)
     plus an STL byte-shape assertion. FreeCAD/Part/MeshPart are stubbed via
@@ -210,12 +229,14 @@ class FreecadWorkerOpsTests(unittest.TestCase):
     def setUp(self):
         self.fake_freecad = _FakeFreeCAD()
         self.fake_part = _FakePart()
+        self.fake_dxf = _FakeImportDXF()
         sys.modules["FreeCAD"] = self.fake_freecad
         sys.modules["Part"] = self.fake_part
         sys.modules["MeshPart"] = _FakeMeshPart()
+        sys.modules["importDXF"] = self.fake_dxf
 
     def tearDown(self):
-        for name in ("FreeCAD", "Part", "MeshPart"):
+        for name in ("FreeCAD", "Part", "MeshPart", "importDXF"):
             sys.modules.pop(name, None)
 
     def test_create_box_creates_new_document_saves_and_exports_stl(self):
@@ -290,6 +311,30 @@ class FreecadWorkerOpsTests(unittest.TestCase):
             self.assertEqual(scene[0]["name"], "Box")
             self.assertIn("bbox", scene[0])
             self.assertIn("volume", scene[0])
+
+    def test_export_design_happy_path_per_format_does_not_save_the_document(self):
+        """4b.7/4b.8: one export per allowlisted format, asserting each format's
+        own artifact/call while confirming `export_design` never mutates the
+        reopened document (`document.save_calls == 0`, no `saveAs`)."""
+        for fmt in ("step", "stl", "dxf"):
+            with tempfile.TemporaryDirectory() as d:
+                doc_dir = Path(d)
+                freecad_worker.run(doc_dir, doc_dir, {
+                    "op": "export_design", "document_id": "existing", "format": fmt,
+                })
+                document = self.fake_freecad.last_document
+                self.assertEqual(document.save_calls, 0)
+                self.assertIsNone(document.saveas_path)
+                if fmt == "step":
+                    objs, path = self.fake_part.calls["export"]
+                    self.assertEqual(list(objs), document.Objects)
+                    self.assertEqual(path, str(doc_dir / "export.step"))
+                elif fmt == "stl":
+                    exported = doc_dir / "export.stl"
+                    self.assertTrue(exported.is_file())
+                    self.assertEqual(exported.stat().st_size, 84 + 50 * _FakeMeshPart.FACETS)
+                else:
+                    self.assertEqual(self.fake_dxf.calls[-1][1], str(doc_dir / "export.dxf"))
 
 
 if __name__ == "__main__":
