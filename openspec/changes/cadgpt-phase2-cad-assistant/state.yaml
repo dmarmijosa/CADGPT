@@ -13,11 +13,11 @@ phases:
   spec: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/spec", obs: 131 }
   design: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/design", obs: 133 }
   tasks: { status: done, ref: "sdd/cadgpt-phase2-cad-assistant/tasks", obs: 134 }
-  apply: { status: in_progress, ref: "sdd/cadgpt-phase2-cad-assistant/apply-progress", slice: "9/20", tasks_done: "1.1-1.6, 2a.1-2a.6, 2b.1-2b.9, 2c.1-2c.5, 3a.1-3a.7, 3b.1-3b.4, 4a.1-4a.5, 4b.1-4b.6 (4b.7 deprioritized/not done), 5.1-5.7 (incl. the second 5.7 README follow-up from slice 2b)", size_exception: "2b: 495 lines, accepted by the user (2026-09-14). 3a: 580 lines, covered by the budget raise to 600 (2026-09-14). 4b: 711 lines, accepted by the user (2026-09-14). 2c/3b/4a/5 within budget." }
+  apply: { status: in_progress, ref: "sdd/cadgpt-phase2-cad-assistant/apply-progress", slice: "10/20", tasks_done: "1.1-1.6, 2a.1-2a.6, 2b.1-2b.9, 2c.1-2c.5, 3a.1-3a.7, 3b.1-3b.4, 4a.1-4a.5, 4b.1-4b.6 (4b.7 deprioritized/not done), 5.1-5.7 (incl. the second 5.7 README follow-up from slice 2b), 6.1-6.4", size_exception: "2b: 495 lines, accepted by the user (2026-09-14). 3a: 580 lines, covered by the budget raise to 600 (2026-09-14). 4b: 711 lines, accepted by the user (2026-09-14). 2c/3b/4a/5/6 within budget." }
   verify: { status: pending }
   archive: { status: pending }
 next_recommended: [sdd-apply]
-delivery_forecast: 20 chained PRs stacked to main; ~4,250 total changed lines; budget 600/slice since 2026-09-14; exceptions recorded above. Slices 1-5 delivered as PRs #1-#9 (pending #9 for slice 5).
+delivery_forecast: 20 chained PRs stacked to main; ~4,250 total changed lines; budget 600/slice since 2026-09-14; exceptions recorded above. Slices 1-6 implemented on branches for PRs #1-#9 (branch `feat/phase2-06-agent-upload` for slice 6/PR 9; none pushed/opened yet, per instructions).
 open_items_for_design:
   - Autodesk EULA on unattended Core Console automation
   - Angular 22 zoneless/SSR + three.js guard pattern

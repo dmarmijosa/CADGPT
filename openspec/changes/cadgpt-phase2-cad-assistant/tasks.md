@@ -178,10 +178,10 @@ Acceptance: every malformed/oversize/mismatched/foreign-device/non-running-job u
 
 ## Slice 6 — Agent upload step after export (PR 9, depends on: 2b, 5)
 
-- [ ] 6.1 (RED) Add `agent/tests/test_upload.py` with mocked `urlopen` (no redirect) asserting the upload call shape (device credential header, `X-Mesh-Sha256`, streamed body) before wiring it into `main.py`.
-- [ ] 6.2 In `agent/cadgpt_agent/main.py`, after a successful export, `POST` the produced STL to `/api/agent/jobs/:id/mesh` with the device credential and a streaming sha256 header.
-- [ ] 6.3 On upload failure, still report the job result as `ok=True` with a "preview unavailable" note — the design exists locally regardless of upload outcome.
-- [ ] 6.4 Extend `agent/tests/test_upload.py`: success path, upload-failure-tolerant path (job still reports `ok=True`).
+- [x] 6.1 (RED) Add `agent/tests/test_upload.py` with mocked `urlopen` (no redirect) asserting the upload call shape (device credential header, `X-Mesh-Sha256`, streamed body) before wiring it into `main.py`.
+- [x] 6.2 In `agent/cadgpt_agent/main.py`, after a successful export, `POST` the produced STL to `/api/agent/jobs/:id/mesh` with the device credential and a streaming sha256 header.
+- [x] 6.3 On upload failure, still report the job result as `ok=True` with a "preview unavailable" note — the design exists locally regardless of upload outcome.
+- [x] 6.4 Extend `agent/tests/test_upload.py`: success path, upload-failure-tolerant path (job still reports `ok=True`).
 
 Acceptance: a failed mesh upload never flips a successful CAD job to a failed status. ~110 changed lines.
 
