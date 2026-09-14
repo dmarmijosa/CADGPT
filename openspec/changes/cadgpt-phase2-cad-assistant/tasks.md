@@ -258,15 +258,24 @@ Acceptance: discovery never executes an untrusted binary to probe capability (ve
 
 Acceptance: without `--enable-autocad`, no AutoCAD job can be dispatched; with it, argv is exactly the fixed 6-token form for every create op (verified by 13a.1/13a.8). ~320 changed lines (near budget — do not add scope here).
 
-## Slice 13b — AutoCAD modify/read ops + API capability gating (PR 17, depends on: 13a)
+## Slice 13b — AutoCAD API capability gating (create-only) (PR 17, depends on: 13a)
 
-- [ ] 13b.1 (RED) Add a test asserting the API rejects any op outside `AUTOCAD_OPS` for an AutoCAD-targeted document, before the gate exists.
-- [ ] 13b.2 Add modify-op `.lsp` functions (boolean/transform equivalents applicable to AutoCAD) and matching `.scr` templates in `agent/cadgpt_agent/autocad/templates/`, saving via `_.SAVEAS 2018 "<doc_dir>/design.dwg" _.QUIT`.
-- [ ] 13b.3 Add read-op support only for ops present in `AUTOCAD_OPS`; enforce the DWG-artifact-required postcondition (spec autocad-execution-adapter "DWG Artifact Required").
-- [ ] 13b.4 Update `Store.enqueue()` in `apps/api/src/store.ts` so `cad.capabilities.ops` restricts which tools are reachable per CAD kind, closing the API-side half of D11 (satisfies 13b.1).
-- [ ] 13b.5 Tests: every successful AutoCAD job produces a downloadable DWG (spec "Job succeeds with DWG only"); confirm 13b.1 passes against the implemented gate.
+Re-scoped 2026-09-14 after a live spike: AutoCAD object addressing for modify ops
+needs handles from `read_scene`, and `read_scene` is not robust without ActiveX
+(`vlax-ename->vla-object` returns nil in Core Console; volume/bbox only via
+locale-dependent MASSPROP parsing). AutoCAD therefore ships as create + DWG +
+STL preview (slice 14); modify/read ops are deferred to a future phase with a
+dedicated non-vlax scene-readback design. The load-bearing API work still lands
+here so AutoCAD create jobs can be enqueued at all.
 
-Acceptance: an AutoCAD-targeted document rejects any op outside `AUTOCAD_OPS` at the API layer before a job is enqueued (13b.1/13b.5); every successful AutoCAD job has a downloadable DWG. ~260 changed lines.
+- [x] 13b.1 (RED) Add an API test asserting an AutoCAD-targeted document rejects any op outside its `capabilities.ops` before a job is enqueued, and accepts a create op that is in it.
+- [x] 13b.2 Accept and persist `capabilities` on the CAD entry: extend `cadSchema` in `apps/api/src/store.ts` with an optional `capabilities` object (`{execute?, edition?, console?, ops?, mesh?}`) and store/return it on the device's cad list so `enqueueOp` reads AutoCAD's real `ops`.
+- [x] 13b.3 Generalize `Store.enqueue()`'s hardcoded `name === 'FreeCAD' && executable` check to `executable` + a matching document `cadKind`, so AutoCAD create jobs enqueue; keep FreeCAD behavior identical. Generalize the same check in the `POST /api/jobs` create-box REST route if present.
+- [x] 13b.4 Enforce the DWG-artifact-required postcondition for AutoCAD create jobs (spec autocad-execution-adapter "Job succeeds with DWG only" / "DWG Artifact Required"): a successful AutoCAD job must leave a downloadable `design.dwg`.
+- [x] 13b.5 Tests: AutoCAD create op with `capabilities.ops` enqueues and produces a DWG; an op absent from `capabilities.ops` is rejected at the API before enqueue (confirms 13b.1); FreeCAD enqueue path unchanged.
+- [ ] 13b.6 (deferred, documented) AutoCAD modify (boolean/transform) and read_scene/export ops: record as a follow-up requiring a non-vlax per-solid scene readback (handle enumeration works; volume/bbox need a robust source). Do NOT implement here. **Deferral recorded 2026-09-14**: intentionally left unimplemented per the re-scope note above; `AUTOCAD_OPS`/`AutoCadStrategy._CREATE_OPS` stay at the 5 create ops, no boolean/transform/read/export AutoCAD code was added in this slice.
+
+Acceptance: AutoCAD create jobs enqueue and produce a downloadable DWG; any op not in the CAD's advertised `capabilities.ops` is rejected at the API before enqueue; FreeCAD is unaffected. ~260 changed lines.
 
 ## Slice 14 — Conditional: AutoCAD STL preview (PR 18, depends on: 13b, 6)
 

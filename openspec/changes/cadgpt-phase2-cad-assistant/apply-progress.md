@@ -576,3 +576,64 @@ None blocking. Two explicitly-flagged unverified mappings (CONE frustum prompt s
 
 ### Status
 8/8 slice-13a tasks complete (tasks.md 13a.1-13a.8 marked `[x]`). 568 authored lines within the 600-line session budget — no exception needed (tight; do not add scope). Not committed, not pushed. Two AutoLISP command-sequence assumptions (CONE frustum, trailing `_QUIT`) are explicitly flagged for live-host validation before slice 13b builds on them. Ready for `sdd-verify` on slice 13a.
+
+## Slice 13b — AutoCAD API capability gating, create-only (PR 17, depends on: 13a; branch `feat/phase2-13b-autocad-modify` stacked on `feat/phase2-13a-autocad-strategy`)
+
+**Re-scope (2026-09-14, authoritative, applied before this batch)**: a live spike showed AutoCAD object addressing for modify ops needs handles from `read_scene`, and `read_scene` is not robust without ActiveX (`vlax-ename->vla-object` returns nil in Core Console; volume/bbox only via locale-dependent MASSPROP parsing). AutoCAD therefore ships as create + DWG + STL preview (slice 14); modify/read ops are deferred to a future phase with a dedicated non-vlax scene-readback design. This slice does only the load-bearing API work so AutoCAD create jobs can be enqueued at all.
+
+**Status**: 5/6 tasks complete (13b.1-13b.5; 13b.6 intentionally left unchecked — deferred, documented, not implemented). 244 authored lines (additions+deletions: 23 `store.ts` + 69 `store.test.ts` + 110 `tools.test.ts` + 42 `test_agent.py`), well within the 600-line session budget. Not committed, not pushed.
+
+### Completed Tasks
+- [x] 13b.1 (RED) Added API tests in `apps/api/test/tools.test.ts` asserting an AutoCAD-targeted document accepts a create op present in `capabilities.ops` and rejects one absent from it (`boolean_cut`), before enqueue.
+- [x] 13b.2 `apps/api/src/store.ts`: added `cadCapabilitiesSchema` (`{execute?, edition?, console?, ops?, mesh?}`, all optional, plain `z.object()` so extra/future keys are tolerated) and an optional `capabilities` field on `cadSchema`. Both `begin()`'s and `heartbeat()`'s existing `z.array(cadSchema).parse(...)` calls now round-trip `capabilities` instead of silently stripping it (plain `z.object()` strips unrecognized keys by default — `capabilities` would have been dropped without this schema addition even though `tools.ts::enqueueOp` already read `cad.capabilities?.ops`).
+- [x] 13b.3 Generalized `Store.enqueue()`'s hardcoded `c.name === 'FreeCAD' && c.executable` check to `c.executable` only (any CAD kind), plus a new `documentId`-scoped check: when a `documentId` is passed, `getDocument(...).cadKind` must equal the selected cad's `name`, or a `DomainError(400, 'Document belongs to a different CAD kind.')` is thrown before the D17 lock/cap checks. The legacy `POST /api/jobs` create-box REST route (`boxSchema`, no `documentId`) shares this same generalized `enqueue()` code path, so no separate change was needed there — confirmed by reading `main.ts`: it calls `store.enqueue(owner, boxSchema.parse(q.body))` directly with no per-CAD-kind logic of its own.
+- [x] 13b.4 No code change needed: the postcondition was already enforced by 13a's `executor.execute()` (`output = artifacts["native"]; if code != 0 or not output.is_file(): raise RuntimeError(...)`), and `AutoCadStrategy.artifacts()` already sets `native = design_dir / "design.dwg"`. Added two executor-level tests in `agent/tests/test_agent.py` (mirroring the existing FreeCAD `test_subprocess_is_fixed_and_replay_refused` pattern) to prove it: a mocked `Popen` whose `wait()` side effect writes `design.dwg` yields `execute()` returning `"Created .../design.dwg. ..."`; a mocked `Popen` that exits 0 without ever writing `design.dwg` makes `execute()` raise `RuntimeError`.
+- [x] 13b.5 Tests added: (a) `tools.test.ts` — AutoCAD create op with `capabilities.ops` enqueues (confirms 13b.1's accept case); (b) `tools.test.ts` — `boolean_cut` against an AutoCAD document is rejected before enqueue with `store.jobs('alice').length` unchanged (confirms 13b.1's reject case); (c) `tools.test.ts` — FreeCAD (no `capabilities` field, falls back to `FREECAD_OPS`) still enqueues `boolean_cut` unchanged; (d) `store.test.ts` — `cadSchema` accepts `capabilities` and tolerates an unknown extra key without throwing; (e) `store.test.ts` — `Store.enqueue()` directly: an AutoCAD cad matching the document's `cadKind` enqueues, a FreeCAD cad targeting the same AutoCAD document is rejected with "different CAD kind"; (f) `test_agent.py` — the two DWG-postcondition tests from 13b.4.
+- [ ] 13b.6 **Deferred, documented, NOT implemented** (by design, per the re-scope note): `AUTOCAD_OPS` (agent `discovery.py`) and `AutoCadStrategy._CREATE_OPS` stay at the 5 create ops (`create_box`, `create_cylinder`, `create_sphere`, `create_cone`, `extrude_rect`). No boolean/transform/read_scene/export_design AutoCAD code was added anywhere in this slice. Follow-up requires a non-vlax per-solid scene-readback design (handle enumeration works via plain AutoLISP `entnext`/`entget`; volume/bbox need a robust non-ActiveX, non-locale-dependent source — MASSPROP text parsing is locale-dependent and was rejected in the live spike).
+
+### Files Changed
+| File | Action | What Was Done |
+|------|--------|---------------|
+| `apps/api/src/store.ts` | Modified | Added `cadCapabilitiesSchema` + optional `capabilities` on `cadSchema` (13b.2); generalized `Store.enqueue()`'s cad-kind gate from FreeCAD-only to executable+cadKind-matching (13b.3). 21 insertions, 2 deletions. |
+| `apps/api/test/store.test.ts` | Modified | Added `autocad` fixture with `capabilities`; two new tests (`cadSchema` capabilities tolerance, `Store.enqueue()` AutoCAD/cadKind-mismatch). 68 insertions, 1 deletion. |
+| `apps/api/test/tools.test.ts` | Modified | Added `autocad` fixture; three new tests (AutoCAD create-op accept, AutoCAD out-of-capability reject, FreeCAD-unaffected). 110 insertions. |
+| `agent/tests/test_agent.py` | Modified | Two new executor-level tests proving the AutoCAD DWG-artifact-required postcondition (success names `design.dwg`; missing `design.dwg` raises). 42 insertions. |
+
+### Deviations from Design
+None — D11's additive `capabilities` object and D10's `CadStrategy` seam (strategy only builds argv/artifacts; executor keeps the postcondition check) were both already correctly shaped by 13a/12; this slice only closed the one real gap (plain `z.object()` silently stripping `capabilities` before `enqueueOp` could ever see it) and generalized `Store.enqueue()`'s redundant device-side gate to match.
+
+### Issues Found
+- **Discovery (not a code deviation)**: `tools.ts::enqueueOp`'s per-op capability gate (`cad.capabilities?.ops ?? FREECAD_OPS`) and its `doc.cadKind !== cad.name` check already existed going into this slice (evidently added defensively alongside 13a even though tasks.md hadn't yet been re-scoped to name them). The actual missing piece was purely that `cadSchema` silently dropped `capabilities` before it ever reached that gate — confirmed by reading `heartbeat()`'s `z.array(cadSchema).max(30).parse(...)` call and Zod's default "strip unknown keys" behavior for plain `z.object()`.
+- boolean_cut/create_box in the MCP test harness both require `confirmed: true` on their own schemas (independent of the capability gate) and D17 only allows one active job per document — both were straightforward test-setup fixes, not application-code issues.
+
+### Remaining Tasks
+- [ ] 2c.5 (residual, unchanged from prior batches) — apply the three commented-out optional-variable lines to `.env.example` once edit authority is granted.
+- [ ] 4b.7 — optional `label` parameter, deprioritized (unchanged from prior batches).
+- [ ] 13b.6 — deferred by design (see above); requires a future dedicated non-vlax scene-readback design before AutoCAD modify/read ops can be implemented.
+- [ ] 14.0-14.4 (Slice 14 — conditional AutoCAD STL preview) — now unblocked by 13b; 14.0's spike result should be re-confirmed against `EXPORT`/`3DPRINT` from Core Console using 13a's real argv/script shape.
+
+### Workload / PR Boundary
+- Mode: stacked-to-main chained PR slice (per session `chain_strategy: stacked-to-main`), branch `feat/phase2-13b-autocad-modify` stacked on `feat/phase2-13a-autocad-strategy`.
+- Current work unit: Slice 13b — AutoCAD API capability gating (create-only).
+- Boundary: starts at the pre-slice-13b state (`cadSchema` with no `capabilities` field, `Store.enqueue()` hardcoded to FreeCAD-only); ends with `capabilities` round-tripping through pairing/heartbeat, `Store.enqueue()` generalized to any executable+cadKind-matching CAD, and the DWG postcondition proven by executor-level tests. No AutoCAD modify/read/export code added (13b.6/future-phase scope).
+- Estimated review budget impact: 244 authored lines against the 600-line session budget — comfortably within budget, no exception needed.
+- Rollback boundary: revert `apps/api/src/store.ts` to drop `cadCapabilitiesSchema`/`capabilities` and restore the FreeCAD-only `enqueue()` check; revert the new test blocks in `apps/api/test/{store,tools}.test.ts` and `agent/tests/test_agent.py`. Slice 13a and earlier are unaffected.
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|---|---|
+| Focused test command and exact result | `npm test -w api` → 45/45 pass (incl. the 5 new tests). `<scratch-venv>/bin/python -m unittest agent.tests.test_agent -v` → all pass (incl. the 2 new DWG-postcondition tests). |
+| Runtime harness command/scenario and exact result | `npm run build && npm test` (api + web) → api 45/45 pass, web 1/1 pass. `<scratch-venv>/bin/python -m unittest discover -s agent/tests -v` → Ran 65 tests, OK (63 pre-existing + 2 new). No real Windows AutoCAD host available in this sandbox; the DWG postcondition is proven via a mocked `Popen` at the executor boundary (the same boundary 13a's own tests use), not a live `accoreconsole` run. |
+| Rollback boundary | See "Workload / PR Boundary" above. |
+
+### Full Check
+```
+npm run format → no unhandled diffs (2 test files reformatted by prettier)
+npm run build → api tsc OK; web ng build OK (367.16 kB initial, 94.76 kB transfer)
+npm test → api: 45 pass, 0 fail; web: 1 pass, 0 fail
+<scratch-venv>/bin/python -m unittest discover -s agent/tests -v → Ran 65 tests, OK (63 pre-existing + 2 new)
+```
+
+### Status
+5/6 slice-13b tasks complete (tasks.md 13b.1-13b.5 marked `[x]`; 13b.6 left `[ ]` with an inline deferral note — intentionally not implemented). 244 authored lines within the 600-line session budget — no exception needed. Not committed, not pushed. AutoCAD create jobs can now be enqueued end-to-end (API capability gate + generalized `Store.enqueue()`); modify/read ops remain deferred pending a non-vlax scene-readback design. Ready for `sdd-verify` on slice 13b.
