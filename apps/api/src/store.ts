@@ -2,12 +2,25 @@ import { DatabaseSync } from 'node:sqlite';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
+// D11: additive capability object. Optional throughout so a phase-1/2a agent
+// that never sends `capabilities` still validates (falls back to
+// `FREECAD_OPS` in `tools.ts::enqueueOp`). Plain `z.object()` here (not
+// `.strict()`) tolerates extra keys a newer agent may add later without
+// breaking `heartbeat()`.
+export const cadCapabilitiesSchema = z.object({
+  execute: z.boolean().optional(),
+  edition: z.string().nullable().optional(),
+  console: z.string().nullable().optional(),
+  ops: z.array(z.string()).optional(),
+  mesh: z.boolean().optional(),
+});
 export const cadSchema = z.object({
   id: z.string().min(1).max(64),
   name: z.enum(['FreeCAD', 'AutoCAD']),
   path: z.string().min(1).max(1024),
   version: z.string().max(120),
   executable: z.boolean(),
+  capabilities: cadCapabilitiesSchema.optional(),
 });
 export const boxSchema = z
   .object({
@@ -156,10 +169,16 @@ export class Store {
     const device = this.devices(owner).find((d) => d.id === p.deviceId && !d.revoked);
     if (!device) throw new DomainError(404, 'Device not found.');
     if (!device.online) throw new DomainError(409, 'Device is offline. No job was queued.');
-    if (!device.cads.some((c: Row) => c.id === p.cadId && c.name === 'FreeCAD' && c.executable))
-      throw new DomainError(400, 'Select a detected FreeCAD command-line installation.');
+    // D10/D11: any executable CAD kind (FreeCAD or AutoCAD) is acceptable here.
+    // The per-op capability gate lives in `tools.ts::enqueueOp`; this is only
+    // the device-ownership/online re-check plus a document/cad-kind match.
+    const cad = device.cads.find((c: Row) => c.id === p.cadId && c.executable);
+    if (!cad) throw new DomainError(400, 'Select a detected, executable CAD installation.');
     // D17: at most one queued|running job per document — reopen/mutate/save cannot overlap safely.
     if (documentId) {
+      const doc = this.getDocument(documentId, owner);
+      if (doc.cadKind !== cad.name)
+        throw new DomainError(400, 'Document belongs to a different CAD kind.');
       const locked = this.db
         .prepare(
           "SELECT count(*) AS n FROM jobs WHERE document_id=? AND status IN ('queued','running')",

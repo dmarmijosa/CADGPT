@@ -1,12 +1,26 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Store, boxSchema } from '../src/store.js';
+import { Store, boxSchema, cadSchema } from '../src/store.js';
 const cad = {
   id: 'cad',
   name: 'FreeCAD',
   path: '/opt/FreeCADCmd',
   version: 'test',
   executable: true,
+};
+const autocad = {
+  id: 'autocad',
+  name: 'AutoCAD' as const,
+  path: 'C:\\accoreconsole.exe',
+  version: 'test',
+  executable: true,
+  capabilities: {
+    execute: true,
+    edition: 'full',
+    console: 'C:\\accoreconsole.exe',
+    ops: ['create_box', 'create_cylinder', 'create_sphere', 'create_cone', 'extrude_rect'],
+    mesh: false,
+  },
 };
 function setup() {
   let time = Date.now();
@@ -73,6 +87,59 @@ test('bounds reject NaN, infinity, negative, missing consent and extra code', ()
     assert.equal(boxSchema.safeParse({ ...p, length }).success, false);
   assert.equal(boxSchema.safeParse({ ...p, confirmed: false }).success, false);
   assert.equal(boxSchema.safeParse({ ...p, code: 'run code' }).success, false);
+});
+test('cadSchema accepts an optional capabilities object and tolerates unknown extra keys', () => {
+  assert.doesNotThrow(() => cadSchema.parse(autocad));
+  assert.doesNotThrow(
+    () => cadSchema.parse({ ...cad, capabilities: undefined }), // phase-1/2a agent, no capabilities at all
+  );
+  const withExtra = cadSchema.parse({
+    ...autocad,
+    capabilities: { ...autocad.capabilities, futureField: 'unused' },
+  });
+  assert.deepEqual(withExtra.capabilities?.ops, autocad.capabilities.ops);
+});
+test('13b.3: Store.enqueue() accepts an executable AutoCAD cad matching the document cadKind', () => {
+  let time = Date.now();
+  const store = new Store(':memory:', () => time);
+  const pair = store.begin('Workstation', [cad, autocad]);
+  store.approve('alice', pair.userCode);
+  const device = store.poll(pair.deviceSecret);
+  assert.ok('credential' in device);
+  store.heartbeat(device.credential!, [cad, autocad]);
+  const doc = store.createDocument('alice', device.deviceId!, 'AutoCAD', 'Bracket');
+  const job = store.enqueue(
+    'alice',
+    {
+      deviceId: device.deviceId!,
+      cadId: 'autocad',
+      length: 10,
+      width: 10,
+      height: 10,
+      confirmed: true,
+    },
+    'create_box',
+    doc.id,
+  );
+  assert.ok(job.id);
+  // A cad whose kind does not match the target document's cadKind is rejected before enqueue.
+  assert.throws(
+    () =>
+      store.enqueue(
+        'alice',
+        {
+          deviceId: device.deviceId!,
+          cadId: 'cad',
+          length: 1,
+          width: 1,
+          height: 1,
+          confirmed: true,
+        },
+        'create_box',
+        doc.id,
+      ),
+    (e: unknown) => e instanceof Error && /different CAD kind/.test(e.message),
+  );
 });
 test('offline and expired jobs do not execute', () => {
   const { store, device, advance } = setup();
