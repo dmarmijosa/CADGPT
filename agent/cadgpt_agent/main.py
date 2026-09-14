@@ -13,6 +13,7 @@ import keyring
 from platformdirs import user_data_dir
 from .discovery import discover
 from .executor import execute
+from .upload import upload_mesh
 
 SERVICE = "CADGPT"
 MAX_RESPONSE = 65536
@@ -39,6 +40,42 @@ def request(server, route, payload, credential=None):
         if len(raw) > MAX_RESPONSE:
             raise ValueError("Server response exceeds limit")
         return json.loads(raw)
+
+def _note_preview_unavailable(result, exc):
+    """Append a "preview unavailable" note without flipping the job's own
+    success. Merges into the JSON `{message, ...}` shape when present
+    (design "main.py uploads mesh first ... upload failure is reported as
+    ok=True with a preview unavailable note")."""
+    note = "preview unavailable (upload failed: " + type(exc).__name__ + ")"
+    try:
+        payload = json.loads(result)
+    except (TypeError, ValueError):
+        payload = None
+    if isinstance(payload, dict) and "message" in payload:
+        payload["message"] = payload["message"] + " " + note
+        return json.dumps(payload)
+    return result + " " + note
+
+def run_job(job, cads, jobs, server, credential, upload=upload_mesh):
+    """Execute one job, then upload its STL preview (if the worker produced
+    one) before returning the result the caller posts to the server.
+
+    A mesh upload failure never flips a successful job to `ok=False`: it only
+    appends a "preview unavailable" note, since the design (native FCStd/DWG)
+    exists locally regardless of upload outcome.
+    """
+    try:
+        result = execute(job, cads, jobs)
+    except Exception as exc:
+        return False, str(exc)[:4000]
+    preview = jobs / job["id"] / "preview.stl"
+    if preview.is_file():
+        try:
+            upload(server, job["id"], credential, preview)
+        except Exception as exc:
+            print("Preview upload failed: " + type(exc).__name__, flush=True)
+            result = _note_preview_unavailable(result, exc)
+    return True, result
 
 def main():
     parser = argparse.ArgumentParser(description="Connect this CAD computer to your CADGPT server.")
@@ -126,11 +163,7 @@ def main():
         try:
             state = request(server, "/api/agent/poll", {"cads": cads}, credential)
             if state["job"]:
-                try:
-                    result = execute(state["job"], cads, jobs)
-                    ok = True
-                except Exception as exc:
-                    result, ok = str(exc)[:4000], False
+                ok, result = run_job(state["job"], cads, jobs, server, credential)
                 # 16000 matches the server's `/api/agent/results/:id` cap and
                 # must not cut a JSON-wrapped `{message, scene}` payload in half.
                 request(server, "/api/agent/results/" + state["job"]["id"], {"ok": ok, "result": result[:16000]}, credential)
