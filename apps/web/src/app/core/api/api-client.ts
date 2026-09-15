@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { ApiService } from './api.service';
 import {
+  AllowedRoot,
   ApiKey,
   ApiKeyCreated,
   ApiKeyScope,
@@ -60,5 +61,17 @@ export class ApiClient {
 
   revokeApiKey(id: string): Promise<{ revoked: boolean }> {
     return this.api.request<{ revoked: boolean }>('/api/keys/' + id, 'DELETE');
+  }
+
+  listRoots(deviceId: string): Promise<AllowedRoot[]> {
+    return this.api.request<AllowedRoot[]>('/api/devices/' + deviceId + '/roots');
+  }
+
+  addRoot(deviceId: string, path: string): Promise<AllowedRoot> {
+    return this.api.request<AllowedRoot>('/api/devices/' + deviceId + '/roots', 'POST', { path });
+  }
+
+  removeRoot(id: string): Promise<{ removed: boolean }> {
+    return this.api.request<{ removed: boolean }>('/api/roots/' + id, 'DELETE');
   }
 }

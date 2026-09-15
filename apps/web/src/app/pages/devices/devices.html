@@ -101,6 +101,110 @@
       }
     </tbody>
   </table>
+
+  @if (roots; as rootsResource) {
+    <section class="panel roots-section" data-testid="roots-section">
+      <div class="section-title">
+        <div>
+          <h2>Allowed folders</h2>
+          <p>
+            Folders on <strong>{{ activeDevice()?.name }}</strong> that the agent is authorized to
+            access and modify in place.
+          </p>
+        </div>
+        @if (workspace.devices.value().length > 1) {
+          <div class="device-select">
+            <label for="device-root-select">Select computer:</label>
+            <select
+              id="device-root-select"
+              [value]="activeDevice()?.id"
+              (change)="selectDevice($any($event.target).value)"
+            >
+              @for (d of workspace.devices.value(); track d.id) {
+                <option [value]="d.id" [disabled]="d.revoked">
+                  {{ d.name }} {{ d.revoked ? '(Revoked)' : '' }}
+                </option>
+              }
+            </select>
+          </div>
+        }
+      </div>
+
+      @if (addRootError()) {
+        <div class="message error" role="alert">{{ addRootError() }}</div>
+      }
+      @if (removeRootError()) {
+        <div class="message error" role="alert">{{ removeRootError() }}</div>
+      }
+
+      @if (rootsResource.error(); as error) {
+        <div class="message error" role="alert">{{ errorMessage(error) }}</div>
+      }
+
+      @if (rootsResource.isLoading() && !rootsResource.hasValue()) {
+        <p>Loading allowed folders…</p>
+      } @else if (rootsResource.hasValue() && rootsResource.value().length) {
+        <table class="data roots-table">
+          <thead>
+            <tr>
+              <th scope="col">Allowed path</th>
+              <th scope="col">Added</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (root of rootsResource.value(); track root.id) {
+              <tr>
+                <td>
+                  <code>{{ root.path }}</code>
+                </td>
+                <td>
+                  <span class="tabular-nums" [title]="root.created | date: 'medium'">
+                    {{ root.created | date: 'shortDate' }}
+                  </span>
+                </td>
+                <td>
+                  <button
+                    class="danger quiet"
+                    type="button"
+                    (click)="removeRoot(root.id)"
+                    [disabled]="removingRootId() === root.id"
+                    [attr.aria-label]="'Remove folder ' + root.path"
+                  >
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      } @else {
+        <p class="empty-notice">No folders allowlisted for this device yet.</p>
+      }
+
+      @if (activeDevice() && !activeDevice()?.revoked) {
+        <form class="add-root-form" (submit)="$event.preventDefault(); addRoot()">
+          <label for="new-root-path">Add folder path</label>
+          <div class="form-row">
+            <input
+              id="new-root-path"
+              type="text"
+              [value]="newPath()"
+              (input)="newPath.set($any($event.target).value)"
+              placeholder="/home/user/designs or C:\Designs"
+              [disabled]="addingRoot()"
+            />
+            <button type="submit" [disabled]="addingRoot() || !newPath().trim()">
+              {{ addingRoot() ? 'Adding…' : 'Add folder' }}
+            </button>
+          </div>
+          <small class="hint"
+            >Must be an absolute POSIX, Windows, or UNC path without traversal dots (..).</small
+          >
+        </form>
+      }
+    </section>
+  }
 } @else {
   <article class="panel empty">
     <h2>No linked computers yet</h2>

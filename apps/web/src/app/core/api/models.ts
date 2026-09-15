@@ -111,3 +111,12 @@ export interface ApiKeyCreated {
   key: string;
   created: number;
 }
+
+/** `Store.listRoots()` response shape (`GET /api/devices/:deviceId/roots`). */
+export interface AllowedRoot {
+  id: string;
+  owner: string;
+  deviceId: string;
+  path: string;
+  created: number;
+}

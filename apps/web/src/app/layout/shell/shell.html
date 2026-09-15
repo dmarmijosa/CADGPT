@@ -1,39 +1,161 @@
 <a class="skip-link" href="#main-content">Skip to content</a>
 <header>
-  <a class="brand" routerLink="/">
-    <span class="mark" aria-hidden="true">
-      <svg
-        viewBox="0 0 24 24"
-        width="18"
-        height="18"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <path d="M4 20 L4 4 L14 4 L20 10 L20 20 Z" />
-        <path d="M14 4 L14 10 L20 10" />
-      </svg>
-    </span>
-    CAD Agent Designer
-  </a>
-  <nav aria-label="Account">
-    @if (auth.user(); as user) {
-      <span>{{ user.profile.preferred_username ?? 'Your account' }}</span>
-      <button class="quiet" type="button" (click)="signOut()">Sign out</button>
-    } @else {
-      <button type="button" (click)="signIn()">Sign in</button>
-    }
-  </nav>
+  <div class="header-brand-wrap">
+    <a class="brand" routerLink="/">
+      <span class="mark" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M4 20 L4 4 L14 4 L20 10 L20 20 Z" />
+          <path d="M14 4 L14 10 L20 10" />
+          <line x1="8" y1="12" x2="16" y2="12" />
+          <line x1="8" y1="16" x2="14" y2="16" />
+        </svg>
+      </span>
+      <span class="brand-text">CAD Agent Designer</span>
+    </a>
+    <span class="version-tag">alpha</span>
+  </div>
+
+  <div class="header-right">
+    <div class="status-indicator" title="Connected CAD Engines & Telemetry Ready">
+      <span class="status-dot"></span>
+      <span class="status-text">Daemon Online</span>
+    </div>
+    <nav aria-label="Account">
+      @if (auth.user(); as user) {
+        <span class="user-name">{{ user.profile.preferred_username ?? 'Your account' }}</span>
+        <button class="quiet" type="button" (click)="signOut()">Sign out</button>
+      } @else {
+        <button type="button" (click)="signIn()">Sign in</button>
+      }
+    </nav>
+  </div>
 </header>
 <div class="shell">
   <nav class="rail" aria-label="Primary">
-    <a routerLink="/devices" routerLinkActive="active" ariaCurrentWhenActive="page">Devices</a>
-    <a routerLink="/designs" routerLinkActive="active" ariaCurrentWhenActive="page">Designs</a>
-    <a routerLink="/jobs" routerLinkActive="active" ariaCurrentWhenActive="page">Jobs</a>
-    <a routerLink="/connect" routerLinkActive="active" ariaCurrentWhenActive="page">Connect</a>
-    <a routerLink="/keys" routerLinkActive="active" ariaCurrentWhenActive="page">API keys</a>
+    <a routerLink="/devices" routerLinkActive="active" ariaCurrentWhenActive="page">
+      <span class="rail-icon" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+          <line x1="8" y1="21" x2="16" y2="21" />
+          <line x1="12" y1="17" x2="12" y2="21" />
+        </svg>
+      </span>
+      Devices
+    </a>
+    <a routerLink="/designs" routerLinkActive="active" ariaCurrentWhenActive="page">
+      <span class="rail-icon" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path
+            d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+          />
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+          <line x1="12" y1="22.08" x2="12" y2="12" />
+        </svg>
+      </span>
+      Designs
+    </a>
+    <a routerLink="/jobs" routerLinkActive="active" ariaCurrentWhenActive="page">
+      <span class="rail-icon" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      </span>
+      Jobs
+    </a>
+    <a routerLink="/connect" routerLinkActive="active" ariaCurrentWhenActive="page">
+      <span class="rail-icon" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+        </svg>
+      </span>
+      Connect
+    </a>
+    <a routerLink="/keys" routerLinkActive="active" ariaCurrentWhenActive="page">
+      <span class="rail-icon" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path
+            d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"
+          />
+        </svg>
+      </span>
+      API keys
+    </a>
     <div class="rail-secondary">
-      <a routerLink="/about" routerLinkActive="active" ariaCurrentWhenActive="page">About</a>
+      <a routerLink="/about" routerLinkActive="active" ariaCurrentWhenActive="page">
+        <span class="rail-icon" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+        </span>
+        About
+      </a>
     </div>
   </nav>
   <main id="main-content">
@@ -41,6 +163,11 @@
   </main>
 </div>
 <footer>
-  <span>CAD Agent Designer — experimental alpha</span>
-  <span>FreeCAD execution, AutoCAD discovery, and remote MCP.</span>
+  <div class="footer-left">
+    <span class="footer-brand">CAD Agent Designer</span>
+    <span class="footer-status">— experimental alpha</span>
+  </div>
+  <div class="footer-right">
+    <span>FreeCAD execution, AutoCAD Core Console parity, and remote MCP.</span>
+  </div>
 </footer>

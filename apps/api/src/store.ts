@@ -47,6 +47,56 @@ export type EnqueueInput = { deviceId: string; cadId: string } & Record<string, 
 type Row = Record<string, any>;
 const hash = (s: string) => createHash('sha256').update(s).digest('hex');
 const secret = () => randomBytes(32).toString('base64url');
+export function isValidPathShape(p: string): boolean {
+  if (!p || typeof p !== 'string') return false;
+  if (p.includes('\0')) return false;
+  if (p.includes('..')) return false;
+  // Absolute POSIX: starts with /
+  if (p.startsWith('/')) return true;
+  // Windows drive absolute: e.g. C:\ or C:/
+  if (/^[a-zA-Z]:[/\\]/.test(p)) return true;
+  // UNC: \\server\share or //server/share
+  if (p.startsWith('\\\\') || p.startsWith('//')) {
+    const parts = p.slice(2).split(/[\\/]/);
+    return (
+      parts.length >= 2 &&
+      parts[0].length > 0 &&
+      parts[1].length > 0 &&
+      !parts[0].includes(' ') &&
+      !parts[1].includes(' ')
+    );
+  }
+  return false;
+}
+
+function normalizePathForComparison(p: string): string {
+  let norm = p.replace(/\\/g, '/');
+  const isUnc = norm.startsWith('//');
+  if (isUnc) {
+    norm = '//' + norm.slice(2).replace(/\/+/g, '/');
+  } else {
+    norm = norm.replace(/\/+/g, '/');
+  }
+  if (/^[a-zA-Z]:/.test(norm)) {
+    norm = norm[0].toUpperCase() + norm.slice(1);
+    if (norm.length === 2) norm += '/';
+  }
+  if (norm.length > 1 && norm.endsWith('/')) {
+    if (!/^[a-zA-Z]:\/$/.test(norm)) {
+      norm = norm.slice(0, -1);
+    }
+  }
+  return norm;
+}
+
+export function isPathContained(candidate: string, root: string): boolean {
+  if (!isValidPathShape(candidate) || !isValidPathShape(root)) return false;
+  const c = normalizePathForComparison(candidate);
+  const r = normalizePathForComparison(root);
+  if (r === '/') return c.startsWith('/');
+  if (r.endsWith('/')) return c === r.slice(0, -1) || c.startsWith(r);
+  return c === r || c.startsWith(r + '/');
+}
 export class DomainError extends Error {
   constructor(
     public status: number,
@@ -87,6 +137,11 @@ export class Store {
         key_hash TEXT NOT NULL, scopes TEXT NOT NULL, created INTEGER NOT NULL, last_used INTEGER,
         revoked INTEGER NOT NULL DEFAULT 0);
       CREATE INDEX IF NOT EXISTS api_keys_owner ON api_keys(owner, created DESC);
+      CREATE TABLE IF NOT EXISTS allowed_roots (
+        id TEXT PRIMARY KEY, owner TEXT NOT NULL, device_id TEXT NOT NULL,
+        path TEXT NOT NULL, created INTEGER NOT NULL,
+        UNIQUE(owner, device_id, path));
+      CREATE INDEX IF NOT EXISTS allowed_roots_owner ON allowed_roots(owner, created DESC);
     `);
     this.migrate();
   }
@@ -217,6 +272,50 @@ export class Store {
       throw new DomainError(404, 'API key not found.');
     return { revoked: true };
   }
+  // Allowed roots triad (mirroring api_keys).
+  // Device-ownership is checked: only the owner of the device can add/list roots.
+  addRoot(owner: string, deviceId: string, path: string) {
+    const device = this.devices(owner).find((d) => d.id === deviceId && !d.revoked);
+    if (!device) throw new DomainError(404, 'Device not found.');
+    if (!isValidPathShape(path)) throw new DomainError(400, 'Invalid path shape.');
+    const id = randomUUID();
+    const created = this.now();
+    try {
+      this.db
+        .prepare('INSERT INTO allowed_roots(id,owner,device_id,path,created) VALUES(?,?,?,?,?)')
+        .run(id, owner, deviceId, path, created);
+    } catch (e: any) {
+      if (e?.code === 'ERR_SQLITE_ERROR' && String(e?.message).includes('UNIQUE')) {
+        throw new DomainError(409, 'Root already added for this device.');
+      }
+      throw e;
+    }
+    return { id, owner, deviceId, path, created };
+  }
+  listRoots(owner: string, deviceId: string) {
+    const device = this.devices(owner).find((d) => d.id === deviceId && !d.revoked);
+    if (!device) throw new DomainError(404, 'Device not found.');
+    return (
+      this.db
+        .prepare(
+          'SELECT id,owner,device_id AS deviceId,path,created FROM allowed_roots WHERE owner=? AND device_id=? ORDER BY created DESC, rowid DESC',
+        )
+        .all(owner, deviceId) as Row[]
+    ).map((r) => ({
+      id: r.id as string,
+      owner: r.owner as string,
+      deviceId: r.deviceId as string,
+      path: r.path as string,
+      created: r.created as number,
+    }));
+  }
+  // Owner-scoped: a foreign owner's id deletes zero rows, so it reads
+  // identically to "not found" and never leaks whether the id exists.
+  removeRoot(owner: string, id: string) {
+    if (!this.db.prepare('DELETE FROM allowed_roots WHERE id=? AND owner=?').run(id, owner).changes)
+      throw new DomainError(404, 'Root not found.');
+    return { removed: true };
+  }
   // Resolves a presented `cad_<prefix>_<secret>` key to its owner. A key maps
   // to exactly one owner — the caller never chooses it. `prefix` narrows the
   // lookup to one row; the full presented string is then hashed and compared
@@ -299,14 +398,20 @@ export class Store {
       );
     return { id };
   }
-  createDocument(owner: string, deviceId: string, cadKind: 'FreeCAD' | 'AutoCAD', name: string) {
+  createDocument(
+    owner: string,
+    deviceId: string,
+    cadKind: 'FreeCAD' | 'AutoCAD',
+    name: string,
+    nativePath?: string | null,
+  ) {
     const id = randomUUID();
     const created = this.now();
     this.db
       .prepare(
-        'INSERT INTO documents(id,owner,device_id,cad_kind,name,native_path,created,updated,latest_job_id) VALUES(?,?,?,?,?,NULL,?,?,NULL)',
+        'INSERT INTO documents(id,owner,device_id,cad_kind,name,native_path,created,updated,latest_job_id) VALUES(?,?,?,?,?,?,?,?,NULL)',
       )
-      .run(id, owner, deviceId, cadKind, name, created, created);
+      .run(id, owner, deviceId, cadKind, name, nativePath ?? null, created, created);
     return { id };
   }
   getDocument(id: string, owner: string) {
@@ -362,18 +467,26 @@ export class Store {
         "UPDATE jobs SET status='running' WHERE id=(SELECT id FROM jobs WHERE device_id=? AND status='queued' AND expires>? ORDER BY created LIMIT 1) RETURNING *",
       )
       .get(d.id, this.now()) as Row | undefined;
+    const allowedRoots = (
+      this.db
+        .prepare(
+          'SELECT path FROM allowed_roots WHERE device_id=? ORDER BY created DESC, rowid DESC',
+        )
+        .all(d.id) as Row[]
+    ).map((r) => r.path as string);
     // Phase 1 rows predate `type`/`document_id`: map type=null to the only op that existed then.
-    return row
-      ? {
-          job: {
+    return {
+      job: row
+        ? {
             id: row.id,
             expires: row.expires,
             type: row.type ?? 'create_box',
             documentId: row.document_id ?? null,
             ...JSON.parse(row.payload),
-          },
-        }
-      : { job: null };
+          }
+        : null,
+      allowedRoots,
+    };
   }
   // Sum of `meshes.size` for a device — the running total against the 500 MiB
   // per-device quota (mesh-preview-upload "Size Cap and Per-Device Quota").
@@ -435,6 +548,14 @@ export class Store {
   }
   complete(token: string, id: string, result: string, ok: boolean, nativePath?: string) {
     const d = this.device(token);
+    if (nativePath !== undefined && nativePath !== null) {
+      const roots = (
+        this.db.prepare('SELECT path FROM allowed_roots WHERE device_id=?').all(d.id) as Row[]
+      ).map((r) => r.path as string);
+      if (!roots.some((r) => isPathContained(nativePath, r))) {
+        throw new DomainError(400, 'Out-of-allowlist nativePath rejected.');
+      }
+    }
     this.db.exec('BEGIN IMMEDIATE');
     try {
       const job = this.db

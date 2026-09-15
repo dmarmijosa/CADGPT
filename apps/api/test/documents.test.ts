@@ -100,6 +100,7 @@ test('enqueue stamps confirmed:true into the agent-facing payload even when the 
 });
 test('complete() bumps documents.updated/latest_job_id on success', () => {
   const { store, device } = setup();
+  store.addRoot('alice', device.deviceId!, '/documents');
   const doc = store.createDocument('alice', device.deviceId!, 'FreeCAD', 'Bracket');
   const input = {
     deviceId: device.deviceId!,

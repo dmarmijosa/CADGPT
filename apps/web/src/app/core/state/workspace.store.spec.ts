@@ -107,4 +107,31 @@ describe('WorkspaceStore', () => {
       expect(api.designs).toHaveBeenCalledTimes(2);
     });
   });
+
+  it('loads roots for the selected device', async () => {
+    const rootItem = {
+      id: 'root-1',
+      owner: 'alice',
+      deviceId: 'dev-1',
+      path: '/home/alice/cad',
+      created: 1000,
+    };
+    const api = {
+      devices: vi.fn().mockResolvedValue([device]),
+      jobs: vi.fn().mockResolvedValue([]),
+      designs: vi.fn().mockResolvedValue([]),
+      listRoots: vi.fn().mockResolvedValue([rootItem]),
+    };
+    TestBed.configureTestingModule({ providers: [{ provide: ApiClient, useValue: api }] });
+    const store = TestBed.inject(WorkspaceStore);
+
+    store.selectedDeviceId.set('dev-1');
+    await vi.waitFor(() => {
+      TestBed.tick();
+      expect(store.roots.hasValue()).toBe(true);
+    });
+
+    expect(store.roots.value()).toEqual([rootItem]);
+    expect(api.listRoots).toHaveBeenCalledWith('dev-1');
+  });
 });

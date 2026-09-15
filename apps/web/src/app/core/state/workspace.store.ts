@@ -1,5 +1,6 @@
-import { Injectable, computed, inject, resource } from '@angular/core';
+import { Injectable, computed, inject, resource, signal } from '@angular/core';
 import { ApiClient } from '../api/api-client';
+import type { AllowedRoot } from '../api/models';
 
 /**
  * Central read model for the dashboard (design D16): one independently
@@ -16,6 +17,15 @@ export class WorkspaceStore {
   readonly designs = resource({ loader: () => this.api.designs() });
   readonly apiKeys = resource({ loader: () => this.api.apiKeys() });
 
+  readonly selectedDeviceId = signal<string | null>(null);
+  readonly roots = resource({
+    params: () => this.selectedDeviceId(),
+    loader: async ({ params: deviceId }) => {
+      if (!deviceId) return [] as AllowedRoot[];
+      return this.api.listRoots(deviceId);
+    },
+  });
+
   // `.value()` throws while a resource is in its error state (no prior
   // successful load) — always gate it behind `hasValue()` rather than `??`.
   readonly onlineDevices = computed(() =>
@@ -30,5 +40,8 @@ export class WorkspaceStore {
     this.devices.reload();
     this.jobs.reload();
     this.designs.reload();
+    if (this.selectedDeviceId()) {
+      this.roots.reload();
+    }
   }
 }

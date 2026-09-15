@@ -3,6 +3,7 @@ import json
 import math
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import threading
 import time
@@ -74,7 +75,44 @@ def resolve_document_dir(root, document_id):
         raise ValueError("Document path escapes the allowed root")
     return doc_dir
 
-def execute(job, cads, root):
+def resolve_external_path(requested: str, allowed_roots: list[str]) -> Path:
+    """Validate `requested` path against `allowed_roots` and return its canonical Path.
+
+    Parallel to and independent from `resolve_document_dir`.
+    Canonicalizes the caller-supplied path, resolves symlinks and junctions via
+    `.resolve()`, normalizes Windows UNC and drive-relative forms, and authorizes
+    it only when the fully resolved path is inside at least one currently-allowlisted
+    root. Rejects symlink/junction escapes, `..` traversals, NUL bytes, UNC paths
+    outside the allowlist, drive-relative paths outside the allowlist, and paths
+    outside every allowlisted root.
+    """
+    if not requested or not isinstance(requested, str):
+        raise ValueError("Invalid path")
+    if "\0" in requested:
+        raise ValueError("Path contains NUL byte")
+    if not allowed_roots:
+        raise ValueError("Path outside allowed roots")
+
+    # Normalize UNC backslashes to forward slashes for cross-platform consistency
+    norm_requested = requested.replace("\\", "/") if requested.startswith(r"\\") else requested
+    target = Path(norm_requested).resolve()
+
+    for root_str in allowed_roots:
+        if not root_str or not isinstance(root_str, str):
+            continue
+        if "\0" in root_str:
+            continue
+        norm_root = root_str.replace("\\", "/") if root_str.startswith(r"\\") else root_str
+        root_resolved = Path(norm_root).resolve()
+        try:
+            if target.is_relative_to(root_resolved):
+                return target
+        except (ValueError, AttributeError):
+            continue
+
+    raise ValueError("Path outside allowed roots")
+
+def execute(job, cads, root, allowed_roots=None):
     validate(job)
     # Selection is CAD-neutral: pick the entry matching `cadId` that is
     # marked executable AND has a registered strategy for its `name`. An
@@ -87,6 +125,24 @@ def execute(job, cads, root):
     op = job.get("type") or "create_box"
     if not strategy.supports(op):
         raise ValueError("Unsupported operation for this CAD strategy")
+
+    # Native path handling (P1.3): when the job targets an existing file,
+    # resolve and verify containment against allowed_roots, then create a
+    # timestamped sibling backup before any write.
+    native_path_raw = job.get("native_path") or job.get("nativePath") or job.get("path")
+    contained_path = None
+    backup_path = None
+    if native_path_raw:
+        contained_path = resolve_external_path(native_path_raw, allowed_roots or [])
+        if contained_path.is_file():
+            ts = int(time.time())
+            backup_path = contained_path.parent / f"{contained_path.name}.{ts}.bak"
+            counter = 1
+            while backup_path.exists():
+                backup_path = contained_path.parent / f"{contained_path.name}.{ts}_{counter}.bak"
+                counter += 1
+            shutil.copy2(contained_path, backup_path)
+
     # Reject a malformed or path-shaped document_id before any directory or subprocess exists.
     doc_dir = resolve_document_dir(root, job.get("documentId"))
     # Job scratch directories live under `<root>/jobs/<job_id>` -- a clean
@@ -105,11 +161,15 @@ def execute(job, cads, root):
     # No path ever crosses this boundary: only the UUID document_id does.
     envelope_keys = {"id", "cadId", "expires", "confirmed", "type", "documentId", "deviceId"}
     params = {k: v for k, v in job.items() if k not in envelope_keys}
+    if contained_path is not None:
+        params["native_path"] = str(contained_path)
     request.write_text(json.dumps({"op": op, "document_id": job.get("documentId"), **params}), encoding="utf-8")
     base_env = {k: v for k, v in os.environ.items() if k not in ("PYTHONHOME", "PYTHONPATH", "LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH")}
     base_env["CADGPT_JOB_DIR"] = str(directory.resolve())
     if doc_dir is not None:
         base_env["CADGPT_DOC_DIR"] = str(doc_dir.resolve())
+    if contained_path is not None:
+        base_env["CADGPT_NATIVE_PATH"] = str(contained_path.resolve())
     environment = strategy.env(base_env)
     argv = strategy.build_argv(Path(cad["path"]), directory, doc_dir)
     # Drain output continuously while retaining only 4 KB. No unbounded PIPE capture.
@@ -131,13 +191,17 @@ def execute(job, cads, root):
     except subprocess.TimeoutExpired:
         process.kill()
         process.wait()
+        if backup_path and backup_path.is_file() and contained_path:
+            shutil.copy2(backup_path, contained_path)
         raise RuntimeError("The CAD engine exceeded the 120-second execution limit")
     finally:
         reader.join(timeout=5)
         process.stdout.close()
     artifacts = strategy.artifacts(op, directory, doc_dir)
-    output = artifacts["native"]
+    output = contained_path if contained_path else artifacts["native"]
     if code != 0 or not output.is_file():
+        if backup_path and backup_path.is_file() and contained_path:
+            shutil.copy2(backup_path, contained_path)
         detail = _decode_tail(tail, cad["name"])[-500:]
         message = "The CAD engine failed to create the document. Check local installation compatibility."
         raise RuntimeError(message + (" " + detail if detail else ""))

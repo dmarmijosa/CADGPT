@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ApiClient } from '../../core/api/api-client';
 import { WorkspaceStore } from '../../core/state/workspace.store';
@@ -21,6 +21,7 @@ export function relativeTime(msAgo: number): string {
  * Guarded devices list: status, last seen, detected CADs, and revoke — all
  * backed by `WorkspaceStore.devices`. Revoking asks for confirmation inline
  * (no `window.confirm`) before calling `ApiClient.revokeDevice`.
+ * Also manages allowed folders (file-permissions allowlist) per linked device.
  */
 @Component({
   selector: 'app-devices-page',
@@ -36,12 +37,49 @@ export class DevicesPage {
   readonly revoking = signal(false);
   readonly revokeError = signal('');
 
+  readonly selectedDeviceId = signal<string | null>(null);
+
+  readonly activeDevice = computed(() => {
+    if (!this.workspace.devices.hasValue()) return null;
+    const devs = this.workspace.devices.value();
+    const sel = this.selectedDeviceId();
+    if (sel) {
+      const found = devs.find((d) => d.id === sel);
+      if (found) return found;
+    }
+    return devs.find((d) => !d.revoked) ?? null;
+  });
+
+  readonly newPath = signal('');
+  readonly addingRoot = signal(false);
+  readonly addRootError = signal('');
+  readonly removingRootId = signal<string | null>(null);
+  readonly removeRootError = signal('');
+
+  get roots() {
+    return this.workspace.roots;
+  }
+
+  constructor() {
+    effect(() => {
+      const dev = this.activeDevice();
+      if (dev && this.workspace.selectedDeviceId) {
+        this.workspace.selectedDeviceId.set(dev.id);
+      }
+    });
+  }
+
   relativeLastSeen(lastSeen: number): string {
     return relativeTime(Date.now() - lastSeen);
   }
 
   errorMessage(error: unknown): string {
     return error instanceof Error ? error.message : 'Could not connect. Try again.';
+  }
+
+  selectDevice(id: string): void {
+    this.selectedDeviceId.set(id);
+    this.workspace.selectedDeviceId?.set(id);
   }
 
   askRevoke(id: string): void {
@@ -64,6 +102,36 @@ export class DevicesPage {
       this.revokeError.set(e instanceof Error ? e.message : 'Could not connect. Try again.');
     } finally {
       this.revoking.set(false);
+    }
+  }
+
+  async addRoot(): Promise<void> {
+    const dev = this.activeDevice();
+    const path = this.newPath().trim();
+    if (!dev || !path) return;
+    this.addingRoot.set(true);
+    this.addRootError.set('');
+    try {
+      await this.api.addRoot(dev.id, path);
+      this.newPath.set('');
+      this.workspace.roots?.reload();
+    } catch (e) {
+      this.addRootError.set(this.errorMessage(e));
+    } finally {
+      this.addingRoot.set(false);
+    }
+  }
+
+  async removeRoot(rootId: string): Promise<void> {
+    this.removingRootId.set(rootId);
+    this.removeRootError.set('');
+    try {
+      await this.api.removeRoot(rootId);
+      this.workspace.roots?.reload();
+    } catch (e) {
+      this.removeRootError.set(this.errorMessage(e));
+    } finally {
+      this.removingRootId.set(null);
     }
   }
 }

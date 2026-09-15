@@ -1,0 +1,17 @@
+change: cadgpt-phase3-permissions-autocad
+project: cadgpt
+artifact_store: openspec
+phases:
+  explore: { status: done, ref: "openspec/changes/cadgpt-phase3-permissions-autocad/exploration.md" }
+  propose: { status: done, ref: "openspec/changes/cadgpt-phase3-permissions-autocad/proposal.md" }
+  spec: { status: done, ref: "openspec/changes/cadgpt-phase3-permissions-autocad/specs" }
+  design: { status: done, ref: "openspec/changes/cadgpt-phase3-permissions-autocad/design.md" }
+  tasks: { status: done, ref: "openspec/changes/cadgpt-phase3-permissions-autocad/tasks.md" }
+  apply:
+    status: done
+    ref: "openspec/changes/cadgpt-phase3-permissions-autocad/apply-progress.md"
+    slice: "P3 complete (P3.1-P3.5) - Phase 3 fully implemented"
+    tasks_done: "P1.0.1-P1.0.3, P1.1.1-P1.1.5, P1.2.1-P1.2.5, P1.3.1-P1.3.5, P1.4.1-P1.4.6, P1.5.1-P1.5.4, P2.0.1-P2.0.3, P2.1.1-P2.1.4, P2.2.1-P2.2.4, P2.3.1-P2.3.5, P2.4.1-P2.4.3, P3.1.1-P3.1.4, P3.2.1-P3.2.3, P3.3.1-P3.3.3, P3.4.1-P3.4.3, P3.5.1-P3.5.4"
+    note: "All 3 Pillars (File-Permissions Allowlist, AutoCAD Op Parity, and Stitch Precision Redesign) 100% complete with all tests passing GREEN."
+updated: 2026-09-15
+

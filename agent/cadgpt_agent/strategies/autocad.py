@@ -23,13 +23,14 @@ is False).
 """
 import json
 from pathlib import Path
+import re
 
 from .base import Artifacts
 # Reused deliberately (not duplicated): the AutoCAD adapter must accept the
 # exact same numeric bounds as the FreeCAD worker (design "AutoCAD strategy"),
 # and both are pure functions with no FreeCAD import at module scope, so
 # importing them here never touches FreeCAD.
-from ..freecad_worker import _EXTRUDE_BOX_ARGS, _mm, _position
+from ..freecad_worker import _EXTRUDE_BOX_ARGS, _bounded, _coord, _mm, _position
 
 _AUTOCAD_DIR = Path(__file__).resolve().parent.parent / "autocad"
 _BLANK_DWG = _AUTOCAD_DIR / "blank.dwg"
@@ -91,6 +92,33 @@ def _extrude_rect_call(data):
     return _lisp_call("cadgpt-extrude-rect", *box_args, x, y, z)
 
 
+_HANDLE_RE = re.compile(r"^[0-9a-zA-Z]{1,32}$")
+
+
+def _handle(val, name):
+    if not isinstance(val, str) or not _HANDLE_RE.match(val):
+        raise ValueError(f"{name} must be an alphanumeric handle (1-32 chars), got {val!r}")
+    return val
+
+
+def _boolean_cut_call(data):
+    base = _handle(data.get("base"), "base")
+    tool = _handle(data.get("tool"), "tool")
+    return f'(cadgpt-boolean-cut "{base}" "{tool}")'
+
+
+def _boolean_union_call(data):
+    base = _handle(data.get("base"), "base")
+    tool = _handle(data.get("tool"), "tool")
+    return f'(cadgpt-boolean-union "{base}" "{tool}")'
+
+
+def _boolean_intersect_call(data):
+    base = _handle(data.get("base"), "base")
+    tool = _handle(data.get("tool"), "tool")
+    return f'(cadgpt-boolean-intersect "{base}" "{tool}")'
+
+
 # Create-only subset of `discovery.AUTOCAD_OPS`; booleans/transforms land in
 # slice 13b once their `.lsp`/`.scr` mapping exists.
 _CREATE_OPS = {
@@ -101,24 +129,108 @@ _CREATE_OPS = {
     "extrude_rect": _extrude_rect_call,
 }
 
+_BOOLEAN_OPS = {
+    "boolean_cut": _boolean_cut_call,
+    "boolean_union": _boolean_union_call,
+    "boolean_intersect": _boolean_intersect_call,
+}
 
-def render_script(op, data, lisp_path, design_path, stl_path):
-    """Build the exact CRLF `run.scr` body for one allowlisted create op.
+
+def _translate_object_call(data):
+    handle = _handle(data.get("object") or data.get("handle"), "object")
+    dx = _coord(data.get("dx"), "dx")
+    dy = _coord(data.get("dy"), "dy")
+    dz = _coord(data.get("dz"), "dz")
+    return f'(cadgpt-translate "{handle}" {_num(dx)} {_num(dy)} {_num(dz)})'
+
+
+def _rotate_object_call(data):
+    handle = _handle(data.get("object") or data.get("handle"), "object")
+    axis = data.get("axis")
+    if axis not in ("X", "Y", "Z"):
+        raise ValueError("axis must be one of X, Y, Z")
+    degrees = _bounded(data.get("degrees"), "degrees", -360, 360)
+    center = data.get("center") or data.get("position") or {}
+    cx = _coord(center.get("x", 0), "center.x")
+    cy = _coord(center.get("y", 0), "center.y")
+    cz = _coord(center.get("z", 0), "center.z")
+    return f'(cadgpt-rotate "{handle}" "{axis}" {_num(degrees)} {_num(cx)} {_num(cy)} {_num(cz)})'
+
+
+def _scale_object_call(data):
+    handle = _handle(data.get("object") or data.get("handle"), "object")
+    factor = _bounded(data.get("factor"), "factor", 0.001, 1000)
+    center = data.get("center") or data.get("position") or {}
+    cx = _coord(center.get("x", 0), "center.x")
+    cy = _coord(center.get("y", 0), "center.y")
+    cz = _coord(center.get("z", 0), "center.z")
+    return f'(cadgpt-scale "{handle}" {_num(factor)} {_num(cx)} {_num(cy)} {_num(cz)})'
+
+
+_TRANSFORM_OPS = {
+    "translate_object": _translate_object_call,
+    "translate": _translate_object_call,
+    "rotate_object": _rotate_object_call,
+    "rotate": _rotate_object_call,
+    "scale_object": _scale_object_call,
+    "scale": _scale_object_call,
+}
+
+
+_EXPORT_FORMATS = ("dxf", "sat", "stl")
+
+
+def render_script(op, data, lisp_path, design_path, stl_path, scene_path=None, export_path=None):
+    """Build the exact CRLF `run.scr` body for one allowlisted AutoCAD op.
 
     Only fixed command tokens, the `(load ...)` path, the rendered
-    `(cadgpt-<op> ...)` call (validated numbers only), and the job-dir/
+    `(cadgpt-<op> ...)` call (validated numbers or handles only), and the job-dir/
     doc-dir-derived STL/SAVEAS target paths ever appear here — never caller
     free text. Raises `ValueError` before any text is assembled if a
     parameter is missing, non-finite, or out of bounds.
 
-    Order: create the solid first, then `_STLOUT` it (the solid must already
-    exist in the drawing), then `_SAVEAS` the DWG, then `_QUIT` — matching the
-    slice 14.0 spike's proven sequence.
+    Order: create or modify the solid first, then `_STLOUT` it (the solid must already
+    exist in the drawing), then save (SAVEAS 2018 for creates, QSAVE for booleans and transforms),
+    then `_QUIT` — matching the spike's proven sequences.
     """
-    builder = _CREATE_OPS.get(op)
-    if builder is None:
-        raise ValueError("Unsupported AutoCAD create operation: " + str(op))
-    call = builder(data)
+    if op in _CREATE_OPS:
+        builder = _CREATE_OPS[op]
+        call = builder(data)
+        save_block = ["_SAVEAS", "2018", design_path.as_posix()]
+        stl_block = ["_STLOUT", "_ALL", "", "_Y", stl_path.as_posix()]
+        action_lines = [call, *stl_block, *save_block]
+    elif op in _BOOLEAN_OPS or op in _TRANSFORM_OPS:
+        builder = _BOOLEAN_OPS[op] if op in _BOOLEAN_OPS else _TRANSFORM_OPS[op]
+        call = builder(data)
+        save_block = ["_QSAVE"]
+        stl_block = ["_STLOUT", "_ALL", "", "_Y", stl_path.as_posix()]
+        action_lines = [call, *stl_block, *save_block]
+    elif op == "read_scene":
+        target_scene = scene_path or (design_path.parent / "scene.json")
+        call = f'(cadgpt-read-scene "{target_scene.as_posix()}")'
+        stl_block = ["_STLOUT", "_ALL", "", "_Y", stl_path.as_posix()]
+        action_lines = [call, *stl_block]
+    elif op in ("export_design", "export"):
+        fmt = data.get("format")
+        if fmt == "step":
+            raise ValueError("Unsupported AutoCAD export format: step. AutoCAD Core Console supports stl, dxf, sat.")
+        if fmt not in _EXPORT_FORMATS:
+            raise ValueError(f"format must be one of {', '.join(_EXPORT_FORMATS)}")
+        target_export = export_path or (design_path.parent / f"export.{fmt}")
+        if fmt == "dxf":
+            export_block = ["_DXFOUT", target_export.as_posix(), "16"]
+            stl_block = ["_STLOUT", "_ALL", "", "_Y", stl_path.as_posix()]
+            action_lines = [*export_block, *stl_block]
+        elif fmt == "sat":
+            export_block = ["_ACISOUT", "_ALL", "", target_export.as_posix()]
+            stl_block = ["_STLOUT", "_ALL", "", "_Y", stl_path.as_posix()]
+            action_lines = [*export_block, *stl_block]
+        elif fmt == "stl":
+            export_block = ["_STLOUT", "_ALL", "", "_Y", target_export.as_posix()]
+            action_lines = [*export_block]
+    else:
+        raise ValueError("Unsupported AutoCAD operation: " + str(op))
+
     # FILEDIA 0 keeps the SAVEAS filename prompt on the command line instead
     # of opening a dialog (Core Console has no display to show one on).
     # Every command/keyword is `_`-prefixed to force English/global command
@@ -127,18 +239,7 @@ def render_script(op, data, lisp_path, design_path, stl_path):
         "FILEDIA",
         "0",
         '(load "' + lisp_path.as_posix() + '")',
-        call,
-        # STLOUT prompts: "Select objects:" -> _ALL, then an empty line to
-        # finish selection, then "Create a binary STL file? [Yes/No]" -> _Y,
-        # then the filename prompt -> the STL path. Proven live (spike 14.0).
-        "_STLOUT",
-        "_ALL",
-        "",
-        "_Y",
-        stl_path.as_posix(),
-        "_SAVEAS",
-        "2018",
-        design_path.as_posix(),
+        *action_lines,
         "_QUIT",
     ]
     return "\r\n".join(lines) + "\r\n"
@@ -148,16 +249,33 @@ class AutoCadStrategy:
     kind = "AutoCAD"
 
     def supports(self, op: str) -> bool:
-        return op in _CREATE_OPS
+        return (
+            op in _CREATE_OPS
+            or op in _BOOLEAN_OPS
+            or op in _TRANSFORM_OPS
+            or op in ("read_scene", "export_design", "export")
+        )
 
     def build_argv(self, cad_path: Path, job_dir: Path, doc_dir: Path | None) -> list[str]:
-        design_dir = doc_dir if doc_dir is not None else job_dir
-        design_path = design_dir / "design.dwg"
+        request = json.loads((job_dir / "request.json").read_text(encoding="utf-8"))
+        op = request.get("op")
+        native_path_str = request.get("native_path") or request.get("nativePath")
+        if native_path_str:
+            design_path = Path(native_path_str)
+        else:
+            design_dir = doc_dir if doc_dir is not None else job_dir
+            design_path = design_dir / "design.dwg"
         # The STL preview is always job-scoped (never caller input), mirroring
         # `FreeCadStrategy.artifacts()`'s `mesh = job_dir / "preview.stl"`.
         stl_path = job_dir / "preview.stl"
-        request = json.loads((job_dir / "request.json").read_text(encoding="utf-8"))
-        script = render_script(request.get("op"), request, _LSP_PATH, design_path, stl_path)
+        scene_path = job_dir / "scene.json"
+        fmt = request.get("format", "stl")
+        export_dir = doc_dir if doc_dir is not None else job_dir
+        export_path = export_dir / f"export.{fmt}"
+        script = render_script(
+            op, request, _LSP_PATH, design_path, stl_path,
+            scene_path=scene_path, export_path=export_path
+        )
         script_path = job_dir / "run.scr"
         # `newline=""` is required: the string already carries literal CRLF,
         # and without it Python's text-mode translation would corrupt every
@@ -170,10 +288,20 @@ class AutoCadStrategy:
         return dict(base)
 
     def artifacts(self, op: str, job_dir: Path, doc_dir: Path | None) -> Artifacts:
+        request_file = job_dir / "request.json"
+        native_path = None
+        if request_file.is_file():
+            try:
+                data = json.loads(request_file.read_text(encoding="utf-8"))
+                p = data.get("native_path") or data.get("nativePath")
+                if p:
+                    native_path = Path(p)
+            except Exception:
+                pass
         design_dir = doc_dir if doc_dir is not None else job_dir
         return {
-            "native": design_dir / "design.dwg",
+            "native": native_path if native_path else design_dir / "design.dwg",
             # Proven live via `_STLOUT` (slice 14.0 spike, docs/autocad-stl-spike.md).
             "mesh": job_dir / "preview.stl",
-            "scene": None,
+            "scene": job_dir / "scene.json" if op == "read_scene" else None,
         }
