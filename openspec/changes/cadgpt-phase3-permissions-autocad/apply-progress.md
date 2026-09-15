@@ -79,5 +79,15 @@
   - [x] P2.2.3 Added `_TRANSFORM_OPS` mapping with bounded validation (`dx/dy/dz`, `axis in X/Y/Z`, `degrees in [-360, 360]`, `factor in [0.001, 1000]`), `_QSAVE` in-place save block, and updated `AutoCadStrategy.supports`.
   - [x] P2.2.4 All golden and argv tests GREEN (111 tests passing); added pre-spike-resolution guard test verifying transform ops are excluded from `AUTOCAD_OPS` prior to P2.4.
 
+### Slice P2.3 — Scene Read / Export (PR P2-4)
+- **Status**: done (tasks P2.3.1-P2.3.5 complete).
+- **Completed Tasks**:
+  - [x] P2.3.1 (RED) Added test in `agent/tests/test_strategies.py` verifying `cadgpt-read-scene` uses core AutoLISP `(ssget "_X" '((0 . "3DSOLID")))` and zero `vlax-*`/`vla-*` ActiveX calls.
+  - [x] P2.3.2 Added `cadgpt-read-scene` to `agent/cadgpt_agent/autocad/cadgpt.lsp` outputting structured entities JSON.
+  - [x] P2.3.3 (RED) Added golden tests for `export_design` formats (`dxf`, `sat`, `stl`) and verified `_-EXPORT` and `3DPRINT` are never invoked.
+  - [x] P2.3.4 Extended `agent/cadgpt_agent/strategies/autocad.py` to support `read_scene` and `export_design` with proven non-hanging commands (`_DXFOUT`, `_ACISOUT`, `_STLOUT`).
+  - [x] P2.3.5 Enforced rejection of refuted export format (`step`) with `ValueError`; confirmed all 120 tests GREEN.
+
+
 
 

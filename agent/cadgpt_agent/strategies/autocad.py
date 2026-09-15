@@ -177,7 +177,10 @@ _TRANSFORM_OPS = {
 }
 
 
-def render_script(op, data, lisp_path, design_path, stl_path):
+_EXPORT_FORMATS = ("dxf", "sat", "stl")
+
+
+def render_script(op, data, lisp_path, design_path, stl_path, scene_path=None, export_path=None):
     """Build the exact CRLF `run.scr` body for one allowlisted AutoCAD op.
 
     Only fixed command tokens, the `(load ...)` path, the rendered
@@ -194,10 +197,37 @@ def render_script(op, data, lisp_path, design_path, stl_path):
         builder = _CREATE_OPS[op]
         call = builder(data)
         save_block = ["_SAVEAS", "2018", design_path.as_posix()]
+        stl_block = ["_STLOUT", "_ALL", "", "_Y", stl_path.as_posix()]
+        action_lines = [call, *stl_block, *save_block]
     elif op in _BOOLEAN_OPS or op in _TRANSFORM_OPS:
         builder = _BOOLEAN_OPS[op] if op in _BOOLEAN_OPS else _TRANSFORM_OPS[op]
         call = builder(data)
         save_block = ["_QSAVE"]
+        stl_block = ["_STLOUT", "_ALL", "", "_Y", stl_path.as_posix()]
+        action_lines = [call, *stl_block, *save_block]
+    elif op == "read_scene":
+        target_scene = scene_path or (design_path.parent / "scene.json")
+        call = f'(cadgpt-read-scene "{target_scene.as_posix()}")'
+        stl_block = ["_STLOUT", "_ALL", "", "_Y", stl_path.as_posix()]
+        action_lines = [call, *stl_block]
+    elif op in ("export_design", "export"):
+        fmt = data.get("format")
+        if fmt == "step":
+            raise ValueError("Unsupported AutoCAD export format: step. AutoCAD Core Console supports stl, dxf, sat.")
+        if fmt not in _EXPORT_FORMATS:
+            raise ValueError(f"format must be one of {', '.join(_EXPORT_FORMATS)}")
+        target_export = export_path or (design_path.parent / f"export.{fmt}")
+        if fmt == "dxf":
+            export_block = ["_DXFOUT", target_export.as_posix(), "16"]
+            stl_block = ["_STLOUT", "_ALL", "", "_Y", stl_path.as_posix()]
+            action_lines = [*export_block, *stl_block]
+        elif fmt == "sat":
+            export_block = ["_ACISOUT", "_ALL", "", target_export.as_posix()]
+            stl_block = ["_STLOUT", "_ALL", "", "_Y", stl_path.as_posix()]
+            action_lines = [*export_block, *stl_block]
+        elif fmt == "stl":
+            export_block = ["_STLOUT", "_ALL", "", "_Y", target_export.as_posix()]
+            action_lines = [*export_block]
     else:
         raise ValueError("Unsupported AutoCAD operation: " + str(op))
 
@@ -209,16 +239,7 @@ def render_script(op, data, lisp_path, design_path, stl_path):
         "FILEDIA",
         "0",
         '(load "' + lisp_path.as_posix() + '")',
-        call,
-        # STLOUT prompts: "Select objects:" -> _ALL, then an empty line to
-        # finish selection, then "Create a binary STL file? [Yes/No]" -> _Y,
-        # then the filename prompt -> the STL path. Proven live (spike 14.0).
-        "_STLOUT",
-        "_ALL",
-        "",
-        "_Y",
-        stl_path.as_posix(),
-        *save_block,
+        *action_lines,
         "_QUIT",
     ]
     return "\r\n".join(lines) + "\r\n"
@@ -228,10 +249,16 @@ class AutoCadStrategy:
     kind = "AutoCAD"
 
     def supports(self, op: str) -> bool:
-        return op in _CREATE_OPS or op in _BOOLEAN_OPS or op in _TRANSFORM_OPS
+        return (
+            op in _CREATE_OPS
+            or op in _BOOLEAN_OPS
+            or op in _TRANSFORM_OPS
+            or op in ("read_scene", "export_design", "export")
+        )
 
     def build_argv(self, cad_path: Path, job_dir: Path, doc_dir: Path | None) -> list[str]:
         request = json.loads((job_dir / "request.json").read_text(encoding="utf-8"))
+        op = request.get("op")
         native_path_str = request.get("native_path") or request.get("nativePath")
         if native_path_str:
             design_path = Path(native_path_str)
@@ -241,7 +268,14 @@ class AutoCadStrategy:
         # The STL preview is always job-scoped (never caller input), mirroring
         # `FreeCadStrategy.artifacts()`'s `mesh = job_dir / "preview.stl"`.
         stl_path = job_dir / "preview.stl"
-        script = render_script(request.get("op"), request, _LSP_PATH, design_path, stl_path)
+        scene_path = job_dir / "scene.json"
+        fmt = request.get("format", "stl")
+        export_dir = doc_dir if doc_dir is not None else job_dir
+        export_path = export_dir / f"export.{fmt}"
+        script = render_script(
+            op, request, _LSP_PATH, design_path, stl_path,
+            scene_path=scene_path, export_path=export_path
+        )
         script_path = job_dir / "run.scr"
         # `newline=""` is required: the string already carries literal CRLF,
         # and without it Python's text-mode translation would corrupt every
@@ -269,5 +303,5 @@ class AutoCadStrategy:
             "native": native_path if native_path else design_dir / "design.dwg",
             # Proven live via `_STLOUT` (slice 14.0 spike, docs/autocad-stl-spike.md).
             "mesh": job_dir / "preview.stl",
-            "scene": None,
+            "scene": job_dir / "scene.json" if op == "read_scene" else None,
         }

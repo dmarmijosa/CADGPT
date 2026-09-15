@@ -10,8 +10,8 @@ phases:
   apply:
     status: in_progress
     ref: "openspec/changes/cadgpt-phase3-permissions-autocad/apply-progress.md"
-    slice: "P2.2 Transforms complete"
-    tasks_done: "P1.0.1-P1.0.3, P1.1.1-P1.1.5, P1.2.1-P1.2.5, P1.3.1-P1.3.5, P1.4.1-P1.4.6, P1.5.1-P1.5.4, P2.0.1-P2.0.3, P2.1.1-P2.1.4, P2.2.1-P2.2.4"
-    note: "Pillar 1 complete; Spike A recorded; AutoCAD booleans and transforms implemented and tested."
+    slice: "P2.3 Scene Read & Export complete"
+    tasks_done: "P1.0.1-P1.0.3, P1.1.1-P1.1.5, P1.2.1-P1.2.5, P1.3.1-P1.3.5, P1.4.1-P1.4.6, P1.5.1-P1.5.4, P2.0.1-P2.0.3, P2.1.1-P2.1.4, P2.2.1-P2.2.4, P2.3.1-P2.3.5"
+    note: "Pillar 1 complete; Spike A recorded; AutoCAD booleans, transforms, read_scene, and exports implemented."
 updated: 2026-09-15
 

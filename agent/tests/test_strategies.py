@@ -215,6 +215,7 @@ class AutoCadScriptGoldenTests(unittest.TestCase):
     # Job-dir-derived, distinct from DESIGN_PATH's doc-dir location — proves
     # the STL path is never sourced from caller params.
     STL_PATH = Path("/opt/cadgpt/jobs/job-1/preview.stl")
+    SCENE_PATH = Path("/opt/cadgpt/jobs/job-1/scene.json")
 
     def expected(self, call):
         return (
@@ -233,6 +234,41 @@ class AutoCadScriptGoldenTests(unittest.TestCase):
             + call + "\r\n"
             "_STLOUT\r\n_ALL\r\n\r\n_Y\r\n/opt/cadgpt/jobs/job-1/preview.stl\r\n"
             "_QSAVE\r\n"
+            "_QUIT\r\n"
+        )
+
+    def expected_read_scene(self, call):
+        return (
+            "FILEDIA\r\n0\r\n"
+            '(load "/opt/cadgpt/autocad/cadgpt.lsp")\r\n'
+            + call + "\r\n"
+            "_STLOUT\r\n_ALL\r\n\r\n_Y\r\n/opt/cadgpt/jobs/job-1/preview.stl\r\n"
+            "_QUIT\r\n"
+        )
+
+    def expected_export_dxf(self):
+        return (
+            "FILEDIA\r\n0\r\n"
+            '(load "/opt/cadgpt/autocad/cadgpt.lsp")\r\n'
+            "_DXFOUT\r\n/opt/cadgpt/documents/doc-1/export.dxf\r\n16\r\n"
+            "_STLOUT\r\n_ALL\r\n\r\n_Y\r\n/opt/cadgpt/jobs/job-1/preview.stl\r\n"
+            "_QUIT\r\n"
+        )
+
+    def expected_export_sat(self):
+        return (
+            "FILEDIA\r\n0\r\n"
+            '(load "/opt/cadgpt/autocad/cadgpt.lsp")\r\n'
+            "_ACISOUT\r\n_ALL\r\n\r\n/opt/cadgpt/documents/doc-1/export.sat\r\n"
+            "_STLOUT\r\n_ALL\r\n\r\n_Y\r\n/opt/cadgpt/jobs/job-1/preview.stl\r\n"
+            "_QUIT\r\n"
+        )
+
+    def expected_export_stl(self):
+        return (
+            "FILEDIA\r\n0\r\n"
+            '(load "/opt/cadgpt/autocad/cadgpt.lsp")\r\n'
+            "_STLOUT\r\n_ALL\r\n\r\n_Y\r\n/opt/cadgpt/documents/doc-1/export.stl\r\n"
             "_QUIT\r\n"
         )
 
@@ -284,6 +320,57 @@ class AutoCadScriptGoldenTests(unittest.TestCase):
         data = {"object": "2A", "factor": 0.5, "center": {"x": 1, "y": 2, "z": 3}}
         script = render_script("scale_object", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
         self.assertEqual(script, self.expected_modify('(cadgpt-scale "2A" 0.5 1.0 2.0 3.0)'))
+
+    def test_read_scene_golden_script(self):
+        data = {}
+        script = render_script("read_scene", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH, scene_path=self.SCENE_PATH)
+        self.assertEqual(script, self.expected_read_scene('(cadgpt-read-scene "/opt/cadgpt/jobs/job-1/scene.json")'))
+
+    def test_export_design_dxf_golden_script(self):
+        data = {"format": "dxf"}
+        export_path = Path("/opt/cadgpt/documents/doc-1/export.dxf")
+        script = render_script("export_design", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH, export_path=export_path)
+        self.assertEqual(script, self.expected_export_dxf())
+        # Also test alias 'export'
+        script_alias = render_script("export", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH, export_path=export_path)
+        self.assertEqual(script_alias, self.expected_export_dxf())
+
+    def test_export_design_sat_golden_script(self):
+        data = {"format": "sat"}
+        export_path = Path("/opt/cadgpt/documents/doc-1/export.sat")
+        script = render_script("export_design", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH, export_path=export_path)
+        self.assertEqual(script, self.expected_export_sat())
+
+    def test_export_design_stl_golden_script(self):
+        data = {"format": "stl"}
+        export_path = Path("/opt/cadgpt/documents/doc-1/export.stl")
+        script = render_script("export_design", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH, export_path=export_path)
+        self.assertEqual(script, self.expected_export_stl())
+
+    def test_export_design_step_refuted_raises_value_error(self):
+        """P2.3.5: STEP/IGES was refuted in Spike A; export with format=step must be rejected."""
+        data = {"format": "step"}
+        export_path = Path("/opt/cadgpt/documents/doc-1/export.step")
+        with self.assertRaises(ValueError):
+            render_script("export_design", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH, export_path=export_path)
+
+    def test_export_design_unsupported_format_raises_value_error(self):
+        data = {"format": "iges"}
+        with self.assertRaises(ValueError):
+            render_script("export_design", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+
+    def test_cadgpt_lsp_read_scene_uses_no_vlax_or_activex(self):
+        """P2.3.1: assert read_scene returns enumerated entities without any
+        vlax/ActiveX call."""
+        code = _LSP_PATH.read_text(encoding="utf-8")
+        self.assertIn("cadgpt-read-scene", code)
+        code_lines = [line for line in code.splitlines() if not line.strip().startswith(";")]
+        code_only = "\n".join(code_lines).lower()
+        self.assertNotIn("vlax-", code_only)
+        self.assertNotIn("vla-", code_only)
+        self.assertIn('(ssget "_x" \'((0 . "3dsolid")))', code_only)
+
+
 
 
     def test_create_box_golden_script(self):
@@ -484,15 +571,17 @@ class AutoCadStrategyArgvTests(unittest.TestCase):
             script = (job_dir / "run.scr").read_text(encoding="utf-8")
             self.assertIn('(load "' + _LSP_PATH.as_posix() + '")', script)
 
-    def test_supports_create_boolean_and_transform_ops(self):
+    def test_supports_all_proven_ops(self):
         strategy = AutoCadStrategy()
         for op in ("create_box", "create_cylinder", "create_sphere", "create_cone", "extrude_rect",
                    "boolean_cut", "boolean_union", "boolean_intersect",
                    "translate_object", "rotate_object", "scale_object",
-                   "translate", "rotate", "scale"):
+                   "translate", "rotate", "scale",
+                   "read_scene", "export_design", "export"):
             self.assertTrue(strategy.supports(op))
-        for op in ("read_scene", "export_design"):
+        for op in ("unknown_op", "unsupported_xyz"):
             self.assertFalse(strategy.supports(op))
+
 
     def test_argv_for_boolean_op_modifies_existing_dwg(self):
         strategy = AutoCadStrategy()
@@ -523,6 +612,40 @@ class AutoCadStrategyArgvTests(unittest.TestCase):
             scr = (job_dir / "run.scr").read_bytes().decode("utf-8")
             self.assertIn('(cadgpt-translate "2A" 10.0 20.0 30.0)', scr)
             self.assertIn("_QSAVE\r\n_QUIT\r\n", scr)
+
+    def test_argv_for_read_scene_op(self):
+        strategy = AutoCadStrategy()
+        with tempfile.TemporaryDirectory() as d:
+            job_dir = Path(d) / "job"
+            doc_dir = Path(d) / "doc"
+            job_dir.mkdir()
+            doc_dir.mkdir()
+            (doc_dir / "design.dwg").write_bytes(b"existing")
+            self.make_request(job_dir, "read_scene", {})
+            argv = strategy.build_argv(Path("/trusted/accoreconsole.exe"), job_dir, doc_dir)
+            self.assertEqual(argv[2], str(doc_dir / "design.dwg"))
+            scr = (job_dir / "run.scr").read_bytes().decode("utf-8")
+            self.assertIn('(cadgpt-read-scene "' + (job_dir / "scene.json").as_posix() + '")', scr)
+            self.assertNotIn("_QSAVE", scr)
+            self.assertNotIn("_SAVEAS", scr)
+            self.assertIn("_QUIT\r\n", scr)
+
+    def test_argv_for_export_design_dxf_op(self):
+        strategy = AutoCadStrategy()
+        with tempfile.TemporaryDirectory() as d:
+            job_dir = Path(d) / "job"
+            doc_dir = Path(d) / "doc"
+            job_dir.mkdir()
+            doc_dir.mkdir()
+            (doc_dir / "design.dwg").write_bytes(b"existing")
+            self.make_request(job_dir, "export_design", {"format": "dxf"})
+            argv = strategy.build_argv(Path("/trusted/accoreconsole.exe"), job_dir, doc_dir)
+            self.assertEqual(argv[2], str(doc_dir / "design.dwg"))
+            scr = (job_dir / "run.scr").read_bytes().decode("utf-8")
+            self.assertIn("_DXFOUT", scr)
+            self.assertNotIn("_QSAVE", scr)
+            self.assertNotIn("_SAVEAS", scr)
+            self.assertIn("_QUIT\r\n", scr)
 
     def test_boolean_op_refused_when_absent_from_autocad_ops(self):
         """P2.1.4: spec 'Boolean op refused before Spike A resolves' — asserts

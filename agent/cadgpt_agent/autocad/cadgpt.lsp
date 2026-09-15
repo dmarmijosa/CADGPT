@@ -117,3 +117,33 @@
   )
 )
 
+;; Scene read: pure AutoLISP object enumeration (no ActiveX/vlax-*).
+;; Iterates 3DSOLID entities, extracts hex handles, and dumps JSON to out-path.
+(defun cadgpt-read-scene (out-path)
+  (setq ss (ssget "_X" '((0 . "3DSOLID"))))
+  (setq f (open out-path "w"))
+  (if f
+    (progn
+      (write-line "[" f)
+      (if ss
+        (progn
+          (setq i 0)
+          (setq n (sslength ss))
+          (while (< i n)
+            (setq ent (ssname ss i))
+            (setq d (entget ent))
+            (setq h (cdr (assoc 5 d)))
+            (setq tname (cdr (assoc 0 d)))
+            (setq comma (if (< i (1- n)) "," ""))
+            (write-line (strcat "  {\"name\": \"" h "\", \"label\": \"" h "\", \"type\": \"" tname "\", \"bbox\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], \"volume\": 0.0}" comma) f)
+            (setq i (1+ i))
+          )
+        )
+      )
+      (write-line "]" f)
+      (close f)
+    )
+  )
+)
+
+

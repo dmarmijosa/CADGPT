@@ -161,11 +161,11 @@ form and save in place; an out-of-range numeric value is rejected before spawn.
 
 ## P2 Phase 3: `read_scene` / `export` (PR P2-4, depends on: P2.0 proving read_scene/export)
 
-- [ ] P2.3.1 (RED, conditional on P2.0 proving `read_scene`) Add a test asserting `read_scene` returns enumerated entities without any vlax/ActiveX call.
-- [ ] P2.3.2 (conditional) Add `cadgpt-read-scene` to `agent/cadgpt_agent/autocad/cadgpt.lsp` using core AutoLISP object enumeration only (spec "Scene read returns entity list").
-- [ ] P2.3.3 (RED, conditional on P2.0 proving a non-hanging export mechanism) Add a golden test asserting `export` never invokes `_-EXPORT` or `3DPRINT` (spec "Export produces artifact via proven mechanism").
-- [ ] P2.3.4 (conditional) Extend `agent/cadgpt_agent/strategies/autocad.py` export handling to the proven mechanism for each additional format beyond STL.
-- [ ] P2.3.5 For any family P2.0 refutes: add the "refused before Spike A resolves" guard test only (spec "Scene read refused..." / "Export refused...") and leave the op out of `AUTOCAD_OPS`; do not implement.
+- [x] P2.3.1 (RED, conditional on P2.0 proving `read_scene`) Add a test asserting `read_scene` returns enumerated entities without any vlax/ActiveX call.
+- [x] P2.3.2 (conditional) Add `cadgpt-read-scene` to `agent/cadgpt_agent/autocad/cadgpt.lsp` using core AutoLISP object enumeration only (spec "Scene read returns entity list").
+- [x] P2.3.3 (RED, conditional on P2.0 proving a non-hanging export mechanism) Add a golden test asserting `export` never invokes `_-EXPORT` or `3DPRINT` (spec "Export produces artifact via proven mechanism").
+- [x] P2.3.4 (conditional) Extend `agent/cadgpt_agent/strategies/autocad.py` export handling to the proven mechanism for each additional format beyond STL.
+- [x] P2.3.5 For any family P2.0 refutes: add the "refused before Spike A resolves" guard test only (spec "Scene read refused..." / "Export refused...") and leave the op out of `AUTOCAD_OPS`; do not implement.
 
 Acceptance: `read_scene`/`export` ship only for spike-proven mechanisms; a refuted family stays
 absent from `AUTOCAD_OPS` and its refusal is test-covered. ~300 changed lines if both families
