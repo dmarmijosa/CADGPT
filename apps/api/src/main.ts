@@ -174,6 +174,10 @@ http.post(
   wrap((q, r) => r.json(store.heartbeat(token(q), z.array(cadSchema).max(30).parse(q.body.cads)))),
 );
 http.post(
+  '/api/agent/unpair',
+  wrap((q, r) => r.json(store.unpair(token(q)))),
+);
+http.post(
   '/api/agent/results/:id',
   wrap((q, r) => {
     // 16000 accommodates the JSON-wrapped `{ message, scene }` contract

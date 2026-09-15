@@ -224,6 +224,14 @@ export class Store {
       .run(id);
     return { revoked: true };
   }
+  unpair(token: string) {
+    const d = this.device(token);
+    this.db.prepare('UPDATE devices SET revoked=1 WHERE id=?').run(d.id);
+    this.db
+      .prepare("UPDATE jobs SET status='cancelled' WHERE device_id=? AND status='queued'")
+      .run(d.id);
+    return { unpaired: true, deviceId: d.id };
+  }
   // Mints a new API key for `owner`. `scopes` defaults to full access when
   // empty; anything outside API_KEY_SCOPES is rejected. The full key is
   // returned exactly once here — only its hash is ever persisted.

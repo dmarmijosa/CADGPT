@@ -1,9 +1,12 @@
 import io
 import json
+import logging
+import platform
 import sys
 import tempfile
 import time
 import unittest
+import urllib.error
 import uuid
 from pathlib import Path
 from types import SimpleNamespace
@@ -409,5 +412,407 @@ class FreecadWorkerOpsTests(unittest.TestCase):
                     self.assertEqual(self.fake_dxf.calls[-1][1], str(doc_dir / "export.dxf"))
 
 
+class CliDispatchTests(unittest.TestCase):
+    def test_unknown_subcommand_rejected(self):
+        with self.assertRaises(SystemExit) as ctx:
+            from cadgpt_agent.main import main
+            main(["invalid-cmd"])
+        self.assertEqual(ctx.exception.code, 2)
+
+    def test_default_foreground_dispatch_without_subcommand(self):
+        from cadgpt_agent.main import main
+        with patch("cadgpt_agent.main.run_foreground_loop") as mock_loop:
+            mock_loop.return_value = 0
+            ret = main(["--server", "https://example.com/api"])
+            self.assertEqual(ret, 0)
+            mock_loop.assert_called_once()
+            args = mock_loop.call_args[0][0]
+            self.assertEqual(args.server, "https://example.com/api")
+            self.assertIsNone(args.subcommand)
+
+    def test_version_outputs_semver_string(self):
+        from cadgpt_agent.main import main, VERSION
+        out = io.StringIO()
+        with patch("sys.stdout", out):
+            ret = main(["version"])
+        self.assertEqual(ret, 0)
+        self.assertIn(f"cadengine v{VERSION}", out.getvalue())
+
+    def test_version_flag_outputs_semver_string(self):
+        from cadgpt_agent.main import main, VERSION
+        out = io.StringIO()
+        with patch("sys.stdout", out):
+            ret = main(["--version"])
+        self.assertEqual(ret, 0)
+        self.assertIn(f"cadengine v{VERSION}", out.getvalue())
+
+    def test_version_check_newer_release_notifies_upgrade(self):
+        from cadgpt_agent.main import main, VERSION
+        out = io.StringIO()
+        with patch("sys.stdout", out), patch("cadgpt_agent.main.check_latest_release", return_value="0.9.9"):
+            ret = main(["version", "--check"])
+        self.assertEqual(ret, 0)
+        output = out.getvalue()
+        self.assertIn(f"cadengine v{VERSION}", output)
+        self.assertIn("An update is available: v0.9.9", output)
+
+    def test_version_check_offline_falls_back_gracefully(self):
+        from cadgpt_agent.main import main, VERSION
+        out = io.StringIO()
+        with patch("sys.stdout", out), patch("cadgpt_agent.main.check_latest_release", return_value=None):
+            ret = main(["version", "--check"])
+        self.assertEqual(ret, 0)
+        self.assertIn(f"cadengine v{VERSION}", out.getvalue())
+        self.assertNotIn("An update is available", out.getvalue())
+
+
+class StatusSubcommandTests(unittest.TestCase):
+    def test_status_healthy_returns_0(self):
+        from cadgpt_agent.main import main
+        with tempfile.TemporaryDirectory() as td:
+            config = Path(td) / "config.json"
+            config.write_text(json.dumps({"server": "https://server.example"}))
+            mock_resp = io.BytesIO(b'{"status": "ok"}')
+            mock_resp.status = 200
+            with patch("cadgpt_agent.main.user_data_dir", return_value=td), \
+                 patch("keyring.get_password", return_value="token123"), \
+                 patch("urllib.request.urlopen", return_value=mock_resp), \
+                 patch("cadgpt_agent.main.discover", return_value=[{"id": "1", "name": "FreeCAD", "path": "/bin/FreeCADCmd", "executable": True}]), \
+                 patch("cadgpt_agent.main.get_service_status", return_value={"installed": True, "active": True, "status": "active", "name": "test"}):
+                ret = main(["status"])
+                self.assertEqual(ret, 0)
+
+    def test_status_unpaired_returns_1(self):
+        from cadgpt_agent.main import main
+        with tempfile.TemporaryDirectory() as td:
+            config = Path(td) / "config.json"
+            config.write_text(json.dumps({"server": "https://server.example"}))
+            mock_resp = io.BytesIO(b'{"status": "ok"}')
+            mock_resp.status = 200
+            with patch("cadgpt_agent.main.user_data_dir", return_value=td), \
+                 patch("keyring.get_password", return_value=None), \
+                 patch("urllib.request.urlopen", return_value=mock_resp), \
+                 patch("cadgpt_agent.main.discover", return_value=[]), \
+                 patch("cadgpt_agent.main.get_service_status", return_value={"installed": False, "active": False, "status": "not installed", "name": "test"}):
+                ret = main(["status"])
+                self.assertEqual(ret, 1)
+
+    def test_status_json_schema(self):
+        from cadgpt_agent.main import main
+        with tempfile.TemporaryDirectory() as td:
+            config = Path(td) / "config.json"
+            config.write_text(json.dumps({"server": "https://server.example"}))
+            mock_resp = io.BytesIO(b'{"status": "ok"}')
+            mock_resp.status = 200
+            out = io.StringIO()
+            with patch("sys.stdout", out), \
+                 patch("cadgpt_agent.main.user_data_dir", return_value=td), \
+                 patch("keyring.get_password", return_value="token123"), \
+                 patch("urllib.request.urlopen", return_value=mock_resp), \
+                 patch("cadgpt_agent.main.discover", return_value=[]), \
+                 patch("cadgpt_agent.main.get_service_status", return_value={"installed": True, "active": True, "status": "active", "name": "test"}):
+                ret = main(["status", "--json"])
+                self.assertEqual(ret, 0)
+                data = json.loads(out.getvalue())
+                for key in ("host", "config", "keyring", "server", "cads", "service"):
+                    self.assertIn(key, data)
+
+
+class PairUnpairSubcommandTests(unittest.TestCase):
+    def test_pair_headless_persists_credentials(self):
+        from cadgpt_agent.main import main
+        with tempfile.TemporaryDirectory() as td:
+            with patch("cadgpt_agent.main.user_data_dir", return_value=td), \
+                 patch("cadgpt_agent.main.discover", return_value=[]), \
+                 patch("cadgpt_agent.main.request") as mock_req, \
+                 patch("cadgpt_agent.main.open_connect_step") as mock_connect, \
+                 patch("keyring.delete_password"), \
+                 patch("keyring.set_password") as mock_set_pw:
+                mock_req.side_effect = [
+                    {"userCode": "CODE-1234", "deviceSecret": "secret-123"},
+                    {"pending": False, "credential": "cred-token-456", "deviceId": "dev-uuid-789"},
+                ]
+                with patch("cadgpt_agent.main.time.sleep"):
+                    ret = main(["pair", "--server", "https://example.com", "--headless"])
+                self.assertEqual(ret, 0)
+                mock_set_pw.assert_called_with("CADGPT", "https://example.com", "cred-token-456")
+                mock_connect.assert_called_with("https://example.com", "dev-uuid-789", True)
+                cfg = json.loads((Path(td) / "config.json").read_text())
+                self.assertEqual(cfg["deviceId"], "dev-uuid-789")
+
+    def test_unpair_calls_server_and_unconditionally_wipes(self):
+        from cadgpt_agent.main import main
+        with tempfile.TemporaryDirectory() as td:
+            config = Path(td) / "config.json"
+            config.write_text(json.dumps({"server": "https://example.com", "deviceId": "dev-123"}))
+            cred_file = Path(td) / "credential.json"
+            cred_file.write_text(json.dumps({"server": "https://example.com", "credential": "bearer-tok"}))
+
+            with patch("cadgpt_agent.main.user_data_dir", return_value=td), \
+                 patch("keyring.get_password", return_value="bearer-tok"), \
+                 patch("keyring.delete_password") as mock_del, \
+                 patch("cadgpt_agent.main.request") as mock_req:
+                ret = main(["unpair"])
+                self.assertEqual(ret, 0)
+                mock_req.assert_called_once_with("https://example.com", "/api/agent/unpair", {}, credential="bearer-tok")
+                mock_del.assert_called_with("CADGPT", "https://example.com")
+                self.assertFalse(cred_file.exists())
+                updated_cfg = json.loads(config.read_text())
+                self.assertNotIn("deviceId", updated_cfg)
+
+    def test_unpair_offline_force_unconditionally_wipes(self):
+        from cadgpt_agent.main import main
+        with tempfile.TemporaryDirectory() as td:
+            config = Path(td) / "config.json"
+            config.write_text(json.dumps({"server": "https://example.com", "deviceId": "dev-123"}))
+            cred_file = Path(td) / "credential.json"
+            cred_file.write_text(json.dumps({"server": "https://example.com", "credential": "bearer-tok"}))
+
+            with patch("cadgpt_agent.main.user_data_dir", return_value=td), \
+                 patch("keyring.get_password", return_value="bearer-tok"), \
+                 patch("keyring.delete_password") as mock_del, \
+                 patch("cadgpt_agent.main.request", side_effect=urllib.error.URLError("Server unreachable")):
+                ret = main(["unpair", "--force"])
+                self.assertEqual(ret, 0)
+                mock_del.assert_called_with("CADGPT", "https://example.com")
+                self.assertFalse(cred_file.exists())
+                updated_cfg = json.loads(config.read_text())
+                self.assertNotIn("deviceId", updated_cfg)
+
+
+class LoggingSubcommandTests(unittest.TestCase):
+    def test_rotating_file_handler_configuration(self):
+        from cadgpt_agent.main import setup_logging
+        with tempfile.TemporaryDirectory() as td:
+            logger, log_path = setup_logging(root_dir=td, log_filename="cadengine.log")
+            self.assertEqual(log_path, Path(td) / "logs" / "cadengine.log")
+            rfh = next(h for h in logger.handlers if isinstance(h, logging.handlers.RotatingFileHandler))
+            self.assertEqual(rfh.maxBytes, 5 * 1024 * 1024)
+            self.assertEqual(rfh.backupCount, 3)
+
+    def test_logs_subcommand_outputs_lines(self):
+        from cadgpt_agent.main import main
+        with tempfile.TemporaryDirectory() as td:
+            logs_dir = Path(td) / "logs"
+            logs_dir.mkdir(parents=True)
+            log_file = logs_dir / "cadengine.log"
+            log_file.write_text("".join(f"line {i}\n" for i in range(100)))
+
+            out = io.StringIO()
+            with patch("sys.stdout", out), patch("cadgpt_agent.main.user_data_dir", return_value=td):
+                ret = main(["logs", "-n", "20"])
+            self.assertEqual(ret, 0)
+            lines = out.getvalue().strip().splitlines()
+            self.assertEqual(len(lines), 20)
+            self.assertEqual(lines[0], "line 80")
+            self.assertEqual(lines[-1], "line 99")
+
+
+class TestSubcommandTests(unittest.TestCase):
+    def test_smoke_test_successful(self):
+        from cadgpt_agent.main import main
+        cad = {"id": "cad-1", "name": "FreeCAD", "path": "/bin/FreeCADCmd", "executable": True}
+        with patch("cadgpt_agent.main.discover", return_value=[cad]), \
+             patch("cadgpt_agent.main.execute") as mock_exec:
+            def fake_exec(job, cads, root, **kwargs):
+                jdir = Path(root) / "jobs" / job["id"]
+                jdir.mkdir(parents=True, exist_ok=True)
+                (jdir / "design.FCStd").write_bytes(b"fcstd-data")
+                (jdir / "preview.stl").write_bytes(b"A" * 100)
+                return "ok"
+            mock_exec.side_effect = fake_exec
+            out = io.StringIO()
+            with patch("sys.stdout", out):
+                ret = main(["test", "--cad", "freecad"])
+            self.assertEqual(ret, 0)
+            self.assertIn("[PASS] FreeCAD smoke test succeeded", out.getvalue())
+
+    def test_smoke_test_failure_reports_diagnostics(self):
+        from cadgpt_agent.main import main
+        cad = {"id": "cad-1", "name": "FreeCAD", "path": "/bin/FreeCADCmd", "executable": True}
+        with patch("cadgpt_agent.main.discover", return_value=[cad]), \
+             patch("cadgpt_agent.main.execute", side_effect=RuntimeError("Subprocess crashed")):
+            err = io.StringIO()
+            with patch("sys.stderr", err):
+                ret = main(["test", "--cad", "freecad"])
+            self.assertEqual(ret, 1)
+            self.assertIn("[FAIL] FreeCAD smoke test failed: Subprocess crashed", err.getvalue())
+
+
+class DoctorSubcommandTests(unittest.TestCase):
+    def test_doctor_all_green(self):
+        from cadgpt_agent.main import main
+        with tempfile.TemporaryDirectory() as td:
+            config = Path(td) / "config.json"
+            config.write_text(json.dumps({"server": "https://server.example", "deviceId": "dev-1"}))
+            mock_resp = io.BytesIO(b'{"status": "ok"}')
+            mock_resp.status = 200
+            cad = {"id": "cad-1", "name": "FreeCAD", "path": "/bin/FreeCADCmd", "executable": True}
+            with patch("cadgpt_agent.main.user_data_dir", return_value=td), \
+                 patch("keyring.get_password", return_value="tok"), \
+                 patch("urllib.request.urlopen", return_value=mock_resp), \
+                 patch("cadgpt_agent.main.discover", return_value=[cad]), \
+                 patch("cadgpt_agent.main.get_service_status", return_value={"installed": True, "active": True, "status": "active", "name": "service"}):
+                ret = main(["doctor"])
+                self.assertEqual(ret, 0)
+
+    def test_doctor_missing_cad_fails_without_fix(self):
+        from cadgpt_agent.main import main
+        with tempfile.TemporaryDirectory() as td:
+            config = Path(td) / "config.json"
+            config.write_text(json.dumps({"server": "https://server.example", "deviceId": "dev-1"}))
+            mock_resp = io.BytesIO(b'{"status": "ok"}')
+            mock_resp.status = 200
+            with patch("cadgpt_agent.main.user_data_dir", return_value=td), \
+                 patch("keyring.get_password", return_value="tok"), \
+                 patch("urllib.request.urlopen", return_value=mock_resp), \
+                 patch("cadgpt_agent.main.discover", return_value=[]), \
+                 patch("cadgpt_agent.main.get_service_status", return_value={"installed": True, "active": True, "status": "active", "name": "service"}), \
+                 patch("sys.stdin.isatty", return_value=False):
+                ret = main(["doctor"])
+                self.assertEqual(ret, 1)
+
+    def test_doctor_fix_provisions_headless_freecad_and_registers_environment(self):
+        from cadgpt_agent.main import main
+        with tempfile.TemporaryDirectory() as td:
+            home = Path(td) / "home"
+            home.mkdir()
+            config = Path(td) / "config.json"
+            config.write_text(json.dumps({"server": "https://server.example", "deviceId": "dev-1"}))
+            mock_resp = io.BytesIO(b'{"status": "ok"}')
+            mock_resp.status = 200
+
+            cad = {"id": "cad-1", "name": "FreeCAD", "path": "/bin/FreeCADCmd", "executable": True}
+            discover_calls = [[] , [cad]]
+
+            def mock_urlopen(*a, **kw):
+                r = io.BytesIO(b'{"status": "ok"}')
+                r.status = 200
+                return r
+
+            with patch("cadgpt_agent.main.Path.home", return_value=home), \
+                 patch("cadgpt_agent.main.user_data_dir", return_value=td), \
+                 patch("keyring.get_password", return_value="tok"), \
+                 patch("urllib.request.urlopen", side_effect=mock_urlopen), \
+                 patch("cadgpt_agent.main.discover", side_effect=lambda *a, **kw: discover_calls.pop(0) if discover_calls else [cad]), \
+                 patch("cadgpt_agent.main.get_service_status", return_value={"installed": True, "active": True, "status": "active", "name": "service"}), \
+                 patch("shutil.which", return_value="/usr/bin/conda"), \
+                 patch("subprocess.run") as mock_run:
+                mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
+                ret = main(["doctor", "--fix"])
+                self.assertEqual(ret, 0)
+                env_file = home / ".conda" / "environments.txt"
+                self.assertTrue(env_file.is_file())
+                self.assertIn("cadengine-freecad", env_file.read_text())
+
+
+class UpdateSubcommandTests(unittest.TestCase):
+    def test_update_already_latest(self):
+        from cadgpt_agent.main import main, VERSION
+        release_json = json.dumps({"tag_name": f"v{VERSION}"}).encode()
+        mock_resp = io.BytesIO(release_json)
+        out = io.StringIO()
+        with patch("sys.stdout", out), patch("urllib.request.urlopen", return_value=mock_resp):
+            ret = main(["update"])
+        self.assertEqual(ret, 0)
+        self.assertIn("already up to date", out.getvalue())
+
+    def test_update_downloads_verifies_sha256_replaces_and_restarts(self):
+        import hashlib
+        from cadgpt_agent.main import main
+        with tempfile.TemporaryDirectory() as td:
+            binary = Path(td) / "cadengine"
+            binary.write_bytes(b"old-binary")
+
+            new_bytes = b"brand-new-executable-binary"
+            sha = hashlib.sha256(new_bytes).hexdigest()
+            asset_name = "cadengine-darwin" if platform.system() == "Darwin" else ("cadengine-windows.exe" if platform.system() == "Windows" else "cadengine-linux")
+            sums_content = f"{sha}  {asset_name}\n".encode()
+
+            release_payload = {
+                "tag_name": "v0.9.0",
+                "assets": [
+                    {"name": "SHA256SUMS.txt", "browser_download_url": "https://download/sums"},
+                    {"name": asset_name, "browser_download_url": "https://download/bin"},
+                ]
+            }
+
+            def fake_urlopen(req, timeout=10):
+                url = req.full_url if hasattr(req, "full_url") else str(req)
+                if "releases/latest" in url:
+                    return io.BytesIO(json.dumps(release_payload).encode())
+                elif "download/sums" in url:
+                    return io.BytesIO(sums_content)
+                elif "download/bin" in url:
+                    return io.BytesIO(new_bytes)
+                raise ValueError("Unexpected URL: " + url)
+
+            with patch("urllib.request.urlopen", side_effect=fake_urlopen), \
+                 patch("cadgpt_agent.main.get_agent_executable", return_value=str(binary)), \
+                 patch("cadgpt_agent.main.restart_service") as mock_restart:
+                ret = main(["update"])
+                self.assertEqual(ret, 0)
+                self.assertEqual(binary.read_bytes(), new_bytes)
+                mock_restart.assert_called_once()
+
+    def test_update_sha256_mismatch_fails(self):
+        from cadgpt_agent.main import main
+        with tempfile.TemporaryDirectory() as td:
+            binary = Path(td) / "cadengine"
+            binary.write_bytes(b"old-binary")
+
+            new_bytes = b"brand-new-executable-binary"
+            asset_name = "cadengine-darwin" if platform.system() == "Darwin" else ("cadengine-windows.exe" if platform.system() == "Windows" else "cadengine-linux")
+            sums_content = f"badhash1234567890  {asset_name}\n".encode()
+
+            release_payload = {
+                "tag_name": "v0.9.0",
+                "assets": [
+                    {"name": "SHA256SUMS.txt", "browser_download_url": "https://download/sums"},
+                    {"name": asset_name, "browser_download_url": "https://download/bin"},
+                ]
+            }
+
+            def fake_urlopen(req, timeout=10):
+                url = req.full_url if hasattr(req, "full_url") else str(req)
+                if "releases/latest" in url:
+                    return io.BytesIO(json.dumps(release_payload).encode())
+                elif "download/sums" in url:
+                    return io.BytesIO(sums_content)
+                elif "download/bin" in url:
+                    return io.BytesIO(new_bytes)
+                raise ValueError("Unexpected URL: " + url)
+
+            err = io.StringIO()
+            with patch("sys.stderr", err), \
+                 patch("urllib.request.urlopen", side_effect=fake_urlopen), \
+                 patch("cadgpt_agent.main.get_agent_executable", return_value=str(binary)):
+                ret = main(["update"])
+                self.assertEqual(ret, 1)
+                self.assertEqual(binary.read_bytes(), b"old-binary")
+                self.assertIn("SHA-256 verification failed", err.getvalue())
+
+
+class ServiceSubcommandTests(unittest.TestCase):
+    def test_service_commands_dispatch(self):
+        from cadgpt_agent.main import main
+        with patch("cadgpt_agent.main.install_service") as m_inst, \
+             patch("cadgpt_agent.main.start_service") as m_start, \
+             patch("cadgpt_agent.main.stop_service") as m_stop, \
+             patch("cadgpt_agent.main.get_service_status", return_value={"name": "test", "installed": True, "active": True, "status": "active"}) as m_stat, \
+             patch("cadgpt_agent.main.uninstall_service") as m_uninst:
+            self.assertEqual(main(["service", "install"]), 0)
+            m_inst.assert_called_once()
+            self.assertEqual(main(["service", "start"]), 0)
+            m_start.assert_called_once()
+            self.assertEqual(main(["service", "stop"]), 0)
+            m_stop.assert_called_once()
+            self.assertEqual(main(["service", "status"]), 0)
+            m_stat.assert_called_once()
+            self.assertEqual(main(["service", "uninstall"]), 0)
+            m_uninst.assert_called_once()
+
+
 if __name__ == "__main__":
     unittest.main()
+
