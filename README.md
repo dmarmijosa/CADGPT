@@ -29,7 +29,7 @@ Have a compatible CAD installation and your administrator's **CAD Agent Designer
 3. Leave **Connect this computer to CAD Agent Designer** checked at the end.
 4. Enter the server URL. The agent opens the registration/sign-in page.
 5. Register or sign in, then enter the pairing code printed in the agent window. Confirm only a code from your own computer.
-6. Keep the agent window open. Refresh the dashboard to see the online device.
+6. Keep the agent window open. Refresh the dashboard to see the online device. To run it unattended (start on boot, restart on crash), see [Keep the agent running](#keep-the-agent-running-survive-logout-and-reboot).
 
 Unsigned alpha builds may trigger Windows security warnings. Do not disable system-wide protection. If your organization blocks unsigned applications, wait for a signed release or have your administrator review the source.
 
@@ -39,7 +39,7 @@ Unsigned alpha builds may trigger Windows security warnings. Do not disable syst
 2. Open the disk image and copy `CADGPT.app` to Applications.
 3. Open CADGPT and enter your server URL. A browser page and a pairing-code dialog appear.
 4. Complete registration/sign-in and confirm the code in the dashboard, then dismiss the dialog.
-5. Keep CADGPT running. To stop this alpha's background agent, use Activity Monitor; no menu-bar control or login service is installed.
+5. Keep CADGPT running. To stop this alpha's background agent, use Activity Monitor; no menu-bar control or login service is installed. To start it automatically at login, see [Keep the agent running](#keep-the-agent-running-survive-logout-and-reboot).
 
 This alpha is **not notarized**. If Gatekeeper blocks it, use the source workflow or an administrator-reviewed build; do not disable Gatekeeper or remove quarantine globally.
 
@@ -52,7 +52,7 @@ This alpha is **not notarized**. If Gatekeeper blocks it, use the source workflo
    ./CADGPT/CADGPT --server https://your-cadgpt.example
    ```
 3. Sign in/register in the browser and confirm the pairing code.
-4. Keep the process running. Press Ctrl+C to disconnect.
+4. Keep the process running. Press Ctrl+C to disconnect. For an always-on server, install it as a systemd service instead — see [Keep the agent running](#keep-the-agent-running-survive-logout-and-reboot).
 
 For a headless computer add `--headless` and open the printed URL on another device. An OS keyring is preferred. If none is available, a trusted single-user Linux host can explicitly opt into `--allow-file-credentials`; this stores a private owner-readable credential file. This fallback is never automatic and is disabled on Windows.
 
@@ -66,6 +66,125 @@ cadgpt-agent --server https://your-cadgpt.example --cad-path /absolute/path/to/F
 ```
 
 Use `CADGPT.exe` or `./CADGPT` instead of `cadgpt-agent` for packaged builds. A detected GUI executable alone is **not** enough: this alpha requires a working FreeCAD command-line executable. Version is reported as unverified until actual operation testing; detection is not certification.
+
+## Keep the agent running (survive logout and reboot)
+
+Run interactively (a terminal window or `--headless` session) the agent stops the
+moment you close it, and the device goes **Offline** — no jobs run. On a server or
+any always-on machine, install it as a background service so it starts on boot and
+restarts on crash. After the first pairing the agent reuses the saved server URL and
+credential automatically, so **the service never needs to pair again** — it only has
+to run **as the same OS user that paired**, because the credential lives in that
+user's data directory (`~/.local/share/CADGPT` on Linux, `~/Library/Application
+Support/CADGPT` on macOS, `%LOCALAPPDATA%\CADGPT` on Windows).
+
+### Linux — systemd
+
+For a headless server, install the portable build to a fixed location first:
+
+```bash
+cd /tmp
+wget https://github.com/dmarmijosa/CADGPT/releases/download/v0.1.0-alpha.1/CADGPT-linux-x64.tar.gz
+# Verify against the release SHA256SUMS.txt (replace the hash with the published one):
+echo "<sha256>  CADGPT-linux-x64.tar.gz" | sha256sum -c -
+sudo mkdir -p /opt/cadgpt-agent
+sudo tar -xzf CADGPT-linux-x64.tar.gz -C /opt/cadgpt-agent --strip-components=1
+sudo ln -sf /opt/cadgpt-agent/CADGPT /usr/local/bin/cadgpt-agent
+```
+
+Pair once interactively so the credential is stored for your user:
+
+```bash
+cadgpt-agent --server https://your-cadgpt.example --headless --allow-file-credentials
+```
+
+Then create the service (replace `youruser` with the user that just paired):
+
+```bash
+sudo tee /etc/systemd/system/cadgpt-agent.service >/dev/null <<'EOF'
+[Unit]
+Description=CAD Agent Designer bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=youruser
+ExecStart=/usr/local/bin/cadgpt-agent --server https://your-cadgpt.example --allow-file-credentials
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+sudo systemctl daemon-reload
+sudo systemctl enable --now cadgpt-agent
+sudo systemctl status cadgpt-agent --no-pager   # expect: active (running)
+journalctl -u cadgpt-agent -f                    # follow logs; expect "Connected."
+```
+
+`Restart=always` recovers from crashes; `enable` starts it on every boot. `User=`
+**must** match the pairing user or the service will not find the stored credential
+and will try to pair again. Add `--enable-autocad` to the `ExecStart` line only on a
+Windows host with AutoCAD (not applicable to Linux). To stop or update:
+`sudo systemctl restart cadgpt-agent` / `sudo systemctl disable --now cadgpt-agent`.
+
+### macOS — launchd (LaunchAgent)
+
+A LaunchAgent runs in your user session (so it can reach the login keychain) and
+starts again each time you log in. After copying `CADGPT.app` to Applications and
+pairing once, create `~/Library/LaunchAgents/com.cadgpt.agent.plist`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.cadgpt.agent</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Applications/CADGPT.app/Contents/MacOS/CADGPT</string>
+    <string>--server</string>
+    <string>https://your-cadgpt.example</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>/tmp/cadgpt-agent.log</string>
+  <key>StandardErrorPath</key><string>/tmp/cadgpt-agent.log</string>
+</dict>
+</plist>
+```
+
+Load it (starts immediately and on every login):
+
+```bash
+launchctl load ~/Library/LaunchAgents/com.cadgpt.agent.plist
+launchctl list | grep cadgpt      # expect a PID in the first column
+```
+
+`KeepAlive` restarts it on crash. To stop:
+`launchctl unload ~/Library/LaunchAgents/com.cadgpt.agent.plist`. A LaunchAgent
+starts at **login**, not at pre-login boot; for an unattended Mac, enable automatic
+login for that user, or wait for a future signed build with a proper login item.
+
+### Windows — Task Scheduler
+
+Run the installed agent at log on and keep it alive. In an **administrator**
+PowerShell (replace `YOURUSER` with the account that paired):
+
+```powershell
+$exe = "C:\Program Files\CAD Agent Designer\CADGPT.exe"
+$action  = New-ScheduledTaskAction -Execute $exe -Argument "--server https://your-cadgpt.example"
+$trigger = New-ScheduledTaskTrigger -AtLogOn -User "YOURUSER"
+$settings = New-ScheduledTaskSettingsSet -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -StartWhenAvailable
+Register-ScheduledTask -TaskName "CAD Agent Designer" -Action $action -Trigger $trigger -Settings $settings -RunLevel Limited -User "YOURUSER"
+Start-ScheduledTask -TaskName "CAD Agent Designer"
+```
+
+Run it at **log on of the paired user** (not as SYSTEM): the pairing credential is
+stored in that user's Windows Credential Manager, which SYSTEM cannot read. The task
+restarts the agent if it exits and starts it after each login. To remove:
+`Unregister-ScheduledTask -TaskName "CAD Agent Designer" -Confirm:$false`. Add
+`--enable-autocad` to `-Argument` if this host also drives AutoCAD.
 
 ## Try the first operation
 

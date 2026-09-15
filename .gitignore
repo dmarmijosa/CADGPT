@@ -16,3 +16,7 @@ data/
 .vscode/
 
 /CADGPT.spec
+
+# Local AI tooling (Gemini CLI / gentle-ai, Guardian Angel) — not part of the repo
+.gemini/
+.gga
