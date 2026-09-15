@@ -101,9 +101,15 @@ describe('ConnectPage (spec mcp-client-onboarding)', () => {
     expect(windowsSnippet).toContain('New-ScheduledTaskAction');
 
     // Copy buttons exist for each OS
-    expect(linuxBlock?.querySelector('button[aria-label="Copy Linux systemd snippet"]')).toBeTruthy();
-    expect(macosBlock?.querySelector('button[aria-label="Copy macOS launchd snippet"]')).toBeTruthy();
-    expect(windowsBlock?.querySelector('button[aria-label="Copy Windows PowerShell snippet"]')).toBeTruthy();
+    expect(
+      linuxBlock?.querySelector('button[aria-label="Copy Linux systemd snippet"]'),
+    ).toBeTruthy();
+    expect(
+      macosBlock?.querySelector('button[aria-label="Copy macOS launchd snippet"]'),
+    ).toBeTruthy();
+    expect(
+      windowsBlock?.querySelector('button[aria-label="Copy Windows PowerShell snippet"]'),
+    ).toBeTruthy();
   });
 });
 

@@ -108,7 +108,8 @@
         <div>
           <h2>Allowed folders</h2>
           <p>
-            Folders on <strong>{{ activeDevice()?.name }}</strong> that the agent is authorized to access and modify in place.
+            Folders on <strong>{{ activeDevice()?.name }}</strong> that the agent is authorized to
+            access and modify in place.
           </p>
         </div>
         @if (workspace.devices.value().length > 1) {
@@ -154,7 +155,9 @@
           <tbody>
             @for (root of rootsResource.value(); track root.id) {
               <tr>
-                <td><code>{{ root.path }}</code></td>
+                <td>
+                  <code>{{ root.path }}</code>
+                </td>
                 <td>
                   <span class="tabular-nums" [title]="root.created | date: 'medium'">
                     {{ root.created | date: 'shortDate' }}
@@ -195,7 +198,9 @@
               {{ addingRoot() ? 'Adding…' : 'Add folder' }}
             </button>
           </div>
-          <small class="hint">Must be an absolute POSIX, Windows, or UNC path without traversal dots (..).</small>
+          <small class="hint"
+            >Must be an absolute POSIX, Windows, or UNC path without traversal dots (..).</small
+          >
         </form>
       }
     </section>

@@ -142,7 +142,11 @@ test('device credential or API key cannot manage allowlist (returns 401/403)', a
     assert.ok(keyGet.status === 401 || keyGet.status === 403);
 
     // 5. Authenticator unit test: presenting cad_ key to OIDC auth fails with 401
-    const auth = authenticator('https://issuer.example', 'cadgpt-api', 'https://issuer.example/jwks');
+    const auth = authenticator(
+      'https://issuer.example',
+      'cadgpt-api',
+      'https://issuer.example/jwks',
+    );
     await assert.rejects(
       auth(`Bearer ${apiKey.key}`, 'cad:write'),
       (e: unknown) => (e as { status?: number }).status === 401,
@@ -349,4 +353,3 @@ test('revocation reflected on subsequent heartbeat poll', () => {
   assert.equal(next.allowedRoots.length, 1);
   assert.deepEqual(next.allowedRoots, ['/home/alice/models']);
 });
-

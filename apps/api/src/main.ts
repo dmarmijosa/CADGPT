@@ -9,7 +9,14 @@ import { resolve } from 'node:path';
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { Store, DomainError, cadSchema, boxSchema, API_KEY_SCOPES, isValidPathShape } from './store.js';
+import {
+  Store,
+  DomainError,
+  cadSchema,
+  boxSchema,
+  API_KEY_SCOPES,
+  isValidPathShape,
+} from './store.js';
 import { rootsRouter } from './roots.js';
 import { meshRouter } from './mesh.js';
 import { registerTools } from './tools.js';

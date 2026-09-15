@@ -127,7 +127,9 @@ describe('DevicesPage', () => {
 
     expect(root.textContent).toContain('Allowed folders');
     expect(root.textContent).toContain('/home/alice/allowed');
-    expect(root.querySelector('button[aria-label="Remove folder /home/alice/allowed"]')).toBeTruthy();
+    expect(
+      root.querySelector('button[aria-label="Remove folder /home/alice/allowed"]'),
+    ).toBeTruthy();
 
     fixture.destroy();
   });

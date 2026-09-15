@@ -120,4 +120,3 @@ export interface AllowedRoot {
   path: string;
   created: number;
 }
-

@@ -275,10 +275,19 @@ test('P2.4.2: an AutoCAD device advertising proven ops enqueues boolean, transfo
     capabilities: {
       ...autocad.capabilities,
       ops: [
-        'create_box', 'create_cylinder', 'create_sphere', 'create_cone', 'extrude_rect',
-        'boolean_cut', 'boolean_union', 'boolean_intersect',
-        'translate_object', 'rotate_object', 'scale_object',
-        'read_scene', 'export_design',
+        'create_box',
+        'create_cylinder',
+        'create_sphere',
+        'create_cone',
+        'extrude_rect',
+        'boolean_cut',
+        'boolean_union',
+        'boolean_intersect',
+        'translate_object',
+        'rotate_object',
+        'scale_object',
+        'read_scene',
+        'export_design',
       ],
     },
   };
@@ -303,9 +312,7 @@ test('P2.4.2: an AutoCAD device advertising proven ops enqueues boolean, transfo
     }
   }
 
-  const createdBody = JSON.parse(
-    (created.content as { type: string; text: string }[])[0].text,
-  );
+  const createdBody = JSON.parse((created.content as { type: string; text: string }[])[0].text);
   const documentId = createdBody.documentId;
   drainAndComplete();
 
@@ -368,7 +375,6 @@ test('P2.4.2: an AutoCAD device advertising proven ops enqueues boolean, transfo
   drainAndComplete();
   assert.equal(store.jobs('alice').length, 5);
 });
-
 
 test('13b.5: FreeCAD enqueue path (no capabilities field) is unaffected by the AutoCAD gate', async () => {
   const store = new Store(':memory:');
@@ -494,7 +500,9 @@ test('modify job against path-bound document pins native_path and rejects altern
       confirmed: true,
     },
   });
-  const { documentId, jobId } = JSON.parse((openRes.content as { type: string; text: string }[])[0].text);
+  const { documentId, jobId } = JSON.parse(
+    (openRes.content as { type: string; text: string }[])[0].text,
+  );
   store.heartbeat(device.credential!, [freecad]);
   store.complete(device.credential!, jobId, 'ok', true);
 
@@ -541,7 +549,12 @@ test('results endpoint persists valid nativePath and rejects out-of-allowlist na
   store.addRoot('alice', device.deviceId!, '/home/alice/allowed');
 
   const doc = store.createDocument('alice', device.deviceId!, 'FreeCAD', 'TestDoc');
-  const job = store.enqueue('alice', { deviceId: device.deviceId!, cadId: 'cad' }, 'create_box', doc.id);
+  const job = store.enqueue(
+    'alice',
+    { deviceId: device.deviceId!, cadId: 'cad' },
+    'create_box',
+    doc.id,
+  );
 
   store.heartbeat(device.credential!, [freecad]);
 
@@ -556,4 +569,3 @@ test('results endpoint persists valid nativePath and rejects out-of-allowlist na
   const updatedDoc = store.getDocument(doc.id, 'alice');
   assert.equal(updatedDoc.nativePath, '/home/alice/allowed/result.FCStd');
 });
-

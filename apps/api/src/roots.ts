@@ -17,13 +17,9 @@ const wrap =
       .then(() => fn(req, res))
       .catch(next);
 
-export const rootPathSchema = z
-  .string()
-  .min(1)
-  .max(1024)
-  .refine(isValidPathShape, {
-    message: 'Path must be an absolute POSIX, Windows, or UNC path without .. or NUL bytes',
-  });
+export const rootPathSchema = z.string().min(1).max(1024).refine(isValidPathShape, {
+  message: 'Path must be an absolute POSIX, Windows, or UNC path without .. or NUL bytes',
+});
 
 export function rootsRouter(store: Store, opts: RootsRouterOptions): Router {
   const router = Router();

@@ -7,7 +7,8 @@
   /* Common typography and spacing tokens */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-headline: 'Inter', sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+  --font-mono:
+    'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
 
   --radius-xs: 2px;
   --radius-sm: 4px;
@@ -120,7 +121,8 @@
   }
 }
 
-:root.dark, [data-theme="dark"] {
+:root.dark,
+[data-theme='dark'] {
   color-scheme: dark;
   --color-canvas: #090d16;
   --color-paper: #090d16;
@@ -1127,5 +1129,3 @@ table.data tbody tr:hover td {
   min-height: 28px;
   padding: 0 10px;
 }
-
-

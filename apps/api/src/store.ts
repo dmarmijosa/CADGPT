@@ -58,7 +58,13 @@ export function isValidPathShape(p: string): boolean {
   // UNC: \\server\share or //server/share
   if (p.startsWith('\\\\') || p.startsWith('//')) {
     const parts = p.slice(2).split(/[\\/]/);
-    return parts.length >= 2 && parts[0].length > 0 && parts[1].length > 0 && !parts[0].includes(' ') && !parts[1].includes(' ');
+    return (
+      parts.length >= 2 &&
+      parts[0].length > 0 &&
+      parts[1].length > 0 &&
+      !parts[0].includes(' ') &&
+      !parts[1].includes(' ')
+    );
   }
   return false;
 }
@@ -276,9 +282,7 @@ export class Store {
     const created = this.now();
     try {
       this.db
-        .prepare(
-          'INSERT INTO allowed_roots(id,owner,device_id,path,created) VALUES(?,?,?,?,?)',
-        )
+        .prepare('INSERT INTO allowed_roots(id,owner,device_id,path,created) VALUES(?,?,?,?,?)')
         .run(id, owner, deviceId, path, created);
     } catch (e: any) {
       if (e?.code === 'ERR_SQLITE_ERROR' && String(e?.message).includes('UNIQUE')) {
@@ -308,9 +312,7 @@ export class Store {
   // Owner-scoped: a foreign owner's id deletes zero rows, so it reads
   // identically to "not found" and never leaks whether the id exists.
   removeRoot(owner: string, id: string) {
-    if (
-      !this.db.prepare('DELETE FROM allowed_roots WHERE id=? AND owner=?').run(id, owner).changes
-    )
+    if (!this.db.prepare('DELETE FROM allowed_roots WHERE id=? AND owner=?').run(id, owner).changes)
       throw new DomainError(404, 'Root not found.');
     return { removed: true };
   }
@@ -548,9 +550,7 @@ export class Store {
     const d = this.device(token);
     if (nativePath !== undefined && nativePath !== null) {
       const roots = (
-        this.db
-          .prepare('SELECT path FROM allowed_roots WHERE device_id=?')
-          .all(d.id) as Row[]
+        this.db.prepare('SELECT path FROM allowed_roots WHERE device_id=?').all(d.id) as Row[]
       ).map((r) => r.path as string);
       if (!roots.some((r) => isPathContained(nativePath, r))) {
         throw new DomainError(400, 'Out-of-allowlist nativePath rejected.');
