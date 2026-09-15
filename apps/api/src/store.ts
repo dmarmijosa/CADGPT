@@ -47,6 +47,21 @@ export type EnqueueInput = { deviceId: string; cadId: string } & Record<string, 
 type Row = Record<string, any>;
 const hash = (s: string) => createHash('sha256').update(s).digest('hex');
 const secret = () => randomBytes(32).toString('base64url');
+export function isValidPathShape(p: string): boolean {
+  if (!p || typeof p !== 'string') return false;
+  if (p.includes('\0')) return false;
+  if (p.includes('..')) return false;
+  // Absolute POSIX: starts with /
+  if (p.startsWith('/')) return true;
+  // Windows drive absolute: e.g. C:\ or C:/
+  if (/^[a-zA-Z]:[/\\]/.test(p)) return true;
+  // UNC: \\server\share or //server/share
+  if (p.startsWith('\\\\') || p.startsWith('//')) {
+    const parts = p.slice(2).split(/[\\/]/);
+    return parts.length >= 2 && parts[0].length > 0 && parts[1].length > 0 && !parts[0].includes(' ') && !parts[1].includes(' ');
+  }
+  return false;
+}
 export class DomainError extends Error {
   constructor(
     public status: number,
@@ -87,6 +102,11 @@ export class Store {
         key_hash TEXT NOT NULL, scopes TEXT NOT NULL, created INTEGER NOT NULL, last_used INTEGER,
         revoked INTEGER NOT NULL DEFAULT 0);
       CREATE INDEX IF NOT EXISTS api_keys_owner ON api_keys(owner, created DESC);
+      CREATE TABLE IF NOT EXISTS allowed_roots (
+        id TEXT PRIMARY KEY, owner TEXT NOT NULL, device_id TEXT NOT NULL,
+        path TEXT NOT NULL, created INTEGER NOT NULL,
+        UNIQUE(owner, device_id, path));
+      CREATE INDEX IF NOT EXISTS allowed_roots_owner ON allowed_roots(owner, created DESC);
     `);
     this.migrate();
   }
@@ -216,6 +236,54 @@ export class Store {
     )
       throw new DomainError(404, 'API key not found.');
     return { revoked: true };
+  }
+  // Allowed roots triad (mirroring api_keys).
+  // Device-ownership is checked: only the owner of the device can add/list roots.
+  addRoot(owner: string, deviceId: string, path: string) {
+    const device = this.devices(owner).find((d) => d.id === deviceId && !d.revoked);
+    if (!device) throw new DomainError(404, 'Device not found.');
+    if (!isValidPathShape(path)) throw new DomainError(400, 'Invalid path shape.');
+    const id = randomUUID();
+    const created = this.now();
+    try {
+      this.db
+        .prepare(
+          'INSERT INTO allowed_roots(id,owner,device_id,path,created) VALUES(?,?,?,?,?)',
+        )
+        .run(id, owner, deviceId, path, created);
+    } catch (e: any) {
+      if (e?.code === 'ERR_SQLITE_ERROR' && String(e?.message).includes('UNIQUE')) {
+        throw new DomainError(409, 'Root already added for this device.');
+      }
+      throw e;
+    }
+    return { id, owner, deviceId, path, created };
+  }
+  listRoots(owner: string, deviceId: string) {
+    const device = this.devices(owner).find((d) => d.id === deviceId && !d.revoked);
+    if (!device) throw new DomainError(404, 'Device not found.');
+    return (
+      this.db
+        .prepare(
+          'SELECT id,owner,device_id AS deviceId,path,created FROM allowed_roots WHERE owner=? AND device_id=? ORDER BY created DESC, rowid DESC',
+        )
+        .all(owner, deviceId) as Row[]
+    ).map((r) => ({
+      id: r.id as string,
+      owner: r.owner as string,
+      deviceId: r.deviceId as string,
+      path: r.path as string,
+      created: r.created as number,
+    }));
+  }
+  // Owner-scoped: a foreign owner's id deletes zero rows, so it reads
+  // identically to "not found" and never leaks whether the id exists.
+  removeRoot(owner: string, id: string) {
+    if (
+      !this.db.prepare('DELETE FROM allowed_roots WHERE id=? AND owner=?').run(id, owner).changes
+    )
+      throw new DomainError(404, 'Root not found.');
+    return { removed: true };
   }
   // Resolves a presented `cad_<prefix>_<secret>` key to its owner. A key maps
   // to exactly one owner — the caller never chooses it. `prefix` narrows the

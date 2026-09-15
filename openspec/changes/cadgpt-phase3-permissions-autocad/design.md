@@ -13,12 +13,19 @@ Extend every layer additively, reusing the exact shapes phase 2 established. P1:
 | D1 | Path authorization model | Folder allowlist (per-device roots) | Arbitrary caller paths; copy-to-sandbox | Allowlist bounds an LLM-driven MCP attack surface to owner-chosen folders; user explicitly wants in-place edit, so a sandbox copy is rejected |
 | D2 | Enforcement location | **Agent** canonicalizes + containment-checks at job execution | Server-side path validation as the gate | Server cannot `stat` a remote agent's filesystem; only the agent can `.resolve()` symlinks/junctions locally, so it is the sole authority |
 | D3 | Delivery channel | Extend `heartbeat` response with `allowedRoots: string[]` | New dedicated pull route | Reuses the 5s poll transport with zero new auth; accepts a bounded staleness window (D4) |
-| D4 | Staleness / revocation (Spike B) | Enforcement uses the **latest delivered** allowlist; staleness ≤ one poll interval (5s). A job already running runs to completion; a newly-out-of-allowlist path is rejected at the next execution | Server-forced mid-job kill; strong consistency | Poll transport is inherently eventually-consistent; a 5s window is acceptable and containment is re-checked per job before any file open |
+| D4 | Staleness / revocation (Spike B — Locked 2026-09-15) | Enforcement uses the **latest delivered** allowlist; staleness ≤ one poll interval (5s). A job already running runs to completion; a newly-out-of-allowlist path is rejected at the next execution | Server-forced mid-job kill; strong consistency | Poll transport is inherently eventually-consistent; a 5s window is acceptable and containment is re-checked per job before any file open |
 | D5 | Corruption safety | Mandatory backup-before-modify (sibling `<name>.<ts>.bak`) before opening for write; save-back to the SAME path only on success; original untouched on failure/120s timeout | Save-in-place with no backup | The 120s subprocess kill can corrupt a real user file mid-write; a backup is the only safe rollback |
 | D6 | Owner invariant | Path must resolve inside the owner's device's allowlist; owner strictly from credential; no body field selects owner or a foreign root | Owner/root in request body | Preserves phase-1/2 owner-cannot-choose-owner invariant across the new route |
 | D7 | Store table | `allowed_roots` mirroring `api_keys` (owner-scoped add/list/remove, `UNIQUE(owner,device_id,path)`) | Ad-hoc column on `devices` | Reuses a proven, tested ownership pattern; additive, empty by default |
 | D8 | AutoCAD op parity | Incremental AutoLISP/`.scr` per op family, Spike A first | Commit the full op set up front | Core Console feasibility for booleans/transforms/read_scene/export is UNPROVEN (only `_STLOUT` proven; `_-EXPORT`/`3DPRINT` hang; no vlax/ActiveX) |
 | D9 | PR topology | Two independent chains | One combined change | Pillars touch nearly disjoint files; independent 400/800-line budgets and rollback |
+
+> **Confirmation Note (D4 / Spike B — 2026-09-15)**:
+> Decision D4 is confirmed and locked:
+> - Allowlist delivery is piggybacked on the device `heartbeat` poll response (`allowedRoots: string[]`).
+> - Allowlist staleness is bounded to ≤ one poll interval (5s).
+> - A job already running runs to completion even if its root is revoked mid-job.
+> - Containment is strictly re-checked at the next job execution before any file open or write.
 
 ## Data Model (P1)
 

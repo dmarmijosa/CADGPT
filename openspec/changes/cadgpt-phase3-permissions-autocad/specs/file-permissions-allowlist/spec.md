@@ -1,6 +1,6 @@
 ## file-permissions-allowlist (NEW)
 
-Purpose: let an owner authorize the agent to open/modify existing files in specific folders, in place, without relaxing the UUID sandbox. Prerequisite: Spike B (allowlist delivery staleness + revocation-mid-job semantics) MUST be resolved before P1 implementation begins; scenarios that depend on it are marked GATED ON Spike B.
+Purpose: let an owner authorize the agent to open/modify existing files in specific folders, in place, without relaxing the UUID sandbox. Prerequisite: Spike B (allowlist delivery staleness + revocation-mid-job semantics) is confirmed and locked (2026-09-15): staleness ≤ 5s (heartbeat poll interval), running jobs complete, containment re-checked at next execution.
 
 ### Requirement: Allowed-Roots Storage (P1)
 The system MUST persist an `allowed_roots` table scoped per `deviceId` and per `owner` (OIDC `sub`), storing at minimum `id, owner, deviceId, path, createdAt`, additive to and independent from the UUID document sandbox.
@@ -28,16 +28,16 @@ The system MUST expose add/list/remove endpoints for `allowed_roots` gated by OI
 - WHEN it calls add/list/remove on `allowed_roots`
 - THEN the system returns 401/403 and no row changes
 
-### Requirement: Heartbeat Delivery of Allowlist (P1, GATED ON Spike B)
-GATED ON Spike B — the exact staleness bound and revocation-mid-job behavior are undefined pending a live spike; this states the intended contract. The heartbeat response MUST include the calling device's current `allowed_roots` snapshot alongside `{ job }`, refreshed each poll interval.
+### Requirement: Heartbeat Delivery of Allowlist (P1)
+The heartbeat response MUST include the calling device's current `allowed_roots` snapshot alongside `{ job }`, refreshed each poll interval (staleness bounded to ≤ 5s). A job running at the moment of root revocation MUST be permitted to complete; the revoked root is excluded on the subsequent heartbeat poll and containment is re-checked at the next job execution.
 #### Scenario: Heartbeat carries allowlist snapshot
 - GIVEN device D has 2 allowed roots
 - WHEN D polls heartbeat
 - THEN the response contains `{ job, allowedRoots }` with both roots
-#### Scenario: Revocation reflected within Spike-B-defined window (pending)
+#### Scenario: Revocation reflected within 5-second poll window
 - GIVEN a root is removed via the management API
-- WHEN D next polls heartbeat after Spike B's specified staleness window
-- THEN the removed root is absent from `allowedRoots`; a job already mid-execution against a revoked root follows Spike B's revocation-mid-job rule
+- WHEN D next polls heartbeat (within 5s)
+- THEN the removed root is absent from `allowedRoots`; a job already mid-execution against the revoked root completes, while any subsequent execution re-checks containment and rejects paths under the revoked root
 
 ### Requirement: Agent Path Containment Function (P1)
 The agent MUST implement a NEW containment function, parallel to and independent from `resolve_document_dir`, that canonicalizes the caller-supplied path, resolves symlinks/junctions via `.resolve()`, and authorizes it only when the fully resolved path is inside at least one currently-allowlisted root; it MUST reject any UNC path whose resolved target is not itself inside an allowlisted root.

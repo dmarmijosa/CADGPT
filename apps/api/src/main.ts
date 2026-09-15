@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { Store, DomainError, cadSchema, boxSchema, API_KEY_SCOPES } from './store.js';
+import { rootsRouter } from './roots.js';
 import { meshRouter } from './mesh.js';
 import { registerTools } from './tools.js';
 import { registerGuidance, SERVER_INSTRUCTIONS } from './guidance.js';
@@ -177,6 +178,9 @@ http.post(
     r.json(store.complete(token(q), z.uuid().parse(q.params.id), b.result, b.ok));
   }),
 );
+// Allowed roots management (OIDC-only, NOT authAny):
+// POST /api/devices/:deviceId/roots, GET /api/devices/:deviceId/roots, DELETE /api/roots/:id
+http.use(rootsRouter(store, { auth }));
 http.use(meshRouter(store, { dataDir: data, auth }));
 const metadata = {
   resource: origin + '/mcp',

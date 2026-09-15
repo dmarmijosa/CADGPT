@@ -16,12 +16,12 @@ none blocks the others except P3's allowlist-surface slice, which depends on P1'
 | Chained PRs recommended | Yes — three independent chains, split into slices below |
 | Suggested split | P1: 6 slices (Spike B → store → heartbeat/containment → FreeCAD save-back → MCP tool → dashboard UI). P2: 5 slices (Spike A → boolean → transform → read_scene/export → discovery+parity). P3: 5 slices (tokens/shell → pages a → pages b → allowlist surface → per-OS guidance) |
 | Delivery strategy | ask-on-risk |
-| Chain strategy | pending |
+| Chain strategy | feature-branch-chain |
 
 ```text
 Decision needed before apply: Yes
 Chained PRs recommended: Yes
-Chain strategy: pending
+Chain strategy: feature-branch-chain
 400-line budget risk: High
 ```
 
@@ -66,17 +66,17 @@ slice for a size:exception ask rather than silently splitting further once insid
 
 ## P1 Phase 0: Spike B — Lock Delivery Staleness + Revocation Semantics (BLOCKING, PR P1-1)
 
-- [ ] P1.0.1 Confirm and lock design.md D4 (`openspec/changes/cadgpt-phase3-permissions-autocad/design.md`, read-only reference): heartbeat-delivered allowlist, staleness ≤ one poll interval (5s), a running job completes even if its root is revoked mid-job, containment is re-checked at the next execution.
-- [ ] P1.0.2 Record the locked decision as a dated confirmation note appended to `openspec/changes/cadgpt-phase3-permissions-autocad/design.md` D4, removing the "Spike B" pending marker from the file-permissions-allowlist spec's gated scenarios once confirmed.
-- [ ] P1.0.3 No P1 code task below may start until P1.0 is checked complete.
+- [x] P1.0.1 Confirm and lock design.md D4 (`openspec/changes/cadgpt-phase3-permissions-autocad/design.md`, read-only reference): heartbeat-delivered allowlist, staleness ≤ one poll interval (5s), a running job completes even if its root is revoked mid-job, containment is re-checked at the next execution.
+- [x] P1.0.2 Record the locked decision as a dated confirmation note appended to `openspec/changes/cadgpt-phase3-permissions-autocad/design.md` D4, removing the "Spike B" pending marker from the file-permissions-allowlist spec's gated scenarios once confirmed.
+- [x] P1.0.3 No P1 code task below may start until P1.0 is checked complete.
 
 ## P1 Phase 1: `allowed_roots` Store + OIDC-Only Routes (PR P1-2, depends on: P1.0)
 
-- [ ] P1.1.1 (RED) Add `apps/api/test/roots.test.ts`: owner invariant test — body-supplied `owner` field is ignored/rejected (spec "Body-supplied owner rejected"); device-credential/API-key auth on `/roots` routes returns 401/403 (spec "Device credential cannot manage allowlist").
-- [ ] P1.1.2 Add `allowed_roots` table DDL to `apps/api/src/store.ts` per design D7 (`id, owner, deviceId, path, created`, `UNIQUE(owner, device_id, path)`, index on `(owner, created DESC)`).
-- [ ] P1.1.3 Add `addRoot(owner, deviceId, path)` (device-ownership checked), `listRoots(owner, deviceId)`, `removeRoot(owner, id)` (foreign id → 404, no existence leak) to `apps/api/src/store.ts`, mirroring the `api_keys` triad.
-- [ ] P1.1.4 Add `POST /api/devices/:deviceId/roots`, `GET /api/devices/:deviceId/roots`, `DELETE /api/roots/:id` to `apps/api/src/main.ts`, gated OIDC-session-only (not `authAny`); server-side path-shape validation (absolute POSIX/Windows/UNC, reject `..`/NUL/relative).
-- [ ] P1.1.5 Tests in `apps/api/test/roots.test.ts`: root stored per owner+device (spec "Root stored per owner and device"); root invisible to other owners (spec "Root invisible to other owners"); add derives owner from session (spec "Add derives owner from session").
+- [x] P1.1.1 (RED) Add `apps/api/test/roots.test.ts`: owner invariant test — body-supplied `owner` field is ignored/rejected (spec "Body-supplied owner rejected"); device-credential/API-key auth on `/roots` routes returns 401/403 (spec "Device credential cannot manage allowlist").
+- [x] P1.1.2 Add `allowed_roots` table DDL to `apps/api/src/store.ts` per design D7 (`id, owner, deviceId, path, created`, `UNIQUE(owner, device_id, path)`, index on `(owner, created DESC)`).
+- [x] P1.1.3 Add `addRoot(owner, deviceId, path)` (device-ownership checked), `listRoots(owner, deviceId)`, `removeRoot(owner, id)` (foreign id → 404, no existence leak) to `apps/api/src/store.ts`, mirroring the `api_keys` triad.
+- [x] P1.1.4 Add `POST /api/devices/:deviceId/roots`, `GET /api/devices/:deviceId/roots`, `DELETE /api/roots/:id` to `apps/api/src/main.ts`, gated OIDC-session-only (not `authAny`); server-side path-shape validation (absolute POSIX/Windows/UNC, reject `..`/NUL/relative).
+- [x] P1.1.5 Tests in `apps/api/test/roots.test.ts`: root stored per owner+device (spec "Root stored per owner and device"); root invisible to other owners (spec "Root invisible to other owners"); add derives owner from session (spec "Add derives owner from session").
 
 Acceptance: an OIDC session adds a root with no body `owner` field and the row is keyed to that
 session's `sub`+device only; a device-credential request to any `/roots` route is rejected;
