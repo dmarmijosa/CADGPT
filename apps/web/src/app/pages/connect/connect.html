@@ -73,10 +73,85 @@
   }
 </section>
 
+<section class="panel keep-alive-section" data-testid="keep-alive-section">
+  <div class="section-title">
+    <div>
+      <h2>Keep the agent running</h2>
+      <p>Configure the agent to survive user logouts and system reboots on your CAD workstation.</p>
+    </div>
+  </div>
+
+  <div class="os-guides">
+    <!-- Linux systemd -->
+    <article class="os-guide" data-testid="keep-alive-linux">
+      <div class="os-guide-header">
+        <span class="status">Linux</span>
+        <h3>systemd service</h3>
+      </div>
+      <p>Create a service under <code>/etc/systemd/system/cadgpt-agent.service</code> (replace <code>youruser</code> with your paired account):</p>
+      <div class="snippet-box">
+        <pre><code>{{ linuxSnippet() }}</code></pre>
+        <button
+          type="button"
+          class="quiet"
+          (click)="copySnippet(linuxSnippet(), 'linux')"
+          [attr.aria-label]="'Copy Linux systemd snippet'"
+        >
+          {{ copiedSnippet() === 'linux' ? 'Copied!' : 'Copy snippet' }}
+        </button>
+      </div>
+    </article>
+
+    <!-- macOS launchd -->
+    <article class="os-guide" data-testid="keep-alive-macos">
+      <div class="os-guide-header">
+        <span class="status">macOS</span>
+        <h3>launchd LaunchAgent</h3>
+      </div>
+      <p>Create <code>~/Library/LaunchAgents/com.cadgpt.agent.plist</code> to run within your user session:</p>
+      <div class="snippet-box">
+        <pre><code>{{ macosSnippet() }}</code></pre>
+        <button
+          type="button"
+          class="quiet"
+          (click)="copySnippet(macosSnippet(), 'macos')"
+          [attr.aria-label]="'Copy macOS launchd snippet'"
+        >
+          {{ copiedSnippet() === 'macos' ? 'Copied!' : 'Copy snippet' }}
+        </button>
+      </div>
+      <small class="hint">Load immediately: <code>launchctl load ~/Library/LaunchAgents/com.cadgpt.agent.plist</code></small>
+    </article>
+
+    <!-- Windows Task Scheduler -->
+    <article class="os-guide" data-testid="keep-alive-windows">
+      <div class="os-guide-header">
+        <span class="status">Windows</span>
+        <h3>Task Scheduler (PowerShell)</h3>
+      </div>
+      <p>Run in an <strong>Administrator PowerShell</strong> (replace <code>YOURUSER</code> with the account that paired):</p>
+      <div class="snippet-box">
+        <pre><code>{{ windowsSnippet() }}</code></pre>
+        <button
+          type="button"
+          class="quiet"
+          (click)="copySnippet(windowsSnippet(), 'windows')"
+          [attr.aria-label]="'Copy Windows PowerShell snippet'"
+        >
+          {{ copiedSnippet() === 'windows' ? 'Copied!' : 'Copy snippet' }}
+        </button>
+      </div>
+    </article>
+  </div>
+</section>
+
 <section class="panel">
-  <h2>Try it</h2>
+  <h2>Try it — Mechanical &amp; Parametric CAD</h2>
   <p>
-    Once connected, ask your assistant to run <code>list_devices</code>. It should list this
-    computer as soon as the agent is running and the device above shows online.
+    Once connected, ask your assistant to run <code>list_devices</code>, or ask it to model mechanical components:
+    <em>"Create a mounting bracket with 4 counterbore holes"</em> or <em>"Model an extruded enclosure profile"</em>.
   </p>
+  <small class="hint">
+    Note: CAD Agent Designer specializes in precision parametric and mechanical CAD modeling (primitives, transforms, booleans, and extrusions), rather than organic sculpting or freeform meshes.
+  </small>
 </section>

@@ -123,3 +123,11 @@
   - [x] P3.4.1 Restyled the P1.5 allowlist management surface (`roots-section`, `roots-table`, `add-root-form`) with Stitch precision tokens, cyan highlights, monospace paths, and responsive layouts.
   - [x] P3.4.2 Verified seamless integration with active P1 endpoints on `feat/file-permissions-allowlist`.
   - [x] P3.4.3 All 6 tests in `devices.spec.ts` (including add/remove root and foreign owner isolation) passing GREEN.
+
+### Slice P3.5 — Per-OS Install/Pairing/Keep-Alive Guidance (PR P3-5)
+- **Status**: done (tasks P3.5.1-P3.5.4 complete).
+- **Completed Tasks**:
+  - [x] P3.5.1 Surfaced keep-alive steps in-app for Linux systemd, macOS launchd, and Windows Task Scheduler.
+  - [x] P3.5.2 Added guidance and copy-paste code blocks to `apps/web/src/app/pages/connect/*`.
+  - [x] P3.5.3 Extended `connect.spec.ts` to assert distinct copy-pasteable snippets and actions for each OS (all 8 connect tests passing GREEN).
+  - [x] P3.5.4 Set mechanical & parametric CAD expectations in dashboard copy per design-quality lessons.

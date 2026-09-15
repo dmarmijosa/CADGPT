@@ -227,10 +227,10 @@ dashboard and its existing tests stay green (or is safely stubbed if P1 is not y
 
 ## P3 Phase 5: Per-OS Install/Pairing/Keep-Alive Guidance (PR P3-5, depends on: P3.1)
 
-- [ ] P3.5.1 Surface the README §"Keep the agent running" content (`README.md`, read-only source) as copy-paste steps in-app for Linux systemd, macOS launchd, and Windows Task Scheduler — not just a link.
-- [ ] P3.5.2 Add the guidance to `apps/web/src/app/pages/connect/*` (or a dedicated install page), each OS's snippet in its own copy-paste block.
-- [ ] P3.5.3 Extend `apps/web/src/app/pages/connect/*`'s existing Vitest suite to assert each OS block renders distinct, copy-pasteable content.
-- [ ] P3.5.4 Set dashboard example-gallery/copy expectations per `redesign-reference.md`'s design-quality lesson: present CADGPT as mechanical/parametric/architectural, not organic sculpting.
+- [x] P3.5.1 Surface the README §"Keep the agent running" content (`README.md`, read-only source) as copy-paste steps in-app for Linux systemd, macOS launchd, and Windows Task Scheduler — not just a link.
+- [x] P3.5.2 Add the guidance to `apps/web/src/app/pages/connect/*` (or a dedicated install page), each OS's snippet in its own copy-paste block.
+- [x] P3.5.3 Extend `apps/web/src/app/pages/connect/*`'s existing Vitest suite to assert each OS block renders distinct, copy-pasteable content.
+- [x] P3.5.4 Set dashboard example-gallery/copy expectations per `redesign-reference.md`'s design-quality lesson: present CADGPT as mechanical/parametric/architectural, not organic sculpting.
 
 Acceptance: a user can copy-paste a working keep-alive snippet for their OS directly from the
 dashboard; the connect page's test suite passes with the new content covered.

@@ -58,9 +58,52 @@ describe('ConnectPage (spec mcp-client-onboarding)', () => {
     expect(root.textContent).not.toContain('credential');
   });
 
-  it('shows a "Try list_devices" callout', () => {
+  it('shows a "Try list_devices" callout with mechanical and parametric CAD expectations', () => {
     const { root } = setup([onlineDevice]);
     expect(root.textContent).toContain('list_devices');
+    expect(root.textContent).toContain('Mechanical & Parametric CAD');
+    expect(root.textContent).toContain('primitives, transforms, booleans, and extrusions');
+  });
+
+  it('renders distinct copy-pasteable keep-alive snippets for Linux, macOS, and Windows', () => {
+    const { root } = setup([onlineDevice]);
+
+    const linuxBlock = root.querySelector('[data-testid="keep-alive-linux"]');
+    const macosBlock = root.querySelector('[data-testid="keep-alive-macos"]');
+    const windowsBlock = root.querySelector('[data-testid="keep-alive-windows"]');
+
+    expect(linuxBlock).toBeTruthy();
+    expect(macosBlock).toBeTruthy();
+    expect(windowsBlock).toBeTruthy();
+
+    const linuxSnippet = linuxBlock?.querySelector('pre code')?.textContent ?? '';
+    const macosSnippet = macosBlock?.querySelector('pre code')?.textContent ?? '';
+    const windowsSnippet = windowsBlock?.querySelector('pre code')?.textContent ?? '';
+
+    expect(linuxSnippet).not.toBe('');
+    expect(macosSnippet).not.toBe('');
+    expect(windowsSnippet).not.toBe('');
+
+    // All three snippets are distinct
+    expect(linuxSnippet).not.toEqual(macosSnippet);
+    expect(linuxSnippet).not.toEqual(windowsSnippet);
+    expect(macosSnippet).not.toEqual(windowsSnippet);
+
+    // Specific OS commands and markers
+    expect(linuxSnippet).toContain('cadgpt-agent.service');
+    expect(linuxSnippet).toContain('systemctl enable --now cadgpt-agent');
+
+    expect(macosSnippet).toContain('com.cadgpt.agent');
+    expect(macosSnippet).toContain('KeepAlive');
+
+    expect(windowsSnippet).toContain('Register-ScheduledTask');
+    expect(windowsSnippet).toContain('CAD Agent Designer');
+    expect(windowsSnippet).toContain('New-ScheduledTaskAction');
+
+    // Copy buttons exist for each OS
+    expect(linuxBlock?.querySelector('button[aria-label="Copy Linux systemd snippet"]')).toBeTruthy();
+    expect(macosBlock?.querySelector('button[aria-label="Copy macOS launchd snippet"]')).toBeTruthy();
+    expect(windowsBlock?.querySelector('button[aria-label="Copy Windows PowerShell snippet"]')).toBeTruthy();
   });
 });
 

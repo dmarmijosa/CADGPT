@@ -1075,3 +1075,57 @@ table.data tbody tr:hover td {
   font-size: 0.85rem;
 }
 
+/* Keep-alive OS guidance on Connect page */
+.os-guides {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin-top: var(--space-4);
+}
+.os-guide {
+  background: var(--color-surface-variant);
+  border: 1px solid var(--color-outline-hairline);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+}
+.os-guide-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.os-guide-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.snippet-box {
+  position: relative;
+  margin-top: var(--space-3);
+}
+.snippet-box pre {
+  margin: 0;
+  background: var(--color-paper);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  overflow-x: auto;
+}
+.snippet-box pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--color-ink);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  white-space: pre;
+}
+.snippet-box button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 0.75rem;
+  min-height: 28px;
+  padding: 0 10px;
+}
+
+
