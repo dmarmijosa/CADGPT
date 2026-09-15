@@ -129,7 +129,6 @@ export async function createPlugScene(
   const maxOffset = Math.max(0, ...parts.map((p) => Math.abs(p.explodeOffset)));
 
   const scene = new Scene();
-  scene.background = new Color(0xf1f4f3);
   scene.add(group);
 
   scene.add(new HemisphereLight(0xffffff, 0x3d4a45, 1.1));
@@ -143,7 +142,8 @@ export async function createPlugScene(
   camera.position.set(radius * 0.55, radius * 0.15, radius * 2.6);
   camera.lookAt(0, 0, 0);
 
-  const renderer = new WebGLRenderer({ antialias: true, alpha: false });
+  const renderer = new WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setClearColor(0x000000, 0);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   container.appendChild(renderer.domElement);
 

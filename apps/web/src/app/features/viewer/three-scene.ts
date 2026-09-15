@@ -35,13 +35,12 @@ export function createScene(container: HTMLElement, buffer: ArrayBuffer): Render
   const radius = geometry.boundingSphere?.radius || 50;
 
   const scene = new Scene();
-  scene.background = new Color(0xf4f2ee);
 
   const material = new MeshStandardMaterial({ color: 0x5b7fa6, roughness: 0.55, metalness: 0.1 });
   const mesh = new Mesh(geometry, material);
   scene.add(mesh);
 
-  const grid = new GridHelper(radius * 4, 20, 0xd8d3c8, 0xe8e4dc);
+  const grid = new GridHelper(radius * 4, 20, 0x3b82f6, 0x1e293b);
   grid.position.y = -radius;
   scene.add(grid);
 
@@ -54,7 +53,8 @@ export function createScene(container: HTMLElement, buffer: ArrayBuffer): Render
   camera.position.set(radius * 2.2, radius * 1.6, radius * 2.2);
   camera.lookAt(new Vector3(0, 0, 0));
 
-  const renderer = new WebGLRenderer({ antialias: true });
+  const renderer = new WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setClearColor(0x000000, 0);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   container.appendChild(renderer.domElement);
 
