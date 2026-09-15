@@ -45,11 +45,11 @@ Chain strategy: feature-branch-chain
 
 ## Work Unit 3: Agent CLI Evolution
 
-- [ ] 3.1 Register dual entry points `cadengine` and `cadgpt-agent` in [pyproject.toml](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/pyproject.toml).
-- [ ] 3.2 Implement CLI subcommands (`status`, `version`, `pair`, `unpair`, `service`, `logs`, `test`, `doctor`, `update`) and `RotatingFileHandler` (5MB, 3 backups) in [main.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/cadgpt_agent/main.py).
-- [ ] 3.3 Implement `doctor` diagnostics and `--fix` auto-provisioning for headless FreeCAD, plus `update` release downloader with SHA-256 validation in [main.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/cadgpt_agent/main.py).
-- [ ] 3.4 Implement `POST /api/agent/unpair` in [main.ts](file:///Users/danny/Documents/ChatGPT/CADGPT/apps/api/src/main.ts) and revocation in [store.ts](file:///Users/danny/Documents/ChatGPT/CADGPT/apps/api/src/store.ts); purge local OS Keyring (`CADGPT`) unconditionally in CLI unpair.
-- [ ] 3.5 Add unpair tests in [unpair.test.ts](file:///Users/danny/Documents/ChatGPT/CADGPT/apps/api/test/unpair.test.ts), doctor/update and CLI tests in [test_agent.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/tests/test_agent.py).
+- [x] 3.1 Register dual entry points `cadengine` and `cadgpt-agent` in [pyproject.toml](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/pyproject.toml).
+- [x] 3.2 Implement CLI subcommands (`status`, `version`, `pair`, `unpair`, `service`, `logs`, `test`, `doctor`, `update`) and `RotatingFileHandler` (5MB, 3 backups) in [main.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/cadgpt_agent/main.py).
+- [x] 3.3 Implement `doctor` diagnostics and `--fix` auto-provisioning for headless FreeCAD, plus `update` release downloader with SHA-256 validation in [main.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/cadgpt_agent/main.py).
+- [x] 3.4 Implement `POST /api/agent/unpair` in [main.ts](file:///Users/danny/Documents/ChatGPT/CADGPT/apps/api/src/main.ts) and revocation in [store.ts](file:///Users/danny/Documents/ChatGPT/CADGPT/apps/api/src/store.ts); purge local OS Keyring (`CADGPT`) unconditionally in CLI unpair.
+- [x] 3.5 Add unpair tests in [unpair.test.ts](file:///Users/danny/Documents/ChatGPT/CADGPT/apps/api/test/unpair.test.ts), doctor/update and CLI tests in [test_agent.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/tests/test_agent.py).
 
 ## Work Unit 4: Background Daemons & Windows MSI Packaging
 

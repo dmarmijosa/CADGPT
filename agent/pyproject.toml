@@ -7,6 +7,7 @@ version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = ["keyring>=25.6,<26", "platformdirs>=4.3,<5"]
 [project.scripts]
+cadengine = "cadgpt_agent.main:main"
 cadgpt-agent = "cadgpt_agent.main:main"
 [tool.setuptools.packages.find]
 include = ["cadgpt_agent*"]

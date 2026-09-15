@@ -112,7 +112,7 @@ def resolve_external_path(requested: str, allowed_roots: list[str]) -> Path:
 
     raise ValueError("Path outside allowed roots")
 
-def execute(job, cads, root, allowed_roots=None):
+def execute(job, cads, root, allowed_roots=None, timeout=120):
     validate(job)
     # Selection is CAD-neutral: pick the entry matching `cadId` that is
     # marked executable AND has a registered strategy for its `name`. An
@@ -187,7 +187,7 @@ def execute(job, cads, root, allowed_roots=None):
     reader = threading.Thread(target=drain, daemon=True)
     reader.start()
     try:
-        code = process.wait(timeout=120)
+        code = process.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
         process.kill()
         process.wait()
