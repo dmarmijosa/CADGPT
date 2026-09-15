@@ -14,10 +14,24 @@ else:
     winreg = None
 
 FREECAD_OPS = [
-    "create_box", "create_cylinder", "create_sphere", "create_cone", "extrude_rect",
-    "boolean_cut", "boolean_union", "boolean_intersect",
-    "translate_object", "rotate_object", "scale_object",
-    "read_scene", "export_design",
+    "create_box",
+    "create_cylinder",
+    "create_sphere",
+    "create_cone",
+    "extrude_rect",
+    "create_wedge",
+    "extrude_polygon",
+    "boolean_cut",
+    "boolean_union",
+    "boolean_intersect",
+    "fillet",
+    "chamfer",
+    "loft",
+    "translate_object",
+    "rotate_object",
+    "scale_object",
+    "read_scene",
+    "export_design",
 ]
 
 # Ops the AutoCAD adapter can actually run today. Kept in lockstep with

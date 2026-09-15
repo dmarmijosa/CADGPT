@@ -38,10 +38,10 @@ Chain strategy: feature-branch-chain
 
 ## Work Unit 2: Advanced FreeCAD Modeling Operations
 
-- [ ] 2.1 Update [ops-allowlist.json](file:///Users/danny/Documents/ChatGPT/CADGPT/ops-allowlist.json) to 18 operations and export `FREECAD_OPS` in [discovery.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/cadgpt_agent/discovery.py).
-- [ ] 2.2 Add strict Zod schemas for `create_wedge`, `extrude_polygon`, `fillet`, `chamfer`, and `loft` in [tools.ts](file:///Users/danny/Documents/ChatGPT/CADGPT/apps/api/src/tools.ts).
-- [ ] 2.3 Implement handlers for `create_wedge`, `extrude_polygon`, `fillet`, `chamfer`, and `loft` in [freecad_worker.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/cadgpt_agent/freecad_worker.py) with OCC backup rollback and 1-based edge bounds checks.
-- [ ] 2.4 Add unit tests in [test_freecad_worker.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/tests/test_freecad_worker.py), parity tests in [test_ops_allowlist.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/tests/test_ops_allowlist.py), and schema tests in [tools-b2.test.ts](file:///Users/danny/Documents/ChatGPT/CADGPT/apps/api/test/tools-b2.test.ts).
+- [x] 2.1 Update [ops-allowlist.json](file:///Users/danny/Documents/ChatGPT/CADGPT/ops-allowlist.json) to 18 operations and export `FREECAD_OPS` in [discovery.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/cadgpt_agent/discovery.py).
+- [x] 2.2 Add strict Zod schemas for `create_wedge`, `extrude_polygon`, `fillet`, `chamfer`, and `loft` in [tools.ts](file:///Users/danny/Documents/ChatGPT/CADGPT/apps/api/src/tools.ts).
+- [x] 2.3 Implement handlers for `create_wedge`, `extrude_polygon`, `fillet`, `chamfer`, and `loft` in [freecad_worker.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/cadgpt_agent/freecad_worker.py) with OCC backup rollback and 1-based edge bounds checks.
+- [x] 2.4 Add unit tests in [test_freecad_worker.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/tests/test_freecad_worker.py), parity tests in [test_ops_allowlist.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/tests/test_ops_allowlist.py), and schema tests in [tools-b2.test.ts](file:///Users/danny/Documents/ChatGPT/CADGPT/apps/api/test/tools-b2.test.ts).
 
 ## Work Unit 3: Agent CLI Evolution
 
