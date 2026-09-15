@@ -96,11 +96,11 @@ operation. ~300 changed lines.
 
 ## P1 Phase 3: FreeCAD Open/Backup/Save-Back by Path (PR P1-4, depends on: P1.2)
 
-- [ ] P1.3.1 (RED) Add `agent/tests/test_freecad_worker.py` cases: backup created before any write to the original path (spec "Backup created before write"); timeout aborts and restores from backup (spec "Timeout aborts without corruption"); failed op restores from backup (spec "Failed op restores from backup").
-- [ ] P1.3.2 In `agent/cadgpt_agent/freecad_worker.py`, when a job carries a contained native path (via `resolve_external_path`), open that path instead of `design.FCStd`; copy it to a timestamped `<name>.<ts>.bak` sibling BEFORE any write.
-- [ ] P1.3.3 Save back to the SAME native path only on success; on subprocess failure or 120s timeout, restore the original from the `.bak` copy and report unchanged (design D5).
-- [ ] P1.3.4 Mirror the open/backup/save-back branch in `agent/cadgpt_agent/strategies/autocad.py` for path-bound DWG jobs (used later by P2's boolean/transform ops).
-- [ ] P1.3.5 Confirm all P1.3.1 RED tests pass GREEN.
+- [x] P1.3.1 (RED) Add `agent/tests/test_freecad_worker.py` cases: backup created before any write to the original path (spec "Backup created before write"); timeout aborts and restores from backup (spec "Timeout aborts without corruption"); failed op restores from backup (spec "Failed op restores from backup").
+- [x] P1.3.2 In `agent/cadgpt_agent/freecad_worker.py`, when a job carries a contained native path (via `resolve_external_path`), open that path instead of `design.FCStd`; copy it to a timestamped `<name>.<ts>.bak` sibling BEFORE any write.
+- [x] P1.3.3 Save back to the SAME native path only on success; on subprocess failure or 120s timeout, restore the original from the `.bak` copy and report unchanged (design D5).
+- [x] P1.3.4 Mirror the open/backup/save-back branch in `agent/cadgpt_agent/strategies/autocad.py` for path-bound DWG jobs (used later by P2's boolean/transform ops).
+- [x] P1.3.5 Confirm all P1.3.1 RED tests pass GREEN.
 
 Acceptance: a modify job against an allowlisted file always has a `.bak` sibling before any
 write; a 120s timeout or non-zero exit leaves the original byte-identical to the backup.

@@ -70,7 +70,7 @@ def _note_preview_unavailable(result, exc):
         return json.dumps(payload)
     return result + " " + note
 
-def run_job(job, cads, root, server, credential, upload=upload_mesh):
+def run_job(job, cads, root, server, credential, upload=upload_mesh, allowed_roots=None):
     """Execute one job, then upload its STL preview (if the worker produced
     one) before returning the result the caller posts to the server.
 
@@ -79,7 +79,10 @@ def run_job(job, cads, root, server, credential, upload=upload_mesh):
     exists locally regardless of upload outcome.
     """
     try:
-        result = execute(job, cads, root)
+        if allowed_roots is not None:
+            result = execute(job, cads, root, allowed_roots=allowed_roots)
+        else:
+            result = execute(job, cads, root)
     except Exception as exc:
         return False, str(exc)[:4000]
     preview = root / "jobs" / job["id"] / "preview.stl"
@@ -188,7 +191,7 @@ def main():
             state = request(server, "/api/agent/poll", {"cads": cads}, credential)
             allowed_roots = state.get("allowedRoots", [])
             if state["job"]:
-                ok, result = run_job(state["job"], cads, root, server, credential)
+                ok, result = run_job(state["job"], cads, root, server, credential, allowed_roots=allowed_roots)
                 # 16000 matches the server's `/api/agent/results/:id` cap and
                 # must not cut a JSON-wrapped `{message, scene}` payload in half.
                 request(server, "/api/agent/results/" + state["job"]["id"], {"ok": ok, "result": result[:16000]}, credential)

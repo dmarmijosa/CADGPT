@@ -12,6 +12,7 @@ import math
 import os
 import re
 import sys
+import time
 from pathlib import Path
 
 OBJECT_NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,31}$")
@@ -51,21 +52,27 @@ def _position(data):
     )
 
 
-def _document_path(doc_dir):
-    return Path(doc_dir) / "design.FCStd"
+def _document_path(doc_dir, data=None):
+    if data and (data.get("native_path") or data.get("nativePath")):
+        return Path(data.get("native_path") or data.get("nativePath"))
+    if doc_dir is not None:
+        return Path(doc_dir) / "design.FCStd"
+    return None
 
 
-def _open_document(doc_dir):
+def _open_document(doc_dir, data=None):
     import FreeCAD
-    return FreeCAD.openDocument(str(_document_path(doc_dir)))
+    doc_path = _document_path(doc_dir, data)
+    return FreeCAD.openDocument(str(doc_path))
 
 
 def _open_or_new(data, doc_dir):
     """Create ops append to an existing design when its file is present (D4),
-    otherwise start a new document that `run()` saves under `doc_dir`."""
+    otherwise start a new document that `run()` saves under `doc_dir` or native_path."""
     import FreeCAD
-    if _document_path(doc_dir).is_file():
-        return _open_document(doc_dir)
+    doc_path = _document_path(doc_dir, data)
+    if doc_path is not None and doc_path.is_file():
+        return _open_document(doc_dir, data)
     return FreeCAD.newDocument("CADGPTDesign")
 
 
@@ -146,7 +153,7 @@ def _boolean(feature_type):
     def handler(data, doc_dir):
         base_name = _object_name(data.get("base"), "base")
         tool_name = _object_name(data.get("tool"), "tool")
-        document = _open_document(doc_dir)
+        document = _open_document(doc_dir, data)
         base = _get_object(document, base_name)
         tool = _get_object(document, tool_name)
         result = document.addObject(f"Part::{feature_type}", feature_type)
@@ -164,7 +171,7 @@ _boolean_intersect = _boolean("Common")
 def _translate_object(data, doc_dir):
     name = _object_name(data.get("object"), "object")
     dx, dy, dz = (_coord(data.get(k), k) for k in ("dx", "dy", "dz"))
-    document = _open_document(doc_dir)
+    document = _open_document(doc_dir, data)
     obj = _get_object(document, name)
     import FreeCAD
     placement = obj.Placement
@@ -179,7 +186,7 @@ def _rotate_object(data, doc_dir):
     if axis not in ("X", "Y", "Z"):
         raise ValueError("axis must be one of X, Y, Z")
     degrees = _bounded(data.get("degrees"), "degrees", -360, 360)
-    document = _open_document(doc_dir)
+    document = _open_document(doc_dir, data)
     obj = _get_object(document, name)
     import FreeCAD
     unit_vectors = {"X": FreeCAD.Vector(1, 0, 0), "Y": FreeCAD.Vector(0, 1, 0), "Z": FreeCAD.Vector(0, 0, 1)}
@@ -193,7 +200,7 @@ def _rotate_object(data, doc_dir):
 def _scale_object(data, doc_dir):
     name = _object_name(data.get("object"), "object")
     factor = _bounded(data.get("factor"), "factor", 0.001, 1000)
-    document = _open_document(doc_dir)
+    document = _open_document(doc_dir, data)
     obj = _get_object(document, name)
     # `obj.Shape` is an immutable view; scale a copy about the object's own
     # centre so it grows in place, then assign it back.
@@ -205,7 +212,7 @@ def _scale_object(data, doc_dir):
 
 
 def _read_scene(data, doc_dir):
-    return _open_document(doc_dir)
+    return _open_document(doc_dir, data)
 
 
 def _top_level_objects(document):
@@ -234,9 +241,11 @@ def _export_design(data, doc_dir):
     fmt = data.get("format")
     if fmt not in _EXPORT_FORMATS:
         raise ValueError("format must be one of step, stl, dxf")
-    document = _open_document(doc_dir)
+    document = _open_document(doc_dir, data)
     top_level = _top_level_objects(document)
-    export_path = Path(doc_dir) / f"export.{fmt}"
+    doc_path = _document_path(doc_dir, data)
+    export_dir = doc_dir if doc_dir is not None else (doc_path.parent if doc_path else Path("."))
+    export_path = Path(export_dir) / f"export.{fmt}"
     if fmt == "step":
         import Part
         Part.export(top_level, str(export_path))
@@ -287,20 +296,47 @@ def run(job_dir, doc_dir, data):
     handler = OPS.get(op)
     if handler is None:
         sys.exit(2)
-    document = handler(data, doc_dir)
-    if op in MUTATING_OPS:
-        # A reopened document already has a FileName; a new one is saved
-        # under doc_dir (which the executor sets to the job dir when the job
-        # carries no document_id).
-        if document.FileName:
-            document.save()
-        else:
-            document.saveAs(str(_document_path(doc_dir)))
-    if op == "read_scene":
-        _write_scene(document, job_dir)
-    _export_stl(document, Path(job_dir) / "preview.stl")
-    import FreeCAD
-    FreeCAD.closeDocument(document.Name)
+    native_path_str = data.get("native_path") or data.get("nativePath")
+    native_path = Path(native_path_str) if native_path_str else None
+
+    # Before any write, if targeting an existing native file, ensure backup sibling exists
+    backup_file = None
+    if native_path and native_path.is_file() and op in MUTATING_OPS:
+        ts = int(time.time())
+        backup_file = native_path.parent / f"{native_path.name}.{ts}.bak"
+        counter = 1
+        while backup_file.exists():
+            backup_file = native_path.parent / f"{native_path.name}.{ts}_{counter}.bak"
+            counter += 1
+        import shutil
+        shutil.copy2(native_path, backup_file)
+
+    try:
+        document = handler(data, doc_dir)
+        if op in MUTATING_OPS:
+            # A reopened document already has a FileName; a new one is saved
+            # under doc_dir or native_path.
+            if native_path:
+                if document.FileName:
+                    document.save()
+                else:
+                    document.saveAs(str(native_path))
+            elif document.FileName:
+                document.save()
+            else:
+                target_p = _document_path(doc_dir, data)
+                if target_p:
+                    document.saveAs(str(target_p))
+        if op == "read_scene":
+            _write_scene(document, job_dir)
+        _export_stl(document, Path(job_dir) / "preview.stl")
+        import FreeCAD
+        FreeCAD.closeDocument(document.Name)
+    except Exception:
+        if backup_file and backup_file.is_file() and native_path:
+            import shutil
+            shutil.copy2(backup_file, native_path)
+        raise
 
 
 # FreeCADCmd executes a script file with `__name__` set to the file stem, not

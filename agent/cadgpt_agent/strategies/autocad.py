@@ -151,12 +151,16 @@ class AutoCadStrategy:
         return op in _CREATE_OPS
 
     def build_argv(self, cad_path: Path, job_dir: Path, doc_dir: Path | None) -> list[str]:
-        design_dir = doc_dir if doc_dir is not None else job_dir
-        design_path = design_dir / "design.dwg"
+        request = json.loads((job_dir / "request.json").read_text(encoding="utf-8"))
+        native_path_str = request.get("native_path") or request.get("nativePath")
+        if native_path_str:
+            design_path = Path(native_path_str)
+        else:
+            design_dir = doc_dir if doc_dir is not None else job_dir
+            design_path = design_dir / "design.dwg"
         # The STL preview is always job-scoped (never caller input), mirroring
         # `FreeCadStrategy.artifacts()`'s `mesh = job_dir / "preview.stl"`.
         stl_path = job_dir / "preview.stl"
-        request = json.loads((job_dir / "request.json").read_text(encoding="utf-8"))
         script = render_script(request.get("op"), request, _LSP_PATH, design_path, stl_path)
         script_path = job_dir / "run.scr"
         # `newline=""` is required: the string already carries literal CRLF,
@@ -170,9 +174,19 @@ class AutoCadStrategy:
         return dict(base)
 
     def artifacts(self, op: str, job_dir: Path, doc_dir: Path | None) -> Artifacts:
+        request_file = job_dir / "request.json"
+        native_path = None
+        if request_file.is_file():
+            try:
+                data = json.loads(request_file.read_text(encoding="utf-8"))
+                p = data.get("native_path") or data.get("nativePath")
+                if p:
+                    native_path = Path(p)
+            except Exception:
+                pass
         design_dir = doc_dir if doc_dir is not None else job_dir
         return {
-            "native": design_dir / "design.dwg",
+            "native": native_path if native_path else design_dir / "design.dwg",
             # Proven live via `_STLOUT` (slice 14.0 spike, docs/autocad-stl-spike.md).
             "mesh": job_dir / "preview.stl",
             "scene": None,
