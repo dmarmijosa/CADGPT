@@ -6,15 +6,15 @@
 
 ## Download
 
-Latest prerelease: **[v0.1.0-alpha.1 →](https://github.com/dmarmijosa/CADGPT/releases/tag/v0.1.0-alpha.1)** (unsigned alpha). [All releases](https://github.com/dmarmijosa/CADGPT/releases).
+Latest prerelease: **[v0.1.0-alpha.2 →](https://github.com/dmarmijosa/CADGPT/releases/tag/v0.1.0-alpha.2)** (unsigned alpha). [All releases](https://github.com/dmarmijosa/CADGPT/releases).
 
 | Computer | Download | Format |
 |---|---|---|
-| Windows x64 | [`CADGPT-Setup-windows-x64.exe`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.1.0-alpha.1/CADGPT-Setup-windows-x64.exe) | Machine-wide installer (requires administrator), Python included |
-| MacBook / Mac with Apple Silicon | [`CADGPT-macos-arm64.dmg`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.1.0-alpha.1/CADGPT-macos-arm64.dmg) | Disk image containing the app, Python included |
-| MacBook / Mac with Intel | [`CADGPT-macos-x64.dmg`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.1.0-alpha.1/CADGPT-macos-x64.dmg) | Disk image containing the app, Python included |
-| Linux x64 | [`CADGPT-linux-x64.tar.gz`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.1.0-alpha.1/CADGPT-linux-x64.tar.gz) | Portable application archive, Python included |
-| All | [`SHA256SUMS.txt`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.1.0-alpha.1/SHA256SUMS.txt) | Integrity checksums |
+| Windows x64 | [`CADGPT-Setup-windows-x64.exe`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.1.0-alpha.2/CADGPT-Setup-windows-x64.exe) | Machine-wide installer (requires administrator), Python included |
+| MacBook / Mac with Apple Silicon | [`CADGPT-macos-arm64.dmg`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.1.0-alpha.2/CADGPT-macos-arm64.dmg) | Disk image containing the app, Python included |
+| MacBook / Mac with Intel | [`CADGPT-macos-x64.dmg`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.1.0-alpha.2/CADGPT-macos-x64.dmg) | Disk image containing the app, Python included |
+| Linux x64 | [`CADGPT-linux-x64.tar.gz`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.1.0-alpha.2/CADGPT-linux-x64.tar.gz) | Portable application archive, Python included |
+| All | [`SHA256SUMS.txt`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.1.0-alpha.2/SHA256SUMS.txt) | Integrity checksums |
 
 Verify a download against `SHA256SUMS.txt` before running it (the builds are unsigned). Newer releases, when published, appear at the releases page above. CAD Agent Designer does **not** install AutoCAD or FreeCAD and does not modify your existing Python installation.
 
@@ -84,7 +84,7 @@ For a headless server, install the portable build to a fixed location first:
 
 ```bash
 cd /tmp
-wget https://github.com/dmarmijosa/CADGPT/releases/download/v0.1.0-alpha.1/CADGPT-linux-x64.tar.gz
+wget https://github.com/dmarmijosa/CADGPT/releases/download/v0.1.0-alpha.2/CADGPT-linux-x64.tar.gz
 # Verify against the release SHA256SUMS.txt (replace the hash with the published one):
 echo "<sha256>  CADGPT-linux-x64.tar.gz" | sha256sum -c -
 sudo mkdir -p /opt/cadgpt-agent

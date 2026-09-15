@@ -11,4 +11,5 @@ cadgpt-agent = "cadgpt_agent.main:main"
 [tool.setuptools.packages.find]
 include = ["cadgpt_agent*"]
 [tool.setuptools.package-data]
-cadgpt_agent = ["freecad_worker.py"]
+cadgpt_agent = ["freecad_worker.py", "autocad/*"]
+

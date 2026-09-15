@@ -92,4 +92,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag || github.ref_name }}
         run: |
-          gh release create "$TAG" artifacts/* --verify-tag --prerelease --title "CAD Agent Designer $TAG — unsigned alpha" --notes "FreeCAD headless create/modify/read/export operations; AutoCAD 2026 (full) create + DWG + STL preview via the console adapter; backend deployment and an OAuth client are required; unsigned/unnotarized alpha — read the README compatibility and security sections."
+          gh release create "$TAG" artifacts/* --verify-tag --prerelease --title "CAD Agent Designer $TAG — unsigned alpha" --notes "FreeCAD and AutoCAD 2026 Core Console full 13-op parity (create/boolean/transform/read_scene/export); file-permissions allowlist with safe open-by-path and backup/save-back; redesigned Stitch dashboard; backend deployment and an OAuth client are required; unsigned/unnotarized alpha — read the README compatibility and security sections."

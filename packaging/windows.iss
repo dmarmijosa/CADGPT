@@ -1,7 +1,7 @@
 [Setup]
 AppId=CADGPT-Bridge
 AppName=CAD Agent Designer Bridge
-AppVersion=0.1.0
+AppVersion=0.1.0-alpha.2
 DefaultDirName={autopf}\CAD Agent Designer
 DefaultGroupName=CAD Agent Designer
 PrivilegesRequired=admin
