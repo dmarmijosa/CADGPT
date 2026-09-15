@@ -287,3 +287,223 @@ a:hover,
   font-size: 0.85rem !important;
   color: var(--stitch-ink-muted) !important;
 }
+
+/* ==========================================================================
+   Social Identity Providers & Google SSO (Stitch Precision CAD Workbench)
+   ========================================================================== */
+
+#kc-social-providers {
+  margin-top: 1.5rem !important;
+  padding-top: 0 !important;
+  border-top: none !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+#kc-social-providers ul,
+#kc-social-providers .pf-v5-c-login__main-footer-band-item {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.75rem !important;
+  width: 100% !important;
+}
+
+#kc-social-providers li {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+}
+
+/* Social Separating Divider */
+.pf-v5-c-divider.pf-m-text,
+#kc-social-providers .pf-v5-c-divider,
+.social-divider,
+#kc-social-providers hr {
+  display: flex !important;
+  align-items: center !important;
+  text-align: center !important;
+  color: var(--stitch-ink-muted) !important;
+  font-family: var(--pf-v5-global--FontFamily--monospace), 'Inter', sans-serif !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: lowercase !important;
+  margin: 1.5rem 0 1.25rem 0 !important;
+  border: none !important;
+  background: transparent !important;
+  width: 100% !important;
+}
+
+.pf-v5-c-divider::before,
+.pf-v5-c-divider::after,
+#kc-social-providers .pf-v5-c-divider::before,
+#kc-social-providers .pf-v5-c-divider::after,
+.social-divider::before,
+.social-divider::after,
+#kc-social-providers hr::before,
+#kc-social-providers hr::after {
+  content: '' !important;
+  flex: 1 !important;
+  border-bottom: 1px solid var(--stitch-border) !important;
+}
+
+.pf-v5-c-divider:not(:empty)::before,
+#kc-social-providers .pf-v5-c-divider:not(:empty)::before,
+.social-divider:not(:empty)::before {
+  margin-right: 0.75rem !important;
+}
+
+.pf-v5-c-divider:not(:empty)::after,
+#kc-social-providers .pf-v5-c-divider:not(:empty)::after,
+.social-divider:not(:empty)::after {
+  margin-left: 0.75rem !important;
+}
+
+#kc-social-providers .pf-v5-c-divider:empty::before,
+#kc-social-providers hr:empty::before {
+  content: 'or continue with' !important;
+  flex: 1 !important;
+}
+
+.pf-v5-c-divider__text,
+#kc-social-providers h4,
+#kc-social-providers h2,
+.social-divider-text {
+  color: var(--stitch-ink-muted) !important;
+  font-family: var(--pf-v5-global--FontFamily--monospace), 'Inter', sans-serif !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: lowercase !important;
+  padding: 0 0.5rem !important;
+}
+
+#kc-social-providers h4,
+#kc-social-providers h2 {
+  display: flex !important;
+  align-items: center !important;
+  text-align: center !important;
+  margin: 1.5rem 0 1.25rem 0 !important;
+  border: none !important;
+}
+
+#kc-social-providers h4::before,
+#kc-social-providers h4::after,
+#kc-social-providers h2::before,
+#kc-social-providers h2::after {
+  content: '' !important;
+  flex: 1 !important;
+  border-bottom: 1px solid var(--stitch-border) !important;
+}
+
+#kc-social-providers h4::before,
+#kc-social-providers h2::before {
+  margin-right: 0.75rem !important;
+}
+
+#kc-social-providers h4::after,
+#kc-social-providers h2::after {
+  margin-left: 0.75rem !important;
+}
+
+/* Google SSO Action Button (#social-google) */
+#social-google,
+a#social-google,
+.pf-v5-c-login__main-footer-band-item #social-google {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  min-height: 44px !important;
+  box-sizing: border-box !important;
+  padding: 0.65rem 1.25rem !important;
+  background-color: var(--stitch-surface-variant) !important; /* #131B2E */
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 4px !important;
+  color: var(--stitch-ink) !important; /* #F8FAFC */
+  font-size: 0.95rem !important;
+  font-weight: 500 !important;
+  font-family: var(--pf-v5-global--FontFamily--sans-serif) !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  position: relative !important;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.05s ease,
+    background-color 0.15s ease !important;
+}
+
+/* High-DPI Google Multi-Color SVG Icon */
+#social-google::before,
+a#social-google::before {
+  content: '' !important;
+  display: inline-block !important;
+  width: 18px !important;
+  height: 18px !important;
+  margin-right: 10px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%23EA4335' d='M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z'/%3E%3Cpath fill='%234285F4' d='M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z'/%3E%3Cpath fill='%23FBBC05' d='M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.79l7.97-6.2z'/%3E%3Cpath fill='%2334A853' d='M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z'/%3E%3Cpath fill='none' d='M0 0h48v48H0z'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-size: contain !important;
+  background-position: center !important;
+  flex-shrink: 0 !important;
+}
+
+/* Hover State: Electric Cyan border (#00F0FF) & subtle cyan drop glow */
+#social-google:hover,
+a#social-google:hover {
+  border-color: var(--stitch-primary) !important; /* #00F0FF */
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.25) !important;
+  color: var(--stitch-ink) !important;
+  text-decoration: none !important;
+}
+
+/* Active State: Tactical scale compression */
+#social-google:active,
+a#social-google:active {
+  transform: scale(0.99) !important;
+}
+
+/* Focus State: Accessible keyboard focus outline */
+#social-google:focus,
+a#social-google:focus,
+#social-google:focus-visible,
+a#social-google:focus-visible {
+  outline: 2px solid var(--stitch-primary) !important;
+  outline-offset: 2px !important;
+  border-color: var(--stitch-primary) !important;
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.25) !important;
+}
+
+/* Hide fallback unstyled font icons or empty containers */
+#social-google .kc-social-icon,
+#social-google .pf-v5-c-button__icon:empty {
+  display: none !important;
+}
+
+#social-google .pf-v5-c-button__text,
+#social-google span {
+  color: var(--stitch-ink) !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+}
+
+/* Responsive Layout Adaptation (Viewport <= 480px) */
+@media (max-width: 480px) {
+  #kc-social-providers {
+    width: 100% !important;
+  }
+
+  #social-google,
+  a#social-google {
+    width: 100% !important;
+    min-height: 44px !important;
+    padding: 0.75rem 1rem !important;
+  }
+}
+
