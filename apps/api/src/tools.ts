@@ -16,10 +16,15 @@ export const FREECAD_OPS = [
   'create_cylinder',
   'create_sphere',
   'create_cone',
+  'extrude_rect',
+  'create_wedge',
+  'extrude_polygon',
   'boolean_cut',
   'boolean_union',
   'boolean_intersect',
-  'extrude_rect',
+  'fillet',
+  'chamfer',
+  'loft',
   'translate_object',
   'rotate_object',
   'scale_object',
@@ -225,6 +230,97 @@ export const batchB2Schemas = {
   read_scene: readSceneSchema,
   export_design: exportDesignSchema,
 } as const;
+
+export const createWedgeSchema = z
+  .object({
+    deviceId: deviceIdFrag,
+    cadId: cadIdFrag,
+    documentId: documentIdFrag,
+    name: nameFrag,
+    length: mmFrag,
+    width: mmFrag,
+    height: mmFrag,
+    top_length: mmOrZeroFrag.optional(),
+    position: positionFrag,
+    confirmed: confirmedFrag,
+  })
+  .strict();
+
+export const extrudePolygonSchema = z
+  .object({
+    deviceId: deviceIdFrag,
+    cadId: cadIdFrag,
+    documentId: documentIdFrag,
+    name: nameFrag,
+    points: z
+      .array(z.tuple([coordFrag, coordFrag]))
+      .min(3)
+      .max(100),
+    depth: mmFrag,
+    plane: planeFrag,
+    position: positionFrag,
+    confirmed: confirmedFrag,
+  })
+  .strict();
+
+export const filletSchema = z
+  .object({
+    deviceId: deviceIdFrag,
+    cadId: cadIdFrag,
+    documentId: z.uuid(),
+    object: objectNameFrag,
+    radius: mmFrag,
+    edge_indices: z.array(z.number().int().positive()).optional(),
+    path: pathFrag.optional(),
+    confirmed: confirmedFrag,
+  })
+  .strict();
+
+export const chamferSchema = z
+  .object({
+    deviceId: deviceIdFrag,
+    cadId: cadIdFrag,
+    documentId: z.uuid(),
+    object: objectNameFrag,
+    distance: mmFrag,
+    edge_indices: z.array(z.number().int().positive()).optional(),
+    path: pathFrag.optional(),
+    confirmed: confirmedFrag,
+  })
+  .strict();
+
+export const loftSchema = z
+  .object({
+    deviceId: deviceIdFrag,
+    cadId: cadIdFrag,
+    documentId: documentIdFrag,
+    name: nameFrag,
+    sections: z
+      .array(
+        z
+          .array(z.tuple([coordFrag, coordFrag, coordFrag]))
+          .min(3)
+          .max(100),
+      )
+      .min(2)
+      .max(20),
+    solid: z.boolean().optional(),
+    ruled: z.boolean().optional(),
+    position: positionFrag,
+    confirmed: confirmedFrag,
+  })
+  .strict();
+
+/** Advanced CAD operations schemas; asserted alongside batch A/B1/B2 to never carry `owner`/`username`. */
+export const advancedCadSchemas = {
+  create_wedge: createWedgeSchema,
+  extrude_polygon: extrudePolygonSchema,
+  fillet: filletSchema,
+  chamfer: chamferSchema,
+  loft: loftSchema,
+} as const;
+
+export const batchB3Schemas = advancedCadSchemas;
 
 type ToolResult = { content: { type: 'text'; text: string }[] };
 const result = (value: unknown): ToolResult => ({
@@ -743,6 +839,146 @@ export function registerTools(
           { format },
           { deviceId, cadId, documentId },
           'Design',
+        ),
+      );
+    },
+  );
+  server.registerTool(
+    'create_wedge',
+    {
+      description:
+        'Create a wedge primitive in millimeters (dx, dy, dz with optional top_length for truncated wedge), either as a new design or appended to an existing one via documentId. Ask the user to confirm dimensions first.',
+      inputSchema: createWedgeSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (p) => {
+      await requireWrite();
+      const { deviceId, cadId, documentId, name, length, width, height, top_length, position } = p;
+      return result(
+        enqueueOp(
+          store,
+          owner,
+          'create_wedge',
+          { length, width, height, top_length, position },
+          { deviceId, cadId, documentId },
+          name ?? 'Wedge',
+        ),
+      );
+    },
+  );
+  server.registerTool(
+    'extrude_polygon',
+    {
+      description:
+        'Extrude a closed 2D polygon along its plane normal by depth, in millimeters, either as a new design or appended to an existing one via documentId. Ask the user to confirm dimensions first.',
+      inputSchema: extrudePolygonSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (p) => {
+      await requireWrite();
+      const { deviceId, cadId, documentId, name, points, depth, plane, position } = p;
+      return result(
+        enqueueOp(
+          store,
+          owner,
+          'extrude_polygon',
+          { points, depth, plane, position },
+          { deviceId, cadId, documentId },
+          name ?? 'ExtrudePolygon',
+        ),
+      );
+    },
+  );
+  server.registerTool(
+    'fillet',
+    {
+      description:
+        'Apply a rounding fillet of given radius to all or specific edges of an object on a design. Ask the user to confirm before mutating.',
+      inputSchema: filletSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (p) => {
+      await requireWrite();
+      const { deviceId, cadId, documentId, object, radius, edge_indices, path } = p;
+      return result(
+        enqueueOp(
+          store,
+          owner,
+          'fillet',
+          { object, radius, edge_indices, path },
+          { deviceId, cadId, documentId },
+          'Design',
+        ),
+      );
+    },
+  );
+  server.registerTool(
+    'chamfer',
+    {
+      description:
+        'Apply a chamfer bevel of given distance to all or specific edges of an object on a design. Ask the user to confirm before mutating.',
+      inputSchema: chamferSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (p) => {
+      await requireWrite();
+      const { deviceId, cadId, documentId, object, distance, edge_indices, path } = p;
+      return result(
+        enqueueOp(
+          store,
+          owner,
+          'chamfer',
+          { object, distance, edge_indices, path },
+          { deviceId, cadId, documentId },
+          'Design',
+        ),
+      );
+    },
+  );
+  server.registerTool(
+    'loft',
+    {
+      description:
+        'Create a 3D loft solid or surface skinned across multiple cross-sectional profile wires, either as a new design or appended to an existing one via documentId. Ask the user to confirm sections first.',
+      inputSchema: loftSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (p) => {
+      await requireWrite();
+      const { deviceId, cadId, documentId, name, sections, solid, ruled, position } = p;
+      return result(
+        enqueueOp(
+          store,
+          owner,
+          'loft',
+          { sections, solid, ruled, position },
+          { deviceId, cadId, documentId },
+          name ?? 'Loft',
         ),
       );
     },

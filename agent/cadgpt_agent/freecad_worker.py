@@ -149,6 +149,75 @@ def _extrude_rect(data, doc_dir):
                               lambda Part, vec: Part.makeBox(*box_args, vec))
 
 
+def _create_wedge(data, doc_dir):
+    length = _mm(data.get("length"), "length")
+    width = _mm(data.get("width"), "width")
+    height = _mm(data.get("height"), "height")
+    top_raw = data.get("top_length") if data.get("top_length") is not None else data.get("top_x", 0)
+    top_length = _bounded(top_raw if top_raw is not None else 0, "top_length", 0, 10000)
+    x, y, z = _position(data)
+
+    def _build_wedge(Part, vec):
+        try:
+            return Part.makeWedge(length, width, height, top_length, vec)
+        except TypeError:
+            w = Part.makeWedge(length, width, height, top_length)
+            if hasattr(vec, "Length") and vec.Length > 0:
+                w.translate(vec)
+            return w
+
+    return _create_primitive(data, doc_dir, "Wedge", x, y, z, _build_wedge)
+
+
+_PLANE_NORMALS = {
+    "XY": lambda d: (0.0, 0.0, d),
+    "XZ": lambda d: (0.0, d, 0.0),
+    "YZ": lambda d: (d, 0.0, 0.0),
+}
+
+_PLANE_2D_TO_3D = {
+    "XY": lambda u, v, x, y, z: (x + u, y + v, z),
+    "XZ": lambda u, v, x, y, z: (x + u, y, z + v),
+    "YZ": lambda u, v, x, y, z: (x, y + u, z + v),
+}
+
+
+def _extrude_polygon(data, doc_dir):
+    raw_points = data.get("points")
+    if not isinstance(raw_points, list) or len(raw_points) < 3 or len(raw_points) > 100:
+        raise ValueError("points must be a list of 3 to 100 2D coordinate pairs")
+    points = []
+    for i, pt in enumerate(raw_points):
+        if not isinstance(pt, (list, tuple)) or len(pt) != 2:
+            raise ValueError(f"points[{i}] must be a 2D coordinate pair [u, v]")
+        u = _coord(pt[0], f"points[{i}][0]")
+        v = _coord(pt[1], f"points[{i}][1]")
+        points.append((u, v))
+    depth = _mm(data.get("depth"), "depth")
+    plane = data.get("plane", "XY")
+    if plane not in _PLANE_NORMALS:
+        raise ValueError("plane must be one of XY, XZ, YZ")
+    x, y, z = _position(data)
+
+    document = _open_or_new(data, doc_dir)
+    import FreeCAD
+    import Part
+
+    if points[0] != points[-1]:
+        points = list(points) + [points[0]]
+    pts_3d = [FreeCAD.Vector(*_PLANE_2D_TO_3D[plane](u, v, x, y, z)) for u, v in points]
+
+    wire = Part.makePolygon(pts_3d)
+    face = Part.Face(wire)
+    normal = FreeCAD.Vector(*_PLANE_NORMALS[plane](depth))
+    shape = face.extrude(normal)
+
+    obj = document.addObject("Part::Feature", "ExtrudePolygon")
+    obj.Shape = shape
+    document.recompute()
+    return document
+
+
 def _boolean(feature_type):
     def handler(data, doc_dir):
         base_name = _object_name(data.get("base"), "base")
@@ -211,6 +280,109 @@ def _scale_object(data, doc_dir):
     return document
 
 
+def _fillet(data, doc_dir):
+    name = _object_name(data.get("object"), "object")
+    radius = _mm(data.get("radius"), "radius")
+    edge_indices = data.get("edge_indices")
+    if edge_indices is not None:
+        if not isinstance(edge_indices, list) or any(isinstance(x, bool) or not isinstance(x, int) or x <= 0 for x in edge_indices):
+            raise ValueError("edge_indices must be a list of 1-based positive integers")
+    document = _open_document(doc_dir, data)
+    obj = _get_object(document, name)
+    edges = obj.Shape.Edges
+    num_edges = len(edges)
+    if edge_indices:
+        for idx in edge_indices:
+            if not (1 <= idx <= num_edges):
+                raise ValueError(f"edge index {idx} out of range [1, {num_edges}]")
+        selected_edges = [edges[idx - 1] for idx in edge_indices]
+    else:
+        selected_edges = edges
+    import Part
+    if hasattr(obj.Shape, "makeFillet"):
+        new_shape = obj.Shape.makeFillet(radius, selected_edges)
+    elif hasattr(Part, "makeFillet"):
+        new_shape = Part.makeFillet(obj.Shape, radius, selected_edges)
+    else:
+        new_shape = obj.Shape.makeFillet(radius, selected_edges)
+    obj.Shape = new_shape
+    document.recompute()
+    return document
+
+
+def _chamfer(data, doc_dir):
+    name = _object_name(data.get("object"), "object")
+    distance = _mm(data.get("distance"), "distance")
+    edge_indices = data.get("edge_indices")
+    if edge_indices is not None:
+        if not isinstance(edge_indices, list) or any(isinstance(x, bool) or not isinstance(x, int) or x <= 0 for x in edge_indices):
+            raise ValueError("edge_indices must be a list of 1-based positive integers")
+    document = _open_document(doc_dir, data)
+    obj = _get_object(document, name)
+    edges = obj.Shape.Edges
+    num_edges = len(edges)
+    if edge_indices:
+        for idx in edge_indices:
+            if not (1 <= idx <= num_edges):
+                raise ValueError(f"edge index {idx} out of range [1, {num_edges}]")
+        selected_edges = [edges[idx - 1] for idx in edge_indices]
+    else:
+        selected_edges = edges
+    import Part
+    if hasattr(obj.Shape, "makeChamfer"):
+        new_shape = obj.Shape.makeChamfer(distance, selected_edges)
+    elif hasattr(Part, "makeChamfer"):
+        new_shape = Part.makeChamfer(obj.Shape, distance, selected_edges)
+    else:
+        new_shape = obj.Shape.makeChamfer(distance, selected_edges)
+    obj.Shape = new_shape
+    document.recompute()
+    return document
+
+
+def _loft(data, doc_dir):
+    raw_sections = data.get("sections")
+    if not isinstance(raw_sections, list) or len(raw_sections) < 2 or len(raw_sections) > 20:
+        raise ValueError("sections must be a list of 2 to 20 cross-section profiles")
+    sections = []
+    for i, sec in enumerate(raw_sections):
+        if not isinstance(sec, list) or len(sec) < 3 or len(sec) > 100:
+            raise ValueError(f"sections[{i}] must contain 3 to 100 3D coordinate points")
+        sec_points = []
+        for j, pt in enumerate(sec):
+            if not isinstance(pt, (list, tuple)) or len(pt) != 3:
+                raise ValueError(f"sections[{i}][{j}] must be a 3D coordinate [x, y, z]")
+            px = _coord(pt[0], f"sections[{i}][{j}][0]")
+            py = _coord(pt[1], f"sections[{i}][{j}][1]")
+            pz = _coord(pt[2], f"sections[{i}][{j}][2]")
+            sec_points.append((px, py, pz))
+        sections.append(sec_points)
+    solid = bool(data.get("solid", True))
+    ruled = bool(data.get("ruled", False))
+    x, y, z = _position(data)
+
+    document = _open_or_new(data, doc_dir)
+    import FreeCAD
+    import Part
+
+    wires = []
+    for sec in sections:
+        if sec[0] != sec[-1]:
+            sec = list(sec) + [sec[0]]
+        pts_3d = [FreeCAD.Vector(px + x, py + y, pz + z) for px, py, pz in sec]
+        wires.append(Part.makePolygon(pts_3d))
+
+    try:
+        loft_shape = Part.makeLoft(wires, solid, ruled)
+    except TypeError:
+        loft_shape = Part.makeLoft(wires, is_solid=solid, is_ruled=ruled)
+
+    obj = document.addObject("Part::Feature", "Loft")
+    obj.Shape = loft_shape
+    document.recompute()
+    return document
+
+
 def _read_scene(data, doc_dir):
     return _open_document(doc_dir, data)
 
@@ -266,9 +438,14 @@ OPS = {
     "create_sphere": _create_sphere,
     "create_cone": _create_cone,
     "extrude_rect": _extrude_rect,
+    "create_wedge": _create_wedge,
+    "extrude_polygon": _extrude_polygon,
     "boolean_cut": _boolean_cut,
     "boolean_union": _boolean_union,
     "boolean_intersect": _boolean_intersect,
+    "fillet": _fillet,
+    "chamfer": _chamfer,
+    "loft": _loft,
     "translate_object": _translate_object,
     "rotate_object": _rotate_object,
     "scale_object": _scale_object,
@@ -298,18 +475,19 @@ def run(job_dir, doc_dir, data):
         sys.exit(2)
     native_path_str = data.get("native_path") or data.get("nativePath")
     native_path = Path(native_path_str) if native_path_str else None
+    target_doc = _document_path(doc_dir, data)
 
-    # Before any write, if targeting an existing native file, ensure backup sibling exists
+    # Before any write, if targeting an existing document file, ensure backup sibling exists
     backup_file = None
-    if native_path and native_path.is_file() and op in MUTATING_OPS:
+    if target_doc and target_doc.is_file() and op in MUTATING_OPS:
         ts = int(time.time())
-        backup_file = native_path.parent / f"{native_path.name}.{ts}.bak"
+        backup_file = target_doc.parent / f"{target_doc.name}.{ts}.bak"
         counter = 1
         while backup_file.exists():
-            backup_file = native_path.parent / f"{native_path.name}.{ts}_{counter}.bak"
+            backup_file = target_doc.parent / f"{target_doc.name}.{ts}_{counter}.bak"
             counter += 1
         import shutil
-        shutil.copy2(native_path, backup_file)
+        shutil.copy2(target_doc, backup_file)
 
     try:
         document = handler(data, doc_dir)
@@ -333,9 +511,9 @@ def run(job_dir, doc_dir, data):
         import FreeCAD
         FreeCAD.closeDocument(document.Name)
     except Exception:
-        if backup_file and backup_file.is_file() and native_path:
+        if backup_file and backup_file.is_file() and target_doc:
             import shutil
-            shutil.copy2(backup_file, native_path)
+            shutil.copy2(backup_file, target_doc)
         raise
 
 

@@ -168,5 +168,267 @@ class FreeCadWorkerBackupTests(unittest.TestCase):
             mock_doc.save.assert_called()
 
 
+class FreeCadAdvancedOpsTests(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.job_dir = Path(self.temp_dir.name) / "job"
+        self.job_dir.mkdir()
+        self.doc_dir = Path(self.temp_dir.name) / "doc"
+        self.doc_dir.mkdir()
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def _setup_mock_doc(self, num_edges=12):
+        mock_doc = MagicMock()
+        mock_doc.FileName = ""
+        mock_doc.Name = "CADGPTDesign"
+        mock_box = MagicMock()
+        mock_box.Name = "Box"
+        mock_box.InList = []
+        mock_edges = [MagicMock() for _ in range(num_edges)]
+        mock_box.Shape.Edges = mock_edges
+        mock_box.Shape.BoundBox = MagicMock(XMin=0, YMin=0, ZMin=0, XMax=10, YMax=10, ZMax=10)
+        mock_box.Shape.Volume = 1000.0
+        mock_doc.Objects = [mock_box]
+        mock_doc.getObject.side_effect = lambda name: mock_box if name == "Box" else None
+        return mock_doc, mock_box, mock_edges
+
+    def test_create_wedge_knife_edge(self):
+        """Scenario: Create knife-edge wedge primitive."""
+        data = {
+            "op": "create_wedge",
+            "length": 50,
+            "width": 20,
+            "height": 30,
+            "top_length": 0,
+        }
+        mock_doc = MagicMock()
+        mock_doc.FileName = ""
+        mock_doc.Name = "CADGPTDesign"
+        mock_doc.Objects = []
+        with patch.dict("sys.modules", {"FreeCAD": MagicMock(), "Part": MagicMock(), "MeshPart": MagicMock()}):
+            import FreeCAD
+            import Part
+            FreeCAD.newDocument.return_value = mock_doc
+            FreeCAD.openDocument.return_value = mock_doc
+            freecad_worker.run(self.job_dir, self.doc_dir, data)
+            mock_doc.addObject.assert_called_with("Part::Feature", "Wedge")
+            Part.makeWedge.assert_called()
+            args, _ = Part.makeWedge.call_args
+            self.assertEqual(args[:4], (50.0, 20.0, 30.0, 0.0))
+
+    def test_create_wedge_truncated(self):
+        """Scenario: Create wedge with flat top ridge."""
+        data = {
+            "op": "create_wedge",
+            "length": 60,
+            "width": 30,
+            "height": 40,
+            "top_length": 15,
+        }
+        mock_doc = MagicMock()
+        mock_doc.FileName = ""
+        mock_doc.Name = "CADGPTDesign"
+        mock_doc.Objects = []
+        with patch.dict("sys.modules", {"FreeCAD": MagicMock(), "Part": MagicMock(), "MeshPart": MagicMock()}):
+            import FreeCAD
+            import Part
+            FreeCAD.newDocument.return_value = mock_doc
+            freecad_worker.run(self.job_dir, self.doc_dir, data)
+            args, _ = Part.makeWedge.call_args
+            self.assertEqual(args[:4], (60.0, 30.0, 40.0, 15.0))
+
+    def test_create_wedge_validation(self):
+        """Rejects non-positive dimensions and negative top_length."""
+        with self.assertRaises(ValueError):
+            freecad_worker._create_wedge({"length": -10, "width": 20, "height": 30}, self.doc_dir)
+        with self.assertRaises(ValueError):
+            freecad_worker._create_wedge({"length": 10, "width": 0, "height": 30}, self.doc_dir)
+        with self.assertRaises(ValueError):
+            freecad_worker._create_wedge({"length": 10, "width": 20, "height": 30, "top_length": -1}, self.doc_dir)
+
+    def test_extrude_polygon_xy_plane(self):
+        """Scenario: Extrude closed polygon on XY plane."""
+        data = {
+            "op": "extrude_polygon",
+            "points": [[0, 0], [40, 0], [50, 20], [10, 20]],
+            "depth": 12,
+            "plane": "XY",
+        }
+        mock_doc = MagicMock()
+        mock_doc.FileName = ""
+        mock_doc.Name = "CADGPTDesign"
+        mock_doc.Objects = []
+        with patch.dict("sys.modules", {"FreeCAD": MagicMock(), "Part": MagicMock(), "MeshPart": MagicMock()}):
+            import FreeCAD
+            import Part
+            FreeCAD.newDocument.return_value = mock_doc
+            freecad_worker.run(self.job_dir, self.doc_dir, data)
+            mock_doc.addObject.assert_called_with("Part::Feature", "ExtrudePolygon")
+            # Loop was closed to 5 vertices
+            make_poly_call = Part.makePolygon.call_args[0][0]
+            self.assertEqual(len(make_poly_call), 5)
+            Part.Face.assert_called()
+            Part.Face.return_value.extrude.assert_called()
+
+    def test_extrude_polygon_validation(self):
+        """Scenario: Reject polygon with fewer than 3 vertices or out of bounds coordinates."""
+        with self.assertRaises(ValueError):
+            freecad_worker._extrude_polygon({"points": [[0, 0], [10, 10]], "depth": 10, "plane": "XY"}, self.doc_dir)
+        with self.assertRaises(ValueError):
+            freecad_worker._extrude_polygon({"points": [[0, 0], [10, 0], [10, 10]], "depth": -5, "plane": "XY"}, self.doc_dir)
+        with self.assertRaises(ValueError):
+            freecad_worker._extrude_polygon({"points": [[0, 0], [10, 0], [10, 10]], "depth": 5, "plane": "INVALID"}, self.doc_dir)
+
+    def test_fillet_all_edges(self):
+        """Scenario: Fillet all edges of existing solid."""
+        mock_doc, mock_box, mock_edges = self._setup_mock_doc(num_edges=12)
+        orig_shape = mock_box.Shape
+        data = {
+            "op": "fillet",
+            "object": "Box",
+            "radius": 2.0,
+        }
+        with patch.dict("sys.modules", {"FreeCAD": MagicMock(), "Part": MagicMock(), "MeshPart": MagicMock()}):
+            import FreeCAD
+            FreeCAD.openDocument.return_value = mock_doc
+            freecad_worker.run(self.job_dir, self.doc_dir, data)
+            orig_shape.makeFillet.assert_called_with(2.0, mock_edges)
+            mock_doc.recompute.assert_called()
+
+    def test_fillet_specific_edge_indices(self):
+        """Fillet with 1-based edge_indices."""
+        mock_doc, mock_box, mock_edges = self._setup_mock_doc(num_edges=12)
+        orig_shape = mock_box.Shape
+        data = {
+            "op": "fillet",
+            "object": "Box",
+            "radius": 2.0,
+            "edge_indices": [1, 3],
+        }
+        with patch.dict("sys.modules", {"FreeCAD": MagicMock(), "Part": MagicMock(), "MeshPart": MagicMock()}):
+            import FreeCAD
+            FreeCAD.openDocument.return_value = mock_doc
+            freecad_worker.run(self.job_dir, self.doc_dir, data)
+            orig_shape.makeFillet.assert_called_with(2.0, [mock_edges[0], mock_edges[2]])
+
+    def test_fillet_invalid_edge_index_triggers_rollback(self):
+        """Scenario: Invalid edge index triggers backup rollback without corrupting document."""
+        mock_doc, mock_box, _ = self._setup_mock_doc(num_edges=12)
+        # Create an existing design file on disk to verify rollback
+        design_file = self.doc_dir / "design.FCStd"
+        original_bytes = b"pristine_fcstd_data_before_fillet"
+        design_file.write_bytes(original_bytes)
+
+        data = {
+            "op": "fillet",
+            "object": "Box",
+            "radius": 2.0,
+            "edge_indices": [99],
+        }
+        with patch.dict("sys.modules", {"FreeCAD": MagicMock(), "Part": MagicMock(), "MeshPart": MagicMock()}):
+            import FreeCAD
+            FreeCAD.openDocument.return_value = mock_doc
+            with self.assertRaises(ValueError) as ctx:
+                freecad_worker.run(self.job_dir, self.doc_dir, data)
+            self.assertIn("out of range", str(ctx.exception))
+            # Verify file was rolled back from backup
+            self.assertEqual(design_file.read_bytes(), original_bytes)
+
+    def test_chamfer_specific_edge_indices(self):
+        """Scenario: Chamfer specific edge indices."""
+        mock_doc, mock_box, mock_edges = self._setup_mock_doc(num_edges=8)
+        orig_shape = mock_box.Shape
+        mock_box.Name = "ExtrudePolygon"
+        mock_doc.getObject.side_effect = lambda name: mock_box if name == "ExtrudePolygon" else None
+        data = {
+            "op": "chamfer",
+            "object": "ExtrudePolygon",
+            "distance": 1.5,
+            "edge_indices": [1, 3],
+        }
+        with patch.dict("sys.modules", {"FreeCAD": MagicMock(), "Part": MagicMock(), "MeshPart": MagicMock()}):
+            import FreeCAD
+            FreeCAD.openDocument.return_value = mock_doc
+            freecad_worker.run(self.job_dir, self.doc_dir, data)
+            orig_shape.makeChamfer.assert_called_with(1.5, [mock_edges[0], mock_edges[2]])
+
+    def test_chamfer_invalid_edge_index_triggers_rollback(self):
+        """Invalid edge index (0 is not 1-based) triggers rollback."""
+        mock_doc, mock_box, _ = self._setup_mock_doc(num_edges=8)
+        design_file = self.doc_dir / "design.FCStd"
+        original_bytes = b"pristine_fcstd_data_before_chamfer"
+        design_file.write_bytes(original_bytes)
+
+        data = {
+            "op": "chamfer",
+            "object": "Box",
+            "distance": 1.5,
+            "edge_indices": [0],
+        }
+        with patch.dict("sys.modules", {"FreeCAD": MagicMock(), "Part": MagicMock(), "MeshPart": MagicMock()}):
+            import FreeCAD
+            FreeCAD.openDocument.return_value = mock_doc
+            with self.assertRaises(ValueError):
+                freecad_worker.run(self.job_dir, self.doc_dir, data)
+            self.assertEqual(design_file.read_bytes(), original_bytes)
+
+    def test_loft_smooth_solid(self):
+        """Scenario: Smooth solid loft through multiple profiles."""
+        data = {
+            "op": "loft",
+            "sections": [
+                [[0, 0, 0], [10, 0, 0], [10, 10, 0]],
+                [[0, 0, 50], [15, 0, 50], [15, 15, 50]],
+                [[0, 0, 100], [5, 0, 100], [5, 5, 100]],
+            ],
+            "solid": True,
+            "ruled": False,
+        }
+        mock_doc = MagicMock()
+        mock_doc.FileName = ""
+        mock_doc.Name = "CADGPTDesign"
+        mock_doc.Objects = []
+        with patch.dict("sys.modules", {"FreeCAD": MagicMock(), "Part": MagicMock(), "MeshPart": MagicMock()}):
+            import FreeCAD
+            import Part
+            FreeCAD.newDocument.return_value = mock_doc
+            freecad_worker.run(self.job_dir, self.doc_dir, data)
+            mock_doc.addObject.assert_called_with("Part::Feature", "Loft")
+            self.assertEqual(Part.makePolygon.call_count, 3)
+            Part.makeLoft.assert_called()
+
+    def test_loft_ruled_surface(self):
+        """Scenario: Ruled surface loft with solid set to false."""
+        data = {
+            "op": "loft",
+            "sections": [
+                [[0, 0, 0], [10, 0, 0], [10, 10, 0]],
+                [[0, 0, 50], [15, 0, 50], [15, 15, 50]],
+            ],
+            "solid": False,
+            "ruled": True,
+        }
+        mock_doc = MagicMock()
+        mock_doc.FileName = ""
+        mock_doc.Name = "CADGPTDesign"
+        mock_doc.Objects = []
+        with patch.dict("sys.modules", {"FreeCAD": MagicMock(), "Part": MagicMock(), "MeshPart": MagicMock()}):
+            import FreeCAD
+            import Part
+            FreeCAD.newDocument.return_value = mock_doc
+            freecad_worker.run(self.job_dir, self.doc_dir, data)
+            mock_doc.addObject.assert_called_with("Part::Feature", "Loft")
+            Part.makeLoft.assert_called_with(unittest.mock.ANY, False, True)
+
+    def test_loft_validation_rejects_fewer_than_two_sections(self):
+        """Scenario: Reject loft with fewer than two sections."""
+        with self.assertRaises(ValueError):
+            freecad_worker._loft({
+                "sections": [[[0, 0, 0], [10, 0, 0], [10, 10, 0]]],
+            }, self.doc_dir)
+
+
 if __name__ == "__main__":
     unittest.main()
