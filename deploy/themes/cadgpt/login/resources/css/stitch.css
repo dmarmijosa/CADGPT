@@ -21,6 +21,19 @@
   --stitch-error-bg: rgba(239, 68, 68, 0.12);
   --stitch-success: #10b981;
   --stitch-success-bg: rgba(16, 185, 129, 0.12);
+
+  /* PatternFly v5 variable overrides */
+  --pf-v5-global--BackgroundColor--100: var(--stitch-surface);
+  --pf-v5-global--BackgroundColor--200: var(--stitch-canvas);
+  --pf-v5-global--BackgroundColor--dark-100: var(--stitch-surface);
+  --pf-v5-global--Color--100: var(--stitch-ink);
+  --pf-v5-global--Color--200: var(--stitch-ink-muted);
+  --pf-v5-global--primary-color--100: var(--stitch-primary);
+  --pf-v5-global--primary-color--200: var(--stitch-primary-hover);
+  --pf-v5-global--BorderColor--100: var(--stitch-border);
+  --pf-v5-global--FontFamily--sans-serif:
+    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --pf-v5-global--FontFamily--monospace: 'JetBrains Mono', monospace;
 }
 
 /* Base Page Background */
@@ -39,13 +52,7 @@ body,
     32px 32px,
     32px 32px !important;
   color: var(--stitch-ink) !important;
-  font-family:
-    'Inter',
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    sans-serif !important;
+  font-family: var(--pf-v5-global--FontFamily--sans-serif) !important;
   min-height: 100vh !important;
 }
 
@@ -53,6 +60,7 @@ body,
 .card-pf,
 .pf-v5-c-card,
 .pf-v5-c-login__main,
+.pf-v5-c-login__container,
 #kc-content-wrapper,
 .login-pf-page .card-pf {
   background-color: var(--stitch-surface) !important;
@@ -62,9 +70,14 @@ body,
     0 0 30px -5px rgba(0, 240, 255, 0.12),
     0 12px 40px rgba(0, 0, 0, 0.6) !important;
   color: var(--stitch-ink) !important;
-  padding: 2.25rem !important;
   max-width: 480px !important;
   margin: 0 auto !important;
+}
+
+.pf-v5-c-login__main-header,
+.pf-v5-c-login__main-body,
+.pf-v5-c-login__main-footer {
+  background-color: transparent !important;
 }
 
 /* Header & Brand Title */
@@ -88,10 +101,11 @@ body,
   letter-spacing: 0.15em;
   color: var(--stitch-primary);
   margin-top: 0.25rem;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--pf-v5-global--FontFamily--monospace);
 }
 
-#kc-page-title {
+#kc-page-title,
+.pf-v5-c-login__main-header .pf-v5-c-title {
   color: var(--stitch-ink) !important;
   font-size: 1.35rem !important;
   font-weight: 600 !important;
@@ -113,34 +127,51 @@ label,
   display: block !important;
 }
 
-/* Inputs */
-input.form-control,
+/* PatternFly Form Controls & Inputs */
 .pf-v5-c-form-control,
-input[type='text'],
-input[type='password'],
-input[type='email'] {
+.pf-v5-c-input-group {
   background-color: var(--stitch-surface-variant) !important;
   border: 1px solid rgba(255, 255, 255, 0.16) !important;
   border-radius: 6px !important;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease !important;
+}
+
+.pf-v5-c-form-control:focus-within,
+.pf-v5-c-input-group:focus-within {
+  border-color: var(--stitch-primary) !important;
+  box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.25) !important;
+}
+
+.pf-v5-c-form-control input,
+.pf-v5-c-form-control textarea,
+input.form-control,
+input[type='text'],
+input[type='password'],
+input[type='email'] {
+  background-color: transparent !important;
+  border: none !important;
   color: var(--stitch-ink) !important;
   font-size: 0.95rem !important;
   font-family: inherit !important;
   padding: 0.65rem 0.85rem !important;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease !important;
   width: 100% !important;
   box-sizing: border-box !important;
+  outline: none !important;
 }
 
-input.form-control:focus,
-.pf-v5-c-form-control:focus,
-input[type='text']:focus,
-input[type='password']:focus,
-input[type='email']:focus {
-  border-color: var(--stitch-primary) !important;
-  box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.25) !important;
-  outline: none !important;
+/* Password Toggle Icon */
+.pf-v5-c-input-group button.pf-v5-c-button.pf-m-control {
+  background: transparent !important;
+  border: none !important;
+  color: var(--stitch-ink-muted) !important;
+  padding: 0 0.75rem !important;
+  cursor: pointer !important;
+}
+
+.pf-v5-c-input-group button.pf-v5-c-button.pf-m-control:hover {
+  color: var(--stitch-primary) !important;
 }
 
 /* Primary Submit Buttons */
@@ -188,7 +219,8 @@ button[type='submit']:active {
 a,
 #kc-registration a,
 .login-pf-signup a,
-.pf-v5-c-login__main-footer-band a {
+.pf-v5-c-login__main-footer-band a,
+.pf-v5-c-helper-text__item-text a {
   color: var(--stitch-primary) !important;
   text-decoration: none !important;
   font-weight: 500 !important;
@@ -199,7 +231,8 @@ a,
 a:hover,
 #kc-registration a:hover,
 .login-pf-signup a:hover,
-.pf-v5-c-login__main-footer-band a:hover {
+.pf-v5-c-login__main-footer-band a:hover,
+.pf-v5-c-helper-text__item-text a:hover {
   color: #38bdf8 !important;
   text-decoration: underline !important;
 }
@@ -237,8 +270,9 @@ a:hover,
 }
 
 .kc-feedback-text,
-.pf-v5-c-form__helper-text {
-  color: #fca5a5 !important;
+.pf-v5-c-form__helper-text,
+.pf-v5-c-helper-text__item {
+  color: var(--stitch-ink-muted) !important;
   font-size: 0.825rem !important;
   margin-top: 0.25rem !important;
 }
