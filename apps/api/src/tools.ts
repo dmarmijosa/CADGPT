@@ -67,6 +67,7 @@ export const createCylinderSchema = z
     deviceId: deviceIdFrag,
     cadId: cadIdFrag,
     documentId: documentIdFrag,
+    name: nameFrag,
     radius: mmFrag,
     height: mmFrag,
     position: positionFrag,
@@ -79,6 +80,7 @@ export const createSphereSchema = z
     deviceId: deviceIdFrag,
     cadId: cadIdFrag,
     documentId: documentIdFrag,
+    name: nameFrag,
     radius: mmFrag,
     position: positionFrag,
     confirmed: confirmedFrag,
@@ -90,6 +92,7 @@ export const createConeSchema = z
     deviceId: deviceIdFrag,
     cadId: cadIdFrag,
     documentId: documentIdFrag,
+    name: nameFrag,
     radius1: mmFrag,
     radius2: mmOrZeroFrag,
     height: mmFrag,
@@ -132,6 +135,7 @@ export const extrudeRectSchema = z
     deviceId: deviceIdFrag,
     cadId: cadIdFrag,
     documentId: documentIdFrag,
+    name: nameFrag,
     width: mmFrag,
     height: mmFrag,
     depth: mmFrag,
@@ -446,7 +450,7 @@ export function registerTools(
     },
     async (p) => {
       await requireWrite();
-      const { deviceId, cadId, documentId, radius, height, position } = p;
+      const { deviceId, cadId, documentId, name, radius, height, position } = p;
       return result(
         enqueueOp(
           store,
@@ -454,7 +458,7 @@ export function registerTools(
           'create_cylinder',
           { radius, height, position },
           { deviceId, cadId, documentId },
-          'Cylinder',
+          name ?? 'Cylinder',
         ),
       );
     },
@@ -474,7 +478,7 @@ export function registerTools(
     },
     async (p) => {
       await requireWrite();
-      const { deviceId, cadId, documentId, radius, position } = p;
+      const { deviceId, cadId, documentId, name, radius, position } = p;
       return result(
         enqueueOp(
           store,
@@ -482,7 +486,7 @@ export function registerTools(
           'create_sphere',
           { radius, position },
           { deviceId, cadId, documentId },
-          'Sphere',
+          name ?? 'Sphere',
         ),
       );
     },
@@ -502,7 +506,7 @@ export function registerTools(
     },
     async (p) => {
       await requireWrite();
-      const { deviceId, cadId, documentId, radius1, radius2, height, position } = p;
+      const { deviceId, cadId, documentId, name, radius1, radius2, height, position } = p;
       return result(
         enqueueOp(
           store,
@@ -510,7 +514,7 @@ export function registerTools(
           'create_cone',
           { radius1, radius2, height, position },
           { deviceId, cadId, documentId },
-          'Cone',
+          name ?? 'Cone',
         ),
       );
     },
@@ -555,7 +559,7 @@ export function registerTools(
     },
     async (p) => {
       await requireWrite();
-      const { deviceId, cadId, documentId, width, height, depth, plane, position } = p;
+      const { deviceId, cadId, documentId, name, width, height, depth, plane, position } = p;
       return result(
         enqueueOp(
           store,
@@ -563,7 +567,7 @@ export function registerTools(
           'extrude_rect',
           { width, height, depth, plane, position },
           { deviceId, cadId, documentId },
-          'Extrude',
+          name ?? 'Extrude',
         ),
       );
     },

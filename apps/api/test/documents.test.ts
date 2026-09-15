@@ -80,6 +80,24 @@ test('D17 lock rejects a second active job on the same document', () => {
     (e: unknown) => e instanceof Error && /active job/.test(e.message),
   );
 });
+test('enqueue stamps confirmed:true into the agent-facing payload even when the caller omits it', () => {
+  // Regression: MCP tool handlers destructure their params without `confirmed`,
+  // so the flag never reached the persisted payload and the agent rejected
+  // every job with "Explicit confirmation required". enqueue now stamps it at
+  // the single choke point, so the caller's input need not carry it.
+  const { store, device } = setup();
+  const input = {
+    deviceId: device.deviceId!,
+    cadId: 'cad',
+    radius: 30,
+    // deliberately no `confirmed` here — mirrors the MCP handler's params
+  };
+  const job = store.enqueue('alice', input, 'create_sphere');
+  const picked = store.heartbeat(device.credential!, [cad]);
+  assert.equal(picked.job?.id, job.id);
+  assert.equal(picked.job?.type, 'create_sphere');
+  assert.equal(picked.job?.confirmed, true);
+});
 test('complete() bumps documents.updated/latest_job_id on success', () => {
   const { store, device } = setup();
   const doc = store.createDocument('alice', device.deviceId!, 'FreeCAD', 'Bracket');

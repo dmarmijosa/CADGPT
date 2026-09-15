@@ -245,7 +245,16 @@ export class Store {
     type = 'create_box',
     documentId: string | null = null,
   ) {
-    const p = input;
+    // Stamp the agent's required `confirmed` flag here, at the single point
+    // every job funnels through. Reaching enqueue means the job already
+    // passed its authorization gate (MCP tools require a `confirmed: true`
+    // literal in their Zod schema plus `requireWrite`; the REST path requires
+    // an authenticated cad:write session), so the server attests the
+    // confirmation the agent's executor checks. Doing it per-caller was the
+    // original bug: MCP handlers destructured their params without `confirmed`
+    // and the flag never reached the persisted payload, so every queued job
+    // failed at the agent with "Explicit confirmation required".
+    const p = { ...input, confirmed: true as const };
     const device = this.devices(owner).find((d) => d.id === p.deviceId && !d.revoked);
     if (!device) throw new DomainError(404, 'Device not found.');
     if (!device.online) throw new DomainError(409, 'Device is offline. No job was queued.');
