@@ -59,6 +59,7 @@ services:
       # --import-realm only imports on first boot (realm does not exist yet);
       # see docs/deployment.md for how to apply later realm changes.
       - ./cadgpt-realm.prod.json:/opt/keycloak/data/import/cadgpt-realm.json:ro
+      - ./themes:/opt/keycloak/themes:ro
     networks:
       - easypanel
       - cadgpt

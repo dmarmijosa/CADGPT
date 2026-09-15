@@ -1,6 +1,7 @@
 {
   "realm": "cadgpt",
   "enabled": true,
+  "loginTheme": "cadgpt",
   "registrationAllowed": true,
   "resetPasswordAllowed": true,
   "rememberMe": false,

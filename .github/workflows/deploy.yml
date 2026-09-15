@@ -102,11 +102,12 @@ jobs:
           ssh "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
             "sudo mkdir -p /opt/cadgpt && sudo chown ${{ secrets.DEPLOY_USER }}:${{ secrets.DEPLOY_USER }} /opt/cadgpt"
 
-      - name: Upload compose and Keycloak realm
+      - name: Upload compose, Keycloak realm, and themes
         run: |
           scp deploy/prod/compose.yaml "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/cadgpt/compose.yaml"
           scp deploy/prod/cadgpt-realm.prod.json "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/cadgpt/cadgpt-realm.prod.json"
           scp deploy/prod/traefik-cadgpt.yml "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/tmp/cadgpt-traefik.yml"
+          scp -r deploy/themes "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/cadgpt/themes"
 
       - name: Write environment file
         run: |

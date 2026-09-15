@@ -1,0 +1,255 @@
+/*
+ * Stitch Precision CAD Workbench — Keycloak Login & Registration Theme
+ * Tokens match CAD Agent Designer (Inter, Space Canvas #090D16, HUD #0D1322, Electric Cyan #00F0FF)
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --stitch-canvas: #090d16;
+  --stitch-surface: #0d1322;
+  --stitch-surface-variant: #131b2e;
+  --stitch-border: rgba(255, 255, 255, 0.12);
+  --stitch-border-focus: #00f0ff;
+  --stitch-primary: #00f0ff;
+  --stitch-primary-hover: #00c2cf;
+  --stitch-primary-fg: #090d16;
+  --stitch-ink: #f8fafc;
+  --stitch-ink-muted: #94a3b8;
+  --stitch-ink-faint: #64748b;
+  --stitch-error: #ef4444;
+  --stitch-error-bg: rgba(239, 68, 68, 0.12);
+  --stitch-success: #10b981;
+  --stitch-success-bg: rgba(16, 185, 129, 0.12);
+}
+
+/* Base Page Background */
+html,
+body,
+.login-pf-page,
+.pf-v5-c-login,
+.login-pf {
+  background-color: var(--stitch-canvas) !important;
+  background-image:
+    radial-gradient(circle at 50% 15%, rgba(0, 240, 255, 0.08), transparent 60%),
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px) !important;
+  background-size:
+    100% 100%,
+    32px 32px,
+    32px 32px !important;
+  color: var(--stitch-ink) !important;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif !important;
+  min-height: 100vh !important;
+}
+
+/* Card Container */
+.card-pf,
+.pf-v5-c-card,
+.pf-v5-c-login__main,
+#kc-content-wrapper,
+.login-pf-page .card-pf {
+  background-color: var(--stitch-surface) !important;
+  border: 1px solid var(--stitch-border) !important;
+  border-radius: 12px !important;
+  box-shadow:
+    0 0 30px -5px rgba(0, 240, 255, 0.12),
+    0 12px 40px rgba(0, 0, 0, 0.6) !important;
+  color: var(--stitch-ink) !important;
+  padding: 2.25rem !important;
+  max-width: 480px !important;
+  margin: 0 auto !important;
+}
+
+/* Header & Brand Title */
+#kc-header,
+#kc-header-wrapper,
+.pf-v5-c-login__header,
+.login-pf-page-header {
+  color: var(--stitch-ink) !important;
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+  margin-bottom: 1.5rem !important;
+}
+
+#kc-header-wrapper::after {
+  content: 'CAD AGENT DESIGNER';
+  display: block;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  color: var(--stitch-primary);
+  margin-top: 0.25rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+#kc-page-title {
+  color: var(--stitch-ink) !important;
+  font-size: 1.35rem !important;
+  font-weight: 600 !important;
+  margin-bottom: 1.25rem !important;
+  text-align: center !important;
+  border-bottom: 1px solid var(--stitch-border) !important;
+  padding-bottom: 0.75rem !important;
+}
+
+/* Form Labels */
+label,
+.control-label,
+.pf-v5-c-form__label,
+.pf-v5-c-form__label-text {
+  color: var(--stitch-ink-muted) !important;
+  font-size: 0.85rem !important;
+  font-weight: 500 !important;
+  margin-bottom: 0.35rem !important;
+  display: block !important;
+}
+
+/* Inputs */
+input.form-control,
+.pf-v5-c-form-control,
+input[type='text'],
+input[type='password'],
+input[type='email'] {
+  background-color: var(--stitch-surface-variant) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 6px !important;
+  color: var(--stitch-ink) !important;
+  font-size: 0.95rem !important;
+  font-family: inherit !important;
+  padding: 0.65rem 0.85rem !important;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+input.form-control:focus,
+.pf-v5-c-form-control:focus,
+input[type='text']:focus,
+input[type='password']:focus,
+input[type='email']:focus {
+  border-color: var(--stitch-primary) !important;
+  box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.25) !important;
+  outline: none !important;
+}
+
+/* Primary Submit Buttons */
+#kc-login,
+#kc-register,
+.btn-primary,
+.pf-v5-c-button.pf-m-primary,
+input[type='submit'],
+button[type='submit'] {
+  background-color: var(--stitch-primary) !important;
+  background-image: none !important;
+  border: none !important;
+  border-radius: 6px !important;
+  color: var(--stitch-primary-fg) !important;
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+  padding: 0.75rem 1.25rem !important;
+  cursor: pointer !important;
+  transition:
+    background-color 0.15s ease,
+    transform 0.05s ease !important;
+  width: 100% !important;
+  margin-top: 1rem !important;
+  box-shadow: 0 0 16px -2px rgba(0, 240, 255, 0.3) !important;
+}
+
+#kc-login:hover,
+#kc-register:hover,
+.btn-primary:hover,
+.pf-v5-c-button.pf-m-primary:hover,
+input[type='submit']:hover,
+button[type='submit']:hover {
+  background-color: var(--stitch-primary-hover) !important;
+  color: var(--stitch-primary-fg) !important;
+}
+
+#kc-login:active,
+.btn-primary:active,
+button[type='submit']:active {
+  transform: scale(0.99) !important;
+}
+
+/* Links (Registration, Forgot password, Back to login) */
+a,
+#kc-registration a,
+.login-pf-signup a,
+.pf-v5-c-login__main-footer-band a {
+  color: var(--stitch-primary) !important;
+  text-decoration: none !important;
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+  transition: color 0.15s ease !important;
+}
+
+a:hover,
+#kc-registration a:hover,
+.login-pf-signup a:hover,
+.pf-v5-c-login__main-footer-band a:hover {
+  color: #38bdf8 !important;
+  text-decoration: underline !important;
+}
+
+#kc-registration,
+#kc-form-options {
+  margin-top: 1.25rem !important;
+  font-size: 0.875rem !important;
+  color: var(--stitch-ink-muted) !important;
+  text-align: center !important;
+}
+
+/* Alert Boxes & Errors */
+.alert,
+.alert-error,
+.pf-v5-c-alert.pf-m-danger {
+  background-color: var(--stitch-error-bg) !important;
+  border: 1px solid rgba(239, 68, 68, 0.4) !important;
+  border-radius: 6px !important;
+  color: #fca5a5 !important;
+  padding: 0.75rem 1rem !important;
+  margin-bottom: 1.25rem !important;
+  font-size: 0.875rem !important;
+}
+
+.alert-success,
+.pf-v5-c-alert.pf-m-success {
+  background-color: var(--stitch-success-bg) !important;
+  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+  border-radius: 6px !important;
+  color: #6ee7b7 !important;
+  padding: 0.75rem 1rem !important;
+  margin-bottom: 1.25rem !important;
+  font-size: 0.875rem !important;
+}
+
+.kc-feedback-text,
+.pf-v5-c-form__helper-text {
+  color: #fca5a5 !important;
+  font-size: 0.825rem !important;
+  margin-top: 0.25rem !important;
+}
+
+/* Footer / Info Notes */
+#kc-info-wrapper,
+.pf-v5-c-login__main-footer {
+  border-top: 1px solid var(--stitch-border) !important;
+  margin-top: 1.5rem !important;
+  padding-top: 1rem !important;
+  text-align: center !important;
+  font-size: 0.85rem !important;
+  color: var(--stitch-ink-muted) !important;
+}
