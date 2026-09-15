@@ -135,6 +135,11 @@ jobs:
           ssh "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
             "cd /opt/cadgpt && sudo docker compose -f compose.yaml pull && sudo docker compose -f compose.yaml up -d --remove-orphans"
 
+      - name: Apply realm theme to Keycloak
+        run: |
+          ssh "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "sudo docker exec cadgpt-keycloak-db psql -U keycloak -d keycloak -c \"UPDATE realm SET login_theme = 'cadgpt' WHERE id = 'cadgpt' OR name = 'cadgpt';\" && cd /opt/cadgpt && sudo docker compose -f compose.yaml restart keycloak"
+
       - name: Health probe
         run: |
           for i in 1 2 3 4 5 6; do
