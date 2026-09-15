@@ -9,7 +9,7 @@ import { resolve } from 'node:path';
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { Store, DomainError, cadSchema, boxSchema, API_KEY_SCOPES } from './store.js';
+import { Store, DomainError, cadSchema, boxSchema, API_KEY_SCOPES, isValidPathShape } from './store.js';
 import { rootsRouter } from './roots.js';
 import { meshRouter } from './mesh.js';
 import { registerTools } from './tools.js';
@@ -172,10 +172,14 @@ http.post(
     // 16000 accommodates the JSON-wrapped `{ message, scene }` contract
     // (scene capped at ~12 kB) while staying inside the 32 kb JSON body cap.
     const b = z
-      .object({ ok: z.boolean(), result: z.string().max(16000) })
+      .object({
+        ok: z.boolean(),
+        result: z.string().max(16000),
+        nativePath: z.string().min(1).max(1024).refine(isValidPathShape).optional(),
+      })
       .strict()
       .parse(q.body);
-    r.json(store.complete(token(q), z.uuid().parse(q.params.id), b.result, b.ok));
+    r.json(store.complete(token(q), z.uuid().parse(q.params.id), b.result, b.ok, b.nativePath));
   }),
 );
 // Allowed roots management (OIDC-only, NOT authAny):

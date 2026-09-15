@@ -108,12 +108,12 @@ write; a 120s timeout or non-zero exit leaves the original byte-identical to the
 
 ## P1 Phase 4: Open-by-Path MCP Tool + `native_path` Write (PR P1-5, depends on: P1.3)
 
-- [ ] P1.4.1 (RED) Add a schema test asserting `open_external_design` has no `owner`/`username` field (spec mcp-cad-operations "Owner not a parameter"); add a validation test asserting an out-of-allowlist path enqueues no job and binds no document (spec "Out-of-allowlist path rejected at validation").
-- [ ] P1.4.2 Register `open_external_design { deviceId?, cadId?, path, name?, confirmed }` in `apps/api/src/tools.ts`; owner derives strictly from the OIDC subject.
-- [ ] P1.4.3 Validate containment via the agent's function result at execution time (server does shape-only validation before enqueue); on success set `documents.native_path` non-null at creation (spec document-registry "Open-by-path sets native_path on creation").
-- [ ] P1.4.4 Extend the `/api/agent/results/:id` Zod schema in `apps/api/src/main.ts` to accept optional `nativePath` (≤1024 chars); persist to `documents.native_path` via `COALESCE` only when it validates as contained (spec document-registry "Results with nativePath persists native_path", "Out-of-allowlist nativePath rejected").
-- [ ] P1.4.5 Enforce save-back path pinning: a modify job against a path-bound document always targets that document's stored `native_path`, never an alternate path (spec "Modify job path matches native_path", "Drifted native_path blocks save").
-- [ ] P1.4.6 Tests in `apps/api/test/tools.test.ts`: open-by-path binds `native_path` + owner from `sub` (spec "Open-by-path binds native_path", "Enqueue only after containment passes"); results endpoint rejects an out-of-allowlist `nativePath`.
+- [x] P1.4.1 (RED) Add a schema test asserting `open_external_design` has no `owner`/`username` field (spec mcp-cad-operations "Owner not a parameter"); add a validation test asserting an out-of-allowlist path enqueues no job and binds no document (spec "Out-of-allowlist path rejected at validation").
+- [x] P1.4.2 Register `open_external_design { deviceId?, cadId?, path, name?, confirmed }` in `apps/api/src/tools.ts`; owner derives strictly from the OIDC subject.
+- [x] P1.4.3 Validate containment via the agent's function result at execution time (server does shape-only validation before enqueue); on success set `documents.native_path` non-null at creation (spec document-registry "Open-by-path sets native_path on creation").
+- [x] P1.4.4 Extend the `/api/agent/results/:id` Zod schema in `apps/api/src/main.ts` to accept optional `nativePath` (≤1024 chars); persist to `documents.native_path` via `COALESCE` only when it validates as contained (spec document-registry "Results with nativePath persists native_path", "Out-of-allowlist nativePath rejected").
+- [x] P1.4.5 Enforce save-back path pinning: a modify job against a path-bound document always targets that document's stored `native_path`, never an alternate path (spec "Modify job path matches native_path", "Drifted native_path blocks save").
+- [x] P1.4.6 Tests in `apps/api/test/tools.test.ts`: open-by-path binds `native_path` + owner from `sub` (spec "Open-by-path binds native_path", "Enqueue only after containment passes"); results endpoint rejects an out-of-allowlist `nativePath`.
 
 Acceptance: `open_external_design` has zero owner/username fields in its schema; a path outside
 every allowlisted root enqueues nothing; `/results/:id` only ever writes a `native_path` that

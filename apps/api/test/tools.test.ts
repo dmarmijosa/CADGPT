@@ -304,3 +304,155 @@ test('13b.5: FreeCAD enqueue path (no capabilities field) is unaffected by the A
   assert.equal(res.isError, undefined, JSON.stringify(res));
   assert.equal(store.jobs('alice').length, 2);
 });
+
+// --- P1 Phase 4: Open-by-Path MCP Tool + native_path write ---
+
+test('open_external_design schema has no owner or username field', async () => {
+  const store = new Store(':memory:');
+  const client = await connectClient(store, 'alice');
+  const { tools } = await client.listTools();
+  const tool = tools.find((t) => t.name === 'open_external_design');
+  assert.ok(tool, 'open_external_design tool must be registered');
+  const schema = tool.inputSchema as { properties?: Record<string, unknown> };
+  assert.equal(schema.properties?.owner, undefined);
+  assert.equal(schema.properties?.username, undefined);
+});
+
+test('out-of-allowlist path rejected at validation: enqueues no job and binds no document', async () => {
+  const store = new Store(':memory:');
+  const device = pairAndApprove(store, 'alice', 'Workstation', [freecad]);
+  store.addRoot('alice', device.deviceId!, '/home/alice/allowed');
+  const client = await connectClient(store, 'alice');
+
+  // Attempt to open a path outside allowed root
+  const res = await client.callTool({
+    name: 'open_external_design',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'cad',
+      path: '/home/alice/forbidden/secret.FCStd',
+      confirmed: true,
+    },
+  });
+
+  assert.equal(res.isError, true);
+  // No job enqueued
+  assert.equal(store.jobs('alice').length, 0);
+  // No document bound
+  assert.equal(store.listDocuments('alice').length, 0);
+});
+
+test('open-by-path binds native_path + owner from sub and enqueues job', async () => {
+  const store = new Store(':memory:');
+  const device = pairAndApprove(store, 'alice', 'Workstation', [freecad]);
+  store.addRoot('alice', device.deviceId!, '/home/alice/allowed');
+  const client = await connectClient(store, 'alice');
+
+  const validPath = '/home/alice/allowed/model.FCStd';
+  const res = await client.callTool({
+    name: 'open_external_design',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'cad',
+      path: validPath,
+      name: 'MyModel',
+      confirmed: true,
+    },
+  });
+
+  assert.equal(res.isError, undefined, JSON.stringify(res));
+  const body = JSON.parse((res.content as { type: string; text: string }[])[0].text);
+  assert.ok(body.documentId);
+  assert.ok(body.jobId);
+
+  // Document row created with native_path set and owner alice
+  const doc = store.getDocument(body.documentId, 'alice');
+  assert.equal(doc.owner, 'alice');
+  assert.equal(doc.nativePath, validPath);
+  assert.equal(doc.name, 'MyModel');
+
+  // Job enqueued with native_path payload
+  const jobs = store.jobs('alice');
+  assert.equal(jobs.length, 1);
+  assert.equal(jobs[0].id, body.jobId);
+});
+
+test('modify job against path-bound document pins native_path and rejects alternate path', async () => {
+  const store = new Store(':memory:');
+  const device = pairAndApprove(store, 'alice', 'Workstation', [freecad]);
+  store.addRoot('alice', device.deviceId!, '/home/alice/allowed');
+  const client = await connectClient(store, 'alice');
+
+  const validPath = '/home/alice/allowed/model.FCStd';
+  const openRes = await client.callTool({
+    name: 'open_external_design',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'cad',
+      path: validPath,
+      confirmed: true,
+    },
+  });
+  const { documentId, jobId } = JSON.parse((openRes.content as { type: string; text: string }[])[0].text);
+  store.heartbeat(device.credential!, [freecad]);
+  store.complete(device.credential!, jobId, 'ok', true);
+
+  // Modify job referencing alternate path is rejected
+  const alterRes = await client.callTool({
+    name: 'translate_object',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'cad',
+      documentId,
+      object: 'Box',
+      dx: 1,
+      dy: 0,
+      dz: 0,
+      path: '/home/alice/allowed/alternate.FCStd',
+      confirmed: true,
+    },
+  });
+  assert.equal(alterRes.isError, true);
+
+  // Drifted root: if the root is revoked, modify job is rejected
+  const roots = store.listRoots('alice', device.deviceId!);
+  store.removeRoot('alice', roots[0].id);
+
+  const driftedRes = await client.callTool({
+    name: 'translate_object',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'cad',
+      documentId,
+      object: 'Box',
+      dx: 1,
+      dy: 0,
+      dz: 0,
+      confirmed: true,
+    },
+  });
+  assert.equal(driftedRes.isError, true);
+});
+
+test('results endpoint persists valid nativePath and rejects out-of-allowlist nativePath', async () => {
+  const store = new Store(':memory:');
+  const device = pairAndApprove(store, 'alice', 'Workstation', [freecad]);
+  store.addRoot('alice', device.deviceId!, '/home/alice/allowed');
+
+  const doc = store.createDocument('alice', device.deviceId!, 'FreeCAD', 'TestDoc');
+  const job = store.enqueue('alice', { deviceId: device.deviceId!, cadId: 'cad' }, 'create_box', doc.id);
+
+  store.heartbeat(device.credential!, [freecad]);
+
+  // Out-of-allowlist nativePath is rejected
+  assert.throws(
+    () => store.complete(device.credential!, job.id, 'ok', true, '/etc/passwd'),
+    (e: unknown) => e instanceof Error && /Out-of-allowlist/i.test(e.message),
+  );
+
+  // Valid nativePath inside allowed root is persisted
+  store.complete(device.credential!, job.id, 'ok', true, '/home/alice/allowed/result.FCStd');
+  const updatedDoc = store.getDocument(doc.id, 'alice');
+  assert.equal(updatedDoc.nativePath, '/home/alice/allowed/result.FCStd');
+});
+

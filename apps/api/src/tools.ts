@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { Store, DomainError } from './store.js';
+import { Store, DomainError, isValidPathShape, isPathContained } from './store.js';
 
 /**
  * Fallback op list for a CAD that predates the `capabilities` field (D11).
@@ -38,6 +38,7 @@ const mmOrZeroFrag = z.number().finite().min(0).max(10000);
 const coordFrag = z.number().finite().min(-100000).max(100000);
 const positionFrag = z.object({ x: coordFrag, y: coordFrag, z: coordFrag }).strict().optional();
 const confirmedFrag = z.literal(true);
+const pathFrag = z.string().min(1).max(1024).refine(isValidPathShape);
 // Display name only — never a path, never reaches the CAD worker.
 const nameFrag = z
   .string()
@@ -47,6 +48,16 @@ const nameFrag = z
 // dictionary key the worker resolves via `doc.getObject()`, never code/path.
 const objectNameFrag = z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,31}$|^[0-9A-F]{1,16}$/);
 const planeFrag = z.enum(['XY', 'XZ', 'YZ']);
+
+export const openExternalDesignSchema = z
+  .object({
+    deviceId: deviceIdFrag,
+    cadId: cadIdFrag,
+    path: pathFrag,
+    name: nameFrag,
+    confirmed: confirmedFrag,
+  })
+  .strict();
 
 export const createBoxSchema = z
   .object({
@@ -121,6 +132,7 @@ const booleanSchema = z
     documentId: z.uuid(),
     base: objectNameFrag,
     tool: objectNameFrag,
+    path: pathFrag.optional(),
     confirmed: confirmedFrag,
   })
   .strict();
@@ -160,6 +172,7 @@ const transformBaseShape = {
   cadId: cadIdFrag,
   documentId: z.uuid(),
   object: objectNameFrag,
+  path: pathFrag.optional(),
 };
 
 export const translateObjectSchema = z
@@ -352,6 +365,22 @@ function enqueueOp(
     const doc = store.getDocument(documentId, owner);
     if (doc.cadKind !== cad.name)
       throw new DomainError(400, 'Document belongs to a different CAD kind.');
+    if (doc.nativePath) {
+      if (params.path && params.path !== doc.nativePath) {
+        throw new DomainError(400, 'Cannot modify path-bound document at a different path.');
+      }
+      const roots = store.listRoots(owner, target.deviceId);
+      if (!roots.some((r) => isPathContained(doc.nativePath!, r.path))) {
+        throw new DomainError(400, 'Document native_path is no longer in an allowed root.');
+      }
+      params.native_path = doc.nativePath;
+      params.path = doc.nativePath;
+    } else if (params.path) {
+      throw new DomainError(400, 'Cannot specify path for a sandbox document.');
+    } else {
+      delete params.path;
+      delete params.native_path;
+    }
   } else {
     documentId = store.createDocument(
       owner,
@@ -534,9 +563,16 @@ export function registerTools(
       },
       async (p) => {
         await requireWrite();
-        const { deviceId, cadId, documentId, base, tool } = p;
+        const { deviceId, cadId, documentId, base, tool, path } = p as any;
         return result(
-          enqueueOp(store, owner, name, { base, tool }, { deviceId, cadId, documentId }, 'Design'),
+          enqueueOp(
+            store,
+            owner,
+            name,
+            { base, tool, path },
+            { deviceId, cadId, documentId },
+            'Design',
+          ),
         );
       },
     );
@@ -587,13 +623,13 @@ export function registerTools(
     },
     async (p) => {
       await requireWrite();
-      const { deviceId, cadId, documentId, object, dx, dy, dz } = p;
+      const { deviceId, cadId, documentId, object, dx, dy, dz, path } = p;
       return result(
         enqueueOp(
           store,
           owner,
           'translate_object',
-          { object, dx, dy, dz },
+          { object, dx, dy, dz, path },
           { deviceId, cadId, documentId },
           'Design',
         ),
@@ -615,13 +651,13 @@ export function registerTools(
     },
     async (p) => {
       await requireWrite();
-      const { deviceId, cadId, documentId, object, axis, degrees } = p;
+      const { deviceId, cadId, documentId, object, axis, degrees, path } = p;
       return result(
         enqueueOp(
           store,
           owner,
           'rotate_object',
-          { object, axis, degrees },
+          { object, axis, degrees, path },
           { deviceId, cadId, documentId },
           'Design',
         ),
@@ -643,13 +679,13 @@ export function registerTools(
     },
     async (p) => {
       await requireWrite();
-      const { deviceId, cadId, documentId, object, factor } = p;
+      const { deviceId, cadId, documentId, object, factor, path } = p;
       return result(
         enqueueOp(
           store,
           owner,
           'scale_object',
-          { object, factor },
+          { object, factor, path },
           { deviceId, cadId, documentId },
           'Design',
         ),
@@ -709,6 +745,54 @@ export function registerTools(
           'Design',
         ),
       );
+    },
+  );
+  server.registerTool(
+    'open_external_design',
+    {
+      description:
+        'Open an existing design file on the CAD computer by absolute path. Path must be inside an allowlisted folder. Ask the user to confirm before opening.',
+      inputSchema: openExternalDesignSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (p) => {
+      await requireWrite();
+      const { deviceId, cadId, path, name } = p;
+      const target = resolveCad(store, owner, deviceId, cadId);
+      if ('selection_required' in target) return result(target);
+      const roots = store.listRoots(owner, target.deviceId);
+      if (!roots.some((r) => isPathContained(path, r.path))) {
+        throw new DomainError(400, 'Path outside allowed roots.');
+      }
+      const device = store.devices(owner).find((d) => d.id === target.deviceId)!;
+      const cad = (device.cads as CadEntry[]).find((c) => c.id === target.cadId)!;
+      const docName = name ?? path.split(/[/\\]/).pop() ?? 'ExternalDesign';
+      const doc = store.createDocument(
+        owner,
+        device.id,
+        cad.name as 'FreeCAD' | 'AutoCAD',
+        docName,
+        path,
+      );
+      const enqueued = enqueueOp(
+        store,
+        owner,
+        'read_scene',
+        { native_path: path, path },
+        { deviceId: device.id, cadId: cad.id, documentId: doc.id },
+        docName,
+      );
+      if ('selection_required' in enqueued) return result(enqueued);
+      return result({
+        jobId: enqueued.jobId,
+        documentId: doc.id,
+        status: 'queued' as const,
+      });
     },
   );
 }

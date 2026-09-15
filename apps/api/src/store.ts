@@ -62,6 +62,35 @@ export function isValidPathShape(p: string): boolean {
   }
   return false;
 }
+
+function normalizePathForComparison(p: string): string {
+  let norm = p.replace(/\\/g, '/');
+  const isUnc = norm.startsWith('//');
+  if (isUnc) {
+    norm = '//' + norm.slice(2).replace(/\/+/g, '/');
+  } else {
+    norm = norm.replace(/\/+/g, '/');
+  }
+  if (/^[a-zA-Z]:/.test(norm)) {
+    norm = norm[0].toUpperCase() + norm.slice(1);
+    if (norm.length === 2) norm += '/';
+  }
+  if (norm.length > 1 && norm.endsWith('/')) {
+    if (!/^[a-zA-Z]:\/$/.test(norm)) {
+      norm = norm.slice(0, -1);
+    }
+  }
+  return norm;
+}
+
+export function isPathContained(candidate: string, root: string): boolean {
+  if (!isValidPathShape(candidate) || !isValidPathShape(root)) return false;
+  const c = normalizePathForComparison(candidate);
+  const r = normalizePathForComparison(root);
+  if (r === '/') return c.startsWith('/');
+  if (r.endsWith('/')) return c === r.slice(0, -1) || c.startsWith(r);
+  return c === r || c.startsWith(r + '/');
+}
 export class DomainError extends Error {
   constructor(
     public status: number,
@@ -367,14 +396,20 @@ export class Store {
       );
     return { id };
   }
-  createDocument(owner: string, deviceId: string, cadKind: 'FreeCAD' | 'AutoCAD', name: string) {
+  createDocument(
+    owner: string,
+    deviceId: string,
+    cadKind: 'FreeCAD' | 'AutoCAD',
+    name: string,
+    nativePath?: string | null,
+  ) {
     const id = randomUUID();
     const created = this.now();
     this.db
       .prepare(
-        'INSERT INTO documents(id,owner,device_id,cad_kind,name,native_path,created,updated,latest_job_id) VALUES(?,?,?,?,?,NULL,?,?,NULL)',
+        'INSERT INTO documents(id,owner,device_id,cad_kind,name,native_path,created,updated,latest_job_id) VALUES(?,?,?,?,?,?,?,?,NULL)',
       )
-      .run(id, owner, deviceId, cadKind, name, created, created);
+      .run(id, owner, deviceId, cadKind, name, nativePath ?? null, created, created);
     return { id };
   }
   getDocument(id: string, owner: string) {
@@ -511,6 +546,16 @@ export class Store {
   }
   complete(token: string, id: string, result: string, ok: boolean, nativePath?: string) {
     const d = this.device(token);
+    if (nativePath !== undefined && nativePath !== null) {
+      const roots = (
+        this.db
+          .prepare('SELECT path FROM allowed_roots WHERE device_id=?')
+          .all(d.id) as Row[]
+      ).map((r) => r.path as string);
+      if (!roots.some((r) => isPathContained(nativePath, r))) {
+        throw new DomainError(400, 'Out-of-allowlist nativePath rejected.');
+      }
+    }
     this.db.exec('BEGIN IMMEDIATE');
     try {
       const job = this.db
