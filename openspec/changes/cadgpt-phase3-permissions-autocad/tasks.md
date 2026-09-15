@@ -139,10 +139,10 @@ end to end through the dashboard. ~350 changed lines.
 
 ## P2 Phase 1: Boolean AutoLISP + `.scr` (PR P2-2, depends on: P2.0 proving boolean family)
 
-- [ ] P2.1.1 (RED) Add golden `.scr`-equality tests to `agent/tests/test_strategies.py` for `boolean_cut`/`boolean_union`/`boolean_intersect`, plus a malformed-handle rejection test (design Threat Matrix "Subprocess argv composition" — applicable), before the AutoLISP functions exist.
-- [ ] P2.1.2 Add `cadgpt-boolean-cut`/`-union`/`-intersect` functions to `agent/cadgpt_agent/autocad/cadgpt.lsp`, core AutoLISP only (no vlax/ActiveX).
-- [ ] P2.1.3 Add the corresponding `.scr` sequence generation to `agent/cadgpt_agent/strategies/autocad.py`: regex-bound object handles, agent-derived paths only, opens the job's DWG (via `native_path` when path-bound, per P1.3.4), applies the boolean, saves in place (spec autocad-execution-adapter "Boolean op modifies existing DWG").
-- [ ] P2.1.4 Confirm P2.1.1 tests pass GREEN; add the pre-spike-resolution guard test (spec "Boolean op refused before Spike A resolves" — asserts rejection when the op is absent from `AUTOCAD_OPS`).
+- [x] P2.1.1 (RED) Add golden `.scr`-equality tests to `agent/tests/test_strategies.py` for `boolean_cut`/`boolean_union`/`boolean_intersect`, plus a malformed-handle rejection test (design Threat Matrix "Subprocess argv composition" — applicable), before the AutoLISP functions exist.
+- [x] P2.1.2 Add `cadgpt-boolean-cut`/`-union`/`-intersect` functions to `agent/cadgpt_agent/autocad/cadgpt.lsp`, core AutoLISP only (no vlax/ActiveX).
+- [x] P2.1.3 Add the corresponding `.scr` sequence generation to `agent/cadgpt_agent/strategies/autocad.py`: regex-bound object handles, agent-derived paths only, opens the job's DWG (via `native_path` when path-bound, per P1.3.4), applies the boolean, saves in place (spec autocad-execution-adapter "Boolean op modifies existing DWG").
+- [x] P2.1.4 Confirm P2.1.1 tests pass GREEN; add the pre-spike-resolution guard test (spec "Boolean op refused before Spike A resolves" — asserts rejection when the op is absent from `AUTOCAD_OPS`).
 
 Acceptance: `boolean_union` against an existing DWG opens, applies, and saves via the exact
 golden `.scr` form; a malformed handle is rejected before any subprocess spawns.

@@ -63,3 +63,12 @@
   - [x] P2.0.2 Recorded results in `docs/autocad-op-parity-spike.md`: Booleans (`_.SUBTRACT`, `_.UNION`, `_.INTERSECT`) PROVEN; Transforms (`_.MOVE`, `_.SCALE`, `_.ROTATE3D`) PROVEN; Scene read (AutoLISP object enumeration to JSON) PROVEN; Exports (`_STLOUT`, `_DXFOUT`, `_ACISOUT`) PROVEN; STEP/IGES via `_EXPORT` REFUTED.
   - [x] P2.0.3 Approved implementing P2.1 (Booleans), P2.2 (Transforms), P2.3 (Scene Read + allowlisted exports).
 
+### Slice P2.1 — Boolean AutoLISP + `.scr` (PR P2-2)
+- **Status**: done (tasks P2.1.1-P2.1.4 complete).
+- **Completed Tasks**:
+  - [x] P2.1.1 (RED) Added golden `.scr`-equality tests for `boolean_cut`, `boolean_union`, `boolean_intersect` and malformed-handle rejection tests in `agent/tests/test_strategies.py`.
+  - [x] P2.1.2 Added `cadgpt-boolean-cut`, `cadgpt-boolean-union`, and `cadgpt-boolean-intersect` to `agent/cadgpt_agent/autocad/cadgpt.lsp`.
+  - [x] P2.1.3 Added `_HANDLE_RE` validation, `_BOOLEAN_OPS`, and `_QSAVE` in-place save script rendering in `agent/cadgpt_agent/strategies/autocad.py`.
+  - [x] P2.1.4 All golden tests GREEN; added pre-spike-resolution guard test verifying boolean ops are excluded from `AUTOCAD_OPS` prior to P2.4.
+
+

@@ -23,6 +23,7 @@ is False).
 """
 import json
 from pathlib import Path
+import re
 
 from .base import Artifacts
 # Reused deliberately (not duplicated): the AutoCAD adapter must accept the
@@ -91,6 +92,33 @@ def _extrude_rect_call(data):
     return _lisp_call("cadgpt-extrude-rect", *box_args, x, y, z)
 
 
+_HANDLE_RE = re.compile(r"^[0-9a-zA-Z]{1,32}$")
+
+
+def _handle(val, name):
+    if not isinstance(val, str) or not _HANDLE_RE.match(val):
+        raise ValueError(f"{name} must be an alphanumeric handle (1-32 chars), got {val!r}")
+    return val
+
+
+def _boolean_cut_call(data):
+    base = _handle(data.get("base"), "base")
+    tool = _handle(data.get("tool"), "tool")
+    return f'(cadgpt-boolean-cut "{base}" "{tool}")'
+
+
+def _boolean_union_call(data):
+    base = _handle(data.get("base"), "base")
+    tool = _handle(data.get("tool"), "tool")
+    return f'(cadgpt-boolean-union "{base}" "{tool}")'
+
+
+def _boolean_intersect_call(data):
+    base = _handle(data.get("base"), "base")
+    tool = _handle(data.get("tool"), "tool")
+    return f'(cadgpt-boolean-intersect "{base}" "{tool}")'
+
+
 # Create-only subset of `discovery.AUTOCAD_OPS`; booleans/transforms land in
 # slice 13b once their `.lsp`/`.scr` mapping exists.
 _CREATE_OPS = {
@@ -101,24 +129,37 @@ _CREATE_OPS = {
     "extrude_rect": _extrude_rect_call,
 }
 
+_BOOLEAN_OPS = {
+    "boolean_cut": _boolean_cut_call,
+    "boolean_union": _boolean_union_call,
+    "boolean_intersect": _boolean_intersect_call,
+}
+
 
 def render_script(op, data, lisp_path, design_path, stl_path):
-    """Build the exact CRLF `run.scr` body for one allowlisted create op.
+    """Build the exact CRLF `run.scr` body for one allowlisted AutoCAD op.
 
     Only fixed command tokens, the `(load ...)` path, the rendered
-    `(cadgpt-<op> ...)` call (validated numbers only), and the job-dir/
+    `(cadgpt-<op> ...)` call (validated numbers or handles only), and the job-dir/
     doc-dir-derived STL/SAVEAS target paths ever appear here — never caller
     free text. Raises `ValueError` before any text is assembled if a
     parameter is missing, non-finite, or out of bounds.
 
-    Order: create the solid first, then `_STLOUT` it (the solid must already
-    exist in the drawing), then `_SAVEAS` the DWG, then `_QUIT` — matching the
-    slice 14.0 spike's proven sequence.
+    Order: create or modify the solid first, then `_STLOUT` it (the solid must already
+    exist in the drawing), then save (SAVEAS 2018 for creates, QSAVE for booleans),
+    then `_QUIT` — matching the spike's proven sequences.
     """
-    builder = _CREATE_OPS.get(op)
-    if builder is None:
-        raise ValueError("Unsupported AutoCAD create operation: " + str(op))
-    call = builder(data)
+    if op in _CREATE_OPS:
+        builder = _CREATE_OPS[op]
+        call = builder(data)
+        save_block = ["_SAVEAS", "2018", design_path.as_posix()]
+    elif op in _BOOLEAN_OPS:
+        builder = _BOOLEAN_OPS[op]
+        call = builder(data)
+        save_block = ["_QSAVE"]
+    else:
+        raise ValueError("Unsupported AutoCAD operation: " + str(op))
+
     # FILEDIA 0 keeps the SAVEAS filename prompt on the command line instead
     # of opening a dialog (Core Console has no display to show one on).
     # Every command/keyword is `_`-prefixed to force English/global command
@@ -136,9 +177,7 @@ def render_script(op, data, lisp_path, design_path, stl_path):
         "",
         "_Y",
         stl_path.as_posix(),
-        "_SAVEAS",
-        "2018",
-        design_path.as_posix(),
+        *save_block,
         "_QUIT",
     ]
     return "\r\n".join(lines) + "\r\n"
@@ -148,7 +187,7 @@ class AutoCadStrategy:
     kind = "AutoCAD"
 
     def supports(self, op: str) -> bool:
-        return op in _CREATE_OPS
+        return op in _CREATE_OPS or op in _BOOLEAN_OPS
 
     def build_argv(self, cad_path: Path, job_dir: Path, doc_dir: Path | None) -> list[str]:
         request = json.loads((job_dir / "request.json").read_text(encoding="utf-8"))
