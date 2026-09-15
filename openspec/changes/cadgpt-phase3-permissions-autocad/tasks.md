@@ -150,10 +150,10 @@ golden `.scr` form; a malformed handle is rejected before any subprocess spawns.
 
 ## P2 Phase 2: Transform AutoLISP + `.scr` (PR P2-3, depends on: P2.0 proving transform family)
 
-- [ ] P2.2.1 (RED) Add golden `.scr`-equality tests for `translate`/`rotate`/`scale`, plus a malformed-numeric rejection test (`repr(float)` bound), before the functions exist.
-- [ ] P2.2.2 Add `cadgpt-translate`/`-rotate`/`-scale` functions to `agent/cadgpt_agent/autocad/cadgpt.lsp`.
-- [ ] P2.2.3 Add the corresponding `.scr` sequence generation to `agent/cadgpt_agent/strategies/autocad.py`, mirroring P2.1.3's open/apply/save-in-place shape (spec "Transform op modifies existing DWG").
-- [ ] P2.2.4 Confirm P2.2.1 tests pass GREEN; add the pre-spike-resolution guard test (spec "Transform op refused before Spike A resolves").
+- [x] P2.2.1 (RED) Add golden `.scr`-equality tests for `translate`/`rotate`/`scale`, plus a malformed-numeric rejection test (`repr(float)` bound), before the functions exist.
+- [x] P2.2.2 Add `cadgpt-translate`/`-rotate`/`-scale` functions to `agent/cadgpt_agent/autocad/cadgpt.lsp`.
+- [x] P2.2.3 Add the corresponding `.scr` sequence generation to `agent/cadgpt_agent/strategies/autocad.py`, mirroring P2.1.3's open/apply/save-in-place shape (spec "Transform op modifies existing DWG").
+- [x] P2.2.4 Confirm P2.2.1 tests pass GREEN; add the pre-spike-resolution guard test (spec "Transform op refused before Spike A resolves").
 
 Acceptance: `translate`/`rotate`/`scale` against an existing DWG produce the exact golden `.scr`
 form and save in place; an out-of-range numeric value is rejected before spawn.

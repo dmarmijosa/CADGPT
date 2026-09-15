@@ -93,3 +93,27 @@
   )
 )
 
+;; Transform operations: entity handles are hex strings validated by the caller.
+;; Uses global _.MOVE / _.ROTATE3D / _.SCALE with explicit selection
+;; termination ("", proven in live Spike A).
+(defun cadgpt-translate (h dx dy dz)
+  (setq e (handent h))
+  (if e
+    (command "_.MOVE" e "" "0,0,0" (cadgpt-pt dx dy dz))
+  )
+)
+
+(defun cadgpt-rotate (h axis deg cx cy cz)
+  (setq e (handent h))
+  (if e
+    (command "_.ROTATE3D" e "" (strcat "_" axis) (cadgpt-pt cx cy cz) (rtos deg 2 8))
+  )
+)
+
+(defun cadgpt-scale (h factor cx cy cz)
+  (setq e (handent h))
+  (if e
+    (command "_.SCALE" e "" (cadgpt-pt cx cy cz) (rtos factor 2 8))
+  )
+)
+

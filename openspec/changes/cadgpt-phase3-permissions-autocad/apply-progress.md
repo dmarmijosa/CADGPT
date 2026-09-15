@@ -71,4 +71,13 @@
   - [x] P2.1.3 Added `_HANDLE_RE` validation, `_BOOLEAN_OPS`, and `_QSAVE` in-place save script rendering in `agent/cadgpt_agent/strategies/autocad.py`.
   - [x] P2.1.4 All golden tests GREEN; added pre-spike-resolution guard test verifying boolean ops are excluded from `AUTOCAD_OPS` prior to P2.4.
 
+### Slice P2.2 — Transform AutoLISP + `.scr` (PR P2-3)
+- **Status**: done (tasks P2.2.1-P2.2.4 complete).
+- **Completed Tasks**:
+  - [x] P2.2.1 (RED) Added golden `.scr`-equality tests for `translate_object`, `rotate_object`, `scale_object` (with aliases `translate`, `rotate`, `scale`) and malformed handle/numeric tests in `agent/tests/test_strategies.py`.
+  - [x] P2.2.2 Added `cadgpt-translate`, `cadgpt-rotate`, and `cadgpt-scale` to `agent/cadgpt_agent/autocad/cadgpt.lsp` using core AutoLISP `_.MOVE`, `_.ROTATE3D`, `_.SCALE`.
+  - [x] P2.2.3 Added `_TRANSFORM_OPS` mapping with bounded validation (`dx/dy/dz`, `axis in X/Y/Z`, `degrees in [-360, 360]`, `factor in [0.001, 1000]`), `_QSAVE` in-place save block, and updated `AutoCadStrategy.supports`.
+  - [x] P2.2.4 All golden and argv tests GREEN (111 tests passing); added pre-spike-resolution guard test verifying transform ops are excluded from `AUTOCAD_OPS` prior to P2.4.
+
+
 

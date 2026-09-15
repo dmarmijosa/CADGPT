@@ -30,7 +30,7 @@ from .base import Artifacts
 # exact same numeric bounds as the FreeCAD worker (design "AutoCAD strategy"),
 # and both are pure functions with no FreeCAD import at module scope, so
 # importing them here never touches FreeCAD.
-from ..freecad_worker import _EXTRUDE_BOX_ARGS, _mm, _position
+from ..freecad_worker import _EXTRUDE_BOX_ARGS, _bounded, _coord, _mm, _position
 
 _AUTOCAD_DIR = Path(__file__).resolve().parent.parent / "autocad"
 _BLANK_DWG = _AUTOCAD_DIR / "blank.dwg"
@@ -136,6 +136,47 @@ _BOOLEAN_OPS = {
 }
 
 
+def _translate_object_call(data):
+    handle = _handle(data.get("object") or data.get("handle"), "object")
+    dx = _coord(data.get("dx"), "dx")
+    dy = _coord(data.get("dy"), "dy")
+    dz = _coord(data.get("dz"), "dz")
+    return f'(cadgpt-translate "{handle}" {_num(dx)} {_num(dy)} {_num(dz)})'
+
+
+def _rotate_object_call(data):
+    handle = _handle(data.get("object") or data.get("handle"), "object")
+    axis = data.get("axis")
+    if axis not in ("X", "Y", "Z"):
+        raise ValueError("axis must be one of X, Y, Z")
+    degrees = _bounded(data.get("degrees"), "degrees", -360, 360)
+    center = data.get("center") or data.get("position") or {}
+    cx = _coord(center.get("x", 0), "center.x")
+    cy = _coord(center.get("y", 0), "center.y")
+    cz = _coord(center.get("z", 0), "center.z")
+    return f'(cadgpt-rotate "{handle}" "{axis}" {_num(degrees)} {_num(cx)} {_num(cy)} {_num(cz)})'
+
+
+def _scale_object_call(data):
+    handle = _handle(data.get("object") or data.get("handle"), "object")
+    factor = _bounded(data.get("factor"), "factor", 0.001, 1000)
+    center = data.get("center") or data.get("position") or {}
+    cx = _coord(center.get("x", 0), "center.x")
+    cy = _coord(center.get("y", 0), "center.y")
+    cz = _coord(center.get("z", 0), "center.z")
+    return f'(cadgpt-scale "{handle}" {_num(factor)} {_num(cx)} {_num(cy)} {_num(cz)})'
+
+
+_TRANSFORM_OPS = {
+    "translate_object": _translate_object_call,
+    "translate": _translate_object_call,
+    "rotate_object": _rotate_object_call,
+    "rotate": _rotate_object_call,
+    "scale_object": _scale_object_call,
+    "scale": _scale_object_call,
+}
+
+
 def render_script(op, data, lisp_path, design_path, stl_path):
     """Build the exact CRLF `run.scr` body for one allowlisted AutoCAD op.
 
@@ -146,15 +187,15 @@ def render_script(op, data, lisp_path, design_path, stl_path):
     parameter is missing, non-finite, or out of bounds.
 
     Order: create or modify the solid first, then `_STLOUT` it (the solid must already
-    exist in the drawing), then save (SAVEAS 2018 for creates, QSAVE for booleans),
+    exist in the drawing), then save (SAVEAS 2018 for creates, QSAVE for booleans and transforms),
     then `_QUIT` — matching the spike's proven sequences.
     """
     if op in _CREATE_OPS:
         builder = _CREATE_OPS[op]
         call = builder(data)
         save_block = ["_SAVEAS", "2018", design_path.as_posix()]
-    elif op in _BOOLEAN_OPS:
-        builder = _BOOLEAN_OPS[op]
+    elif op in _BOOLEAN_OPS or op in _TRANSFORM_OPS:
+        builder = _BOOLEAN_OPS[op] if op in _BOOLEAN_OPS else _TRANSFORM_OPS[op]
         call = builder(data)
         save_block = ["_QSAVE"]
     else:
@@ -187,7 +228,7 @@ class AutoCadStrategy:
     kind = "AutoCAD"
 
     def supports(self, op: str) -> bool:
-        return op in _CREATE_OPS or op in _BOOLEAN_OPS
+        return op in _CREATE_OPS or op in _BOOLEAN_OPS or op in _TRANSFORM_OPS
 
     def build_argv(self, cad_path: Path, job_dir: Path, doc_dir: Path | None) -> list[str]:
         request = json.loads((job_dir / "request.json").read_text(encoding="utf-8"))

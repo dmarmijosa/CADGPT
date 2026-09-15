@@ -251,6 +251,41 @@ class AutoCadScriptGoldenTests(unittest.TestCase):
         script = render_script("boolean_intersect", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
         self.assertEqual(script, self.expected_modify('(cadgpt-boolean-intersect "2A" "2B")'))
 
+    def test_translate_object_golden_script(self):
+        data = {"object": "2A", "dx": 10, "dy": 20, "dz": 30}
+        script = render_script("translate_object", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+        self.assertEqual(script, self.expected_modify('(cadgpt-translate "2A" 10.0 20.0 30.0)'))
+        # Also test alias 'translate'
+        script_alias = render_script("translate", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+        self.assertEqual(script_alias, self.expected_modify('(cadgpt-translate "2A" 10.0 20.0 30.0)'))
+
+    def test_rotate_object_golden_script(self):
+        data = {"object": "2A", "axis": "X", "degrees": 90}
+        script = render_script("rotate_object", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+        self.assertEqual(script, self.expected_modify('(cadgpt-rotate "2A" "X" 90.0 0.0 0.0 0.0)'))
+        # Also test alias 'rotate'
+        script_alias = render_script("rotate", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+        self.assertEqual(script_alias, self.expected_modify('(cadgpt-rotate "2A" "X" 90.0 0.0 0.0 0.0)'))
+
+    def test_rotate_object_with_center_golden_script(self):
+        data = {"object": "2A", "axis": "Z", "degrees": -45, "center": {"x": 5, "y": 10, "z": 15}}
+        script = render_script("rotate_object", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+        self.assertEqual(script, self.expected_modify('(cadgpt-rotate "2A" "Z" -45.0 5.0 10.0 15.0)'))
+
+    def test_scale_object_golden_script(self):
+        data = {"object": "2A", "factor": 2.5}
+        script = render_script("scale_object", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+        self.assertEqual(script, self.expected_modify('(cadgpt-scale "2A" 2.5 0.0 0.0 0.0)'))
+        # Also test alias 'scale'
+        script_alias = render_script("scale", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+        self.assertEqual(script_alias, self.expected_modify('(cadgpt-scale "2A" 2.5 0.0 0.0 0.0)'))
+
+    def test_scale_object_with_center_golden_script(self):
+        data = {"object": "2A", "factor": 0.5, "center": {"x": 1, "y": 2, "z": 3}}
+        script = render_script("scale_object", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+        self.assertEqual(script, self.expected_modify('(cadgpt-scale "2A" 0.5 1.0 2.0 3.0)'))
+
+
     def test_create_box_golden_script(self):
         data = {"length": 40, "width": 25, "height": 10}
         script = render_script("create_box", data, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
@@ -342,6 +377,40 @@ class AutoCadMalformedInputTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     render_script(op, {"base": "2A", "tool": bad}, self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
 
+    def test_malformed_handle_is_rejected_for_transforms(self):
+        for op in ("translate_object", "rotate_object", "scale_object"):
+            for bad in (None, "", "2A; _QUIT", "2A\r\n", "2A\"2B", "2A 2B", "2A/2B", "x" * 33, 123):
+                with self.assertRaises(ValueError):
+                    render_script(op, {"object": bad, "dx": 1, "dy": 1, "dz": 1, "axis": "X", "degrees": 0, "factor": 1},
+                                  self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+
+    def test_malformed_numeric_is_rejected_for_transforms(self):
+        # translate: non-finite or out-of-range coords, missing coords
+        for bad_coord in (float("nan"), float("inf"), 100001, -100001):
+            with self.assertRaises(ValueError):
+                render_script("translate_object", {"object": "2A", "dx": bad_coord, "dy": 0, "dz": 0},
+                              self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+        with self.assertRaises(ValueError):
+            render_script("translate_object", {"object": "2A", "dx": 0},
+                          self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+
+        # rotate: invalid axis, non-finite or out-of-range degrees
+        for bad_axis in ("W", None, 123, ""):
+            with self.assertRaises(ValueError):
+                render_script("rotate_object", {"object": "2A", "axis": bad_axis, "degrees": 45},
+                              self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+        for bad_deg in (float("nan"), float("inf"), 361, -361):
+            with self.assertRaises(ValueError):
+                render_script("rotate_object", {"object": "2A", "axis": "X", "degrees": bad_deg},
+                              self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+
+        # scale: non-positive, out-of-range factor
+        for bad_factor in (0, -1, 0.0001, 1001, float("nan"), float("inf")):
+            with self.assertRaises(ValueError):
+                render_script("scale_object", {"object": "2A", "factor": bad_factor},
+                              self.LISP_PATH, self.DESIGN_PATH, self.STL_PATH)
+
+
 
 
 class AutoCadStrategyArgvTests(unittest.TestCase):
@@ -415,13 +484,14 @@ class AutoCadStrategyArgvTests(unittest.TestCase):
             script = (job_dir / "run.scr").read_text(encoding="utf-8")
             self.assertIn('(load "' + _LSP_PATH.as_posix() + '")', script)
 
-    def test_supports_create_and_boolean_ops(self):
+    def test_supports_create_boolean_and_transform_ops(self):
         strategy = AutoCadStrategy()
         for op in ("create_box", "create_cylinder", "create_sphere", "create_cone", "extrude_rect",
-                   "boolean_cut", "boolean_union", "boolean_intersect"):
+                   "boolean_cut", "boolean_union", "boolean_intersect",
+                   "translate_object", "rotate_object", "scale_object",
+                   "translate", "rotate", "scale"):
             self.assertTrue(strategy.supports(op))
-        for op in ("translate_object", "rotate_object", "scale_object",
-                   "read_scene", "export_design"):
+        for op in ("read_scene", "export_design"):
             self.assertFalse(strategy.supports(op))
 
     def test_argv_for_boolean_op_modifies_existing_dwg(self):
@@ -439,11 +509,33 @@ class AutoCadStrategyArgvTests(unittest.TestCase):
             self.assertIn('(cadgpt-boolean-union "2A" "2B")', scr)
             self.assertIn("_QSAVE\r\n_QUIT\r\n", scr)
 
+    def test_argv_for_transform_op_modifies_existing_dwg(self):
+        strategy = AutoCadStrategy()
+        with tempfile.TemporaryDirectory() as d:
+            job_dir = Path(d) / "job"
+            doc_dir = Path(d) / "doc"
+            job_dir.mkdir()
+            doc_dir.mkdir()
+            (doc_dir / "design.dwg").write_bytes(b"existing")
+            self.make_request(job_dir, "translate_object", {"object": "2A", "dx": 10, "dy": 20, "dz": 30})
+            argv = strategy.build_argv(Path("/trusted/accoreconsole.exe"), job_dir, doc_dir)
+            self.assertEqual(argv[2], str(doc_dir / "design.dwg"))
+            scr = (job_dir / "run.scr").read_bytes().decode("utf-8")
+            self.assertIn('(cadgpt-translate "2A" 10.0 20.0 30.0)', scr)
+            self.assertIn("_QSAVE\r\n_QUIT\r\n", scr)
+
     def test_boolean_op_refused_when_absent_from_autocad_ops(self):
         """P2.1.4: spec 'Boolean op refused before Spike A resolves' — asserts
         rejection when the op is absent from AUTOCAD_OPS."""
         from cadgpt_agent import discovery
         for op in ("boolean_cut", "boolean_union", "boolean_intersect"):
+            self.assertNotIn(op, discovery.AUTOCAD_OPS)
+
+    def test_transform_op_refused_when_absent_from_autocad_ops(self):
+        """P2.2.4: spec 'Transform op refused before Spike A resolves' — asserts
+        rejection when the op is absent from AUTOCAD_OPS."""
+        from cadgpt_agent import discovery
+        for op in ("translate_object", "rotate_object", "scale_object"):
             self.assertNotIn(op, discovery.AUTOCAD_OPS)
 
     def test_run_scr_contains_the_stlout_block_with_job_dir_stl_path(self):
