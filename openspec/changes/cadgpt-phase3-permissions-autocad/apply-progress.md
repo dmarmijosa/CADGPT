@@ -109,3 +109,10 @@
   - [x] P3.2.1 Restyled pages Group A (`home`, `about`, `devices`, `designs`) leveraging the P3.1 tokens, data table borders/hover, status pill styles, and Stitch precision CAD aesthetics without changing behavior.
   - [x] P3.2.2 Kept all existing Vitest suites green (66 tests passing); verified theme-awareness and responsive behavior down to ~400px.
   - [x] P3.2.3 Preserved the fixed auth-reactive behavior (sign in vs. dashboard CTA) and device/root management flows.
+
+### Slice P3.3 — Restyle Pages Group B (PR P3-3)
+- **Status**: done (tasks P3.3.1-P3.3.3 complete).
+- **Completed Tasks**:
+  - [x] P3.3.1 Restyled pages Group B (`design-detail`, `jobs`, `connect`, `pair`, `callback`, `keys`) with P3.1 tokens, precision tables, key-reveal panel, and callback error recovery without changing behavior.
+  - [x] P3.3.2 All 66 tests in Vitest suite passing GREEN across all pages; verified theme-awareness and responsive behavior down to ~400px.
+  - [x] P3.3.3 Preserved the callback error recovery path (back to home and retry triggers).

@@ -207,9 +207,9 @@ and remain theme-aware/responsive. ~450 changed lines.
 
 ## P3 Phase 3: Restyle Pages Group B (PR P3-3, depends on: P3.1)
 
-- [ ] P3.3.1 Restyle `apps/web/src/app/pages/design-detail/*`, `pages/jobs/*`, `pages/connect/*`, `pages/pair/*`, `pages/callback/*`, `pages/keys/*` from the P3.1 tokens; behavior unchanged.
-- [ ] P3.3.2 Keep each page's existing Vitest suite green; theme-aware and responsive at ~400px for all six pages.
-- [ ] P3.3.3 Preserve the callback-recovers-instead-of-dead-ends behavior fixed earlier.
+- [x] P3.3.1 Restyle `apps/web/src/app/pages/design-detail/*`, `pages/jobs/*`, `pages/connect/*`, `pages/pair/*`, `pages/callback/*`, `pages/keys/*` from the P3.1 tokens; behavior unchanged.
+- [x] P3.3.2 Keep each page's existing Vitest suite green; theme-aware and responsive at ~400px for all six pages.
+- [x] P3.3.3 Preserve the callback-recovers-instead-of-dead-ends behavior fixed earlier.
 
 Acceptance: design-detail/jobs/connect/pair/callback/keys match the Stitch visual reference,
 keep passing tests, and remain theme-aware/responsive. ~600 changed lines (near budget — split

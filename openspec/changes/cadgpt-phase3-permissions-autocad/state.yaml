@@ -10,8 +10,8 @@ phases:
   apply:
     status: in_progress
     ref: "openspec/changes/cadgpt-phase3-permissions-autocad/apply-progress.md"
-    slice: "P3.2 complete (Restyle Pages Group A)"
-    tasks_done: "P1.0.1-P1.0.3, P1.1.1-P1.1.5, P1.2.1-P1.2.5, P1.3.1-P1.3.5, P1.4.1-P1.4.6, P1.5.1-P1.5.4, P2.0.1-P2.0.3, P2.1.1-P2.1.4, P2.2.1-P2.2.4, P2.3.1-P2.3.5, P2.4.1-P2.4.3, P3.1.1-P3.1.4, P3.2.1-P3.2.3"
-    note: "Pillar 1 & Pillar 2 complete. P3.1 tokens/shell & P3.2 pages Group A (home, about, devices, designs) verified GREEN."
+    slice: "P3.3 complete (Restyle Pages Group B)"
+    tasks_done: "P1.0.1-P1.0.3, P1.1.1-P1.1.5, P1.2.1-P1.2.5, P1.3.1-P1.3.5, P1.4.1-P1.4.6, P1.5.1-P1.5.4, P2.0.1-P2.0.3, P2.1.1-P2.1.4, P2.2.1-P2.2.4, P2.3.1-P2.3.5, P2.4.1-P2.4.3, P3.1.1-P3.1.4, P3.2.1-P3.2.3, P3.3.1-P3.3.3"
+    note: "Pillar 1 & Pillar 2 complete. P3.1 tokens/shell, P3.2 Group A, P3.3 Group B (design-detail, jobs, connect, pair, callback, keys) verified GREEN."
 updated: 2026-09-15
 
