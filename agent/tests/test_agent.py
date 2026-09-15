@@ -526,6 +526,7 @@ class PairUnpairSubcommandTests(unittest.TestCase):
                  patch("cadgpt_agent.main.discover", return_value=[]), \
                  patch("cadgpt_agent.main.request") as mock_req, \
                  patch("cadgpt_agent.main.open_connect_step") as mock_connect, \
+                 patch("keyring.get_password", return_value=None), \
                  patch("keyring.delete_password"), \
                  patch("keyring.set_password") as mock_set_pw:
                 mock_req.side_effect = [
