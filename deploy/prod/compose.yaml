@@ -5,7 +5,8 @@
 # own dynamic routing lives in traefik-cadgpt.yml (deployed separately to
 # /etc/easypanel/traefik/config/cadgpt.yml).
 #
-# ${CADGPT_IMAGE_TAG}, ${KC_BOOTSTRAP_ADMIN_PASSWORD} and ${KC_DB_PASSWORD}
+# ${CADGPT_IMAGE_TAG}, ${KC_BOOTSTRAP_ADMIN_PASSWORD}, ${KC_DB_PASSWORD},
+# ${GOOGLE_CLIENT_ID} and ${GOOGLE_CLIENT_SECRET}
 # are read from a sibling .env file (mode 600, never committed).
 
 services:
@@ -55,6 +56,8 @@ services:
       KC_PROXY_HEADERS: xforwarded
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     volumes:
       # --import-realm only imports on first boot (realm does not exist yet);
       # see docs/deployment.md for how to apply later realm changes.

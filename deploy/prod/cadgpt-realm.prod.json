@@ -6,6 +6,28 @@
   "resetPasswordAllowed": true,
   "rememberMe": false,
   "sslRequired": "external",
+  "identityProviders": [
+    {
+      "alias": "google",
+      "displayName": "Google",
+      "providerId": "google",
+      "enabled": true,
+      "updateProfileFirstLoginMode": "on",
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "authenticateByDefault": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "clientId": "${env.GOOGLE_CLIENT_ID}",
+        "clientSecret": "${env.GOOGLE_CLIENT_SECRET}",
+        "defaultScope": "openid profile email",
+        "guiOrder": "1",
+        "syncMode": "IMPORT"
+      }
+    }
+  ],
   "clients": [
     {
       "clientId": "cadgpt-web",
