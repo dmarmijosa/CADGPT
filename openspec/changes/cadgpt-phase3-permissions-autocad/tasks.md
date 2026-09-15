@@ -121,10 +121,10 @@ re-validates as contained. ~330 changed lines.
 
 ## P1 Phase 5: Dashboard Allowlist Management UI (PR P1-6, depends on: P1.4)
 
-- [ ] P1.5.1 Add `listRoots`/`addRoot`/`removeRoot` methods to `apps/web/src/app/core/api/api-client.ts`, following the `pages/devices/*` + `pages/keys/*` triad template.
-- [ ] P1.5.2 Add a `resource()`-backed roots signal to `apps/web/src/app/core/state/workspace.store.ts`.
-- [ ] P1.5.3 Build the allowlist management surface under `apps/web/src/app/pages/devices/*` (or a new `pages/roots/*`): list roots per device, add-root form (absolute-path input), remove button.
-- [ ] P1.5.4 Tests (Vitest/`TestBed`): add/remove root updates the resource; a root added by another owner never renders in this owner's list.
+- [x] P1.5.1 Add `listRoots`/`addRoot`/`removeRoot` methods to `apps/web/src/app/core/api/api-client.ts`, following the `pages/devices/*` + `pages/keys/*` triad template.
+- [x] P1.5.2 Add a `resource()`-backed roots signal to `apps/web/src/app/core/state/workspace.store.ts`.
+- [x] P1.5.3 Build the allowlist management surface under `apps/web/src/app/pages/devices/*` (or a new `pages/roots/*`): list roots per device, add-root form (absolute-path input), remove button.
+- [x] P1.5.4 Tests (Vitest/`TestBed`): add/remove root updates the resource; a root added by another owner never renders in this owner's list.
 
 Acceptance: an authenticated owner can add/list/remove allowed roots for their own device only,
 end to end through the dashboard. ~350 changed lines.
