@@ -430,18 +430,26 @@ export class Store {
         "UPDATE jobs SET status='running' WHERE id=(SELECT id FROM jobs WHERE device_id=? AND status='queued' AND expires>? ORDER BY created LIMIT 1) RETURNING *",
       )
       .get(d.id, this.now()) as Row | undefined;
+    const allowedRoots = (
+      this.db
+        .prepare(
+          'SELECT path FROM allowed_roots WHERE device_id=? ORDER BY created DESC, rowid DESC',
+        )
+        .all(d.id) as Row[]
+    ).map((r) => r.path as string);
     // Phase 1 rows predate `type`/`document_id`: map type=null to the only op that existed then.
-    return row
-      ? {
-          job: {
+    return {
+      job: row
+        ? {
             id: row.id,
             expires: row.expires,
             type: row.type ?? 'create_box',
             documentId: row.document_id ?? null,
             ...JSON.parse(row.payload),
-          },
-        }
-      : { job: null };
+          }
+        : null,
+      allowedRoots,
+    };
   }
   // Sum of `meshes.size` for a device — the running total against the 500 MiB
   // per-device quota (mesh-preview-upload "Size Cap and Per-Device Quota").

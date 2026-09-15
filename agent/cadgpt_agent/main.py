@@ -182,9 +182,11 @@ def main():
     # exists even before the first job runs.
     (root / "jobs").mkdir(mode=0o700, exist_ok=True)
     print("Connected. Keep this agent running. Press Ctrl+C to stop.", flush=True)
+    allowed_roots: list[str] = []
     while True:
         try:
             state = request(server, "/api/agent/poll", {"cads": cads}, credential)
+            allowed_roots = state.get("allowedRoots", [])
             if state["job"]:
                 ok, result = run_job(state["job"], cads, root, server, credential)
                 # 16000 matches the server's `/api/agent/results/:id` cap and

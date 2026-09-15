@@ -74,6 +74,43 @@ def resolve_document_dir(root, document_id):
         raise ValueError("Document path escapes the allowed root")
     return doc_dir
 
+def resolve_external_path(requested: str, allowed_roots: list[str]) -> Path:
+    """Validate `requested` path against `allowed_roots` and return its canonical Path.
+
+    Parallel to and independent from `resolve_document_dir`.
+    Canonicalizes the caller-supplied path, resolves symlinks and junctions via
+    `.resolve()`, normalizes Windows UNC and drive-relative forms, and authorizes
+    it only when the fully resolved path is inside at least one currently-allowlisted
+    root. Rejects symlink/junction escapes, `..` traversals, NUL bytes, UNC paths
+    outside the allowlist, drive-relative paths outside the allowlist, and paths
+    outside every allowlisted root.
+    """
+    if not requested or not isinstance(requested, str):
+        raise ValueError("Invalid path")
+    if "\0" in requested:
+        raise ValueError("Path contains NUL byte")
+    if not allowed_roots:
+        raise ValueError("Path outside allowed roots")
+
+    # Normalize UNC backslashes to forward slashes for cross-platform consistency
+    norm_requested = requested.replace("\\", "/") if requested.startswith(r"\\") else requested
+    target = Path(norm_requested).resolve()
+
+    for root_str in allowed_roots:
+        if not root_str or not isinstance(root_str, str):
+            continue
+        if "\0" in root_str:
+            continue
+        norm_root = root_str.replace("\\", "/") if root_str.startswith(r"\\") else root_str
+        root_resolved = Path(norm_root).resolve()
+        try:
+            if target.is_relative_to(root_resolved):
+                return target
+        except (ValueError, AttributeError):
+            continue
+
+    raise ValueError("Path outside allowed roots")
+
 def execute(job, cads, root):
     validate(job)
     # Selection is CAD-neutral: pick the entry matching `cadId` that is

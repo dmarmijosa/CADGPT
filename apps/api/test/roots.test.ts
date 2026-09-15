@@ -312,3 +312,41 @@ test('store triad methods enforce device ownership and foreign isolation', () =>
   assert.deepEqual(store.removeRoot('alice', r1.id), { removed: true });
   assert.equal(store.listRoots('alice', d1.deviceId).length, 0);
 });
+
+// --- P1.2.1: Heartbeat delivery of allowlist ---
+
+test('heartbeat carries allowlist snapshot for the polling device', () => {
+  const store = new Store(':memory:');
+  const d = pairDevice(store, 'alice', 'AliceWS');
+
+  // Device D has 2 allowed roots
+  store.addRoot('alice', d.deviceId, '/home/alice/projects');
+  store.addRoot('alice', d.deviceId, '/home/alice/models');
+
+  const res = store.heartbeat(d.credential, [cad]);
+  assert.equal(res.job, null);
+  assert.ok(Array.isArray(res.allowedRoots));
+  assert.equal(res.allowedRoots.length, 2);
+  assert.ok(res.allowedRoots.includes('/home/alice/projects'));
+  assert.ok(res.allowedRoots.includes('/home/alice/models'));
+});
+
+test('revocation reflected on subsequent heartbeat poll', () => {
+  const store = new Store(':memory:');
+  const d = pairDevice(store, 'alice', 'AliceWS');
+
+  const r1 = store.addRoot('alice', d.deviceId, '/home/alice/projects');
+  const r2 = store.addRoot('alice', d.deviceId, '/home/alice/models');
+
+  const initial = store.heartbeat(d.credential, [cad]);
+  assert.equal(initial.allowedRoots.length, 2);
+
+  // Revoke r1
+  store.removeRoot('alice', r1.id);
+
+  // Next heartbeat poll reflects the removal
+  const next = store.heartbeat(d.credential, [cad]);
+  assert.equal(next.allowedRoots.length, 1);
+  assert.deepEqual(next.allowedRoots, ['/home/alice/models']);
+});
+

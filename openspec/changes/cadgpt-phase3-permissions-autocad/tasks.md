@@ -84,11 +84,11 @@ a foreign owner never sees another owner's root. ~330 changed lines.
 
 ## P1 Phase 2: Heartbeat Delivery + Agent Containment Function (PR P1-3, depends on: P1.1)
 
-- [ ] P1.2.1 Extend `heartbeat()` in `apps/api/src/store.ts` to return `allowedRoots: string[]` for the polling device, alongside `{ job }` (spec "Heartbeat carries allowlist snapshot").
-- [ ] P1.2.2 Cache `allowedRoots` from the poll response in `agent/cadgpt_agent/main.py`'s poll loop, refreshed every 5s cycle.
-- [ ] P1.2.3 (RED) Add `agent/tests/test_executor.py` — one test per escape vector, all asserting `resolve_external_path` denies before the fn exists: symlink escape, junction escape, `..` traversal, NUL byte, UNC path outside allowlist, drive-relative (`C:foo`) outside allowlist, path outside every allowlisted root (foreign root) (design Threat Matrix "Caller-controlled paths" — all 7 applicable cases; spec "Symlink/junction escape rejected", "UNC path outside allowlist rejected").
-- [ ] P1.2.4 Implement `resolve_external_path(requested: str, allowed_roots: list[str]) -> Path` in `agent/cadgpt_agent/executor.py`, parallel to (never modifying) `resolve_document_dir`: `.resolve()` the target, normalize Windows UNC/drive-relative forms, `is_relative_to()` against each `.resolve()`d root.
-- [ ] P1.2.5 Confirm all P1.2.3 RED tests pass GREEN against the P1.2.4 implementation; add the positive case (spec "Canonical path inside root accepted").
+- [x] P1.2.1 Extend `heartbeat()` in `apps/api/src/store.ts` to return `allowedRoots: string[]` for the polling device, alongside `{ job }` (spec "Heartbeat carries allowlist snapshot").
+- [x] P1.2.2 Cache `allowedRoots` from the poll response in `agent/cadgpt_agent/main.py`'s poll loop, refreshed every 5s cycle.
+- [x] P1.2.3 (RED) Add `agent/tests/test_executor.py` — one test per escape vector, all asserting `resolve_external_path` denies before the fn exists: symlink escape, junction escape, `..` traversal, NUL byte, UNC path outside allowlist, drive-relative (`C:foo`) outside allowlist, path outside every allowlisted root (foreign root) (design Threat Matrix "Caller-controlled paths" — all 7 applicable cases; spec "Symlink/junction escape rejected", "UNC path outside allowlist rejected").
+- [x] P1.2.4 Implement `resolve_external_path(requested: str, allowed_roots: list[str]) -> Path` in `agent/cadgpt_agent/executor.py`, parallel to (never modifying) `resolve_document_dir`: `.resolve()` the target, normalize Windows UNC/drive-relative forms, `is_relative_to()` against each `.resolve()`d root.
+- [x] P1.2.5 Confirm all P1.2.3 RED tests pass GREEN against the P1.2.4 implementation; add the positive case (spec "Canonical path inside root accepted").
 
 Acceptance: heartbeat response contains `{ job, allowedRoots }` for a device with 2 roots; every
 symlink/junction/`..`/NUL/UNC/drive-relative/foreign-root path is denied before any file
