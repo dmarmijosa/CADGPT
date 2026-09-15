@@ -133,9 +133,9 @@ end to end through the dashboard. ~350 changed lines.
 
 ## P2 Phase 0: Spike A — Prove AutoCAD Core Console Op Feasibility (BLOCKING, PR P2-1)
 
-- [ ] P2.0.1 On a live Windows host with full AutoCAD 2026, run the candidate command sequences from design.md's op-family table (`_UNION`/`_SUBTRACT`/`_INTERSECT`, `_MOVE`/`_ROTATE3D`|`_ROTATE`/`_SCALE`, AutoLISP object enumeration for `read_scene`, export beyond the proven `_STLOUT`) headless via `accoreconsole.exe`.
-- [ ] P2.0.2 Record the result per op family (proven / refuted / fallback sequence found) in a new `docs/autocad-op-parity-spike.md`, mirroring `docs/autocad-stl-spike.md` (read-only reference for format).
-- [ ] P2.0.3 No op family in P2.1–P2.3 may be implemented unless P2.0.2 records it as live-proven for that family; a refuted family is held (not implemented) per design D8.
+- [x] P2.0.1 On a live Windows host with full AutoCAD 2026, run the candidate command sequences from design.md's op-family table (`_UNION`/`_SUBTRACT`/`_INTERSECT`, `_MOVE`/`_ROTATE3D`|`_ROTATE`/`_SCALE`, AutoLISP object enumeration for `read_scene`, export beyond the proven `_STLOUT`) headless via `accoreconsole.exe`.
+- [x] P2.0.2 Record the result per op family (proven / refuted / fallback sequence found) in a new `docs/autocad-op-parity-spike.md`, mirroring `docs/autocad-stl-spike.md` (read-only reference for format).
+- [x] P2.0.3 No op family in P2.1–P2.3 may be implemented unless P2.0.2 records it as live-proven for that family; a refuted family is held (not implemented) per design D8.
 
 ## P2 Phase 1: Boolean AutoLISP + `.scr` (PR P2-2, depends on: P2.0 proving boolean family)
 

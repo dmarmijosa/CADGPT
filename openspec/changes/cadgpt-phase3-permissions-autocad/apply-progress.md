@@ -53,3 +53,13 @@
   - [x] P1.5.2 Added `selectedDeviceId` signal and `roots` resource to `apps/web/src/app/core/state/workspace.store.ts`.
   - [x] P1.5.3 Added allowlist management UI under `apps/web/src/app/pages/devices/*`.
   - [x] P1.5.4 Added unit tests in `apps/web/src/app/pages/devices/devices.spec.ts` and `workspace.store.spec.ts`; all 65 web tests pass GREEN.
+
+## Pillar 2: AutoCAD Op Parity
+
+### Slice P2.0 — Spike A: Prove AutoCAD Core Console Op Feasibility (PR P2-1)
+- **Status**: done (tasks P2.0.1-P2.0.3 complete).
+- **Completed Tasks**:
+  - [x] P2.0.1 Ran candidate sequences headless via `accoreconsole.exe` on Windows 11 host with AutoCAD 2026.
+  - [x] P2.0.2 Recorded results in `docs/autocad-op-parity-spike.md`: Booleans (`_.SUBTRACT`, `_.UNION`, `_.INTERSECT`) PROVEN; Transforms (`_.MOVE`, `_.SCALE`, `_.ROTATE3D`) PROVEN; Scene read (AutoLISP object enumeration to JSON) PROVEN; Exports (`_STLOUT`, `_DXFOUT`, `_ACISOUT`) PROVEN; STEP/IGES via `_EXPORT` REFUTED.
+  - [x] P2.0.3 Approved implementing P2.1 (Booleans), P2.2 (Transforms), P2.3 (Scene Read + allowlisted exports).
+
