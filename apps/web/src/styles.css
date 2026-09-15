@@ -1,52 +1,20 @@
 /*
- * Design tokens (slice 9 — frontend-design pass).
- * Subject: precision engineering. Cool drafting-paper neutrals, one
- * technical blue for every interactive/accent surface, tabular numerals for
- * dimensions and limits. Light theme only, by design — colors are explicit
- * rather than relying on host/browser defaults.
+ * Design tokens — Stitch Precision CAD Intelligence System (P3.1).
+ * Theme-aware (light/dark), technical drafting-paper / space canvas workbench,
+ * electric cyan & cobalt precision accents, hairline boundaries, tabular numerals.
  */
 :root {
-  --color-paper: #f1f4f3;
-  --color-surface: #ffffff;
-  --color-rule: #dbe3e0;
-  --color-rule-strong: #c3cec9;
-  --color-ink: #16211d;
-  --color-ink-muted: #4b5c56;
-  --color-ink-faint: #7c8b85;
+  /* Common typography and spacing tokens */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-headline: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
 
-  --color-blue: #1e56a8;
-  --color-blue-strong: #163f80;
-  --color-blue-wash: #e6edf8;
-
-  /* Second accent (home redesign, slice 15): the machined-brass counterpart
-   * to technical blue. Blue marks the assistant/software side of the
-   * connector throughout the app; brass marks the physical/machine side —
-   * used on the home page for AutoCAD's newer, partial capabilities and for
-   * the one artifact (the STL preview mesh) that crosses the trust
-   * boundary. Never used for a plain decorative accent. */
-  --color-brass: #7a5a2e;
-  --color-brass-strong: #5c431f;
-  --color-brass-wash: #f4ece0;
-
-  --font-mono:
-    ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, 'Liberation Mono', monospace;
-
-  /* Semantic status colors (muted; queued/running reused by devices today,
-   * succeeded/failed reserved for the jobs history in slice 11). */
-  --status-queued-fg: #47575f;
-  --status-queued-bg: #e7ecee;
-  --status-running-fg: var(--color-blue-strong);
-  --status-running-bg: var(--color-blue-wash);
-  --status-succeeded-fg: #235c3c;
-  --status-succeeded-bg: #e1f0e2;
-  --status-failed-fg: #8a3128;
-  --status-failed-bg: #fae9e5;
-
-  --font-sans: 'Inter', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
-
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
 
   --space-1: 4px;
   --space-2: 8px;
@@ -56,7 +24,145 @@
   --space-6: 32px;
   --space-7: 48px;
 
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+
+  /* Light theme default (Drafting-Paper Engineering) */
   color-scheme: light;
+  --color-canvas: #f8fafc;
+  --color-paper: #f1f5f9;
+  --color-surface: #ffffff;
+  --color-surface-variant: #e2e8f0;
+  --color-surface-elevated: #ffffff;
+  --color-rule: #cbd5e1;
+  --color-rule-strong: #94a3b8;
+  --color-outline: rgba(15, 23, 42, 0.12);
+  --color-outline-hairline: rgba(15, 23, 42, 0.07);
+
+  --color-ink: #0f172a;
+  --color-ink-muted: #475569;
+  --color-ink-faint: #64748b;
+
+  --color-primary: #00828e;
+  --color-primary-focus: #006b75;
+  --color-primary-wash: rgba(0, 130, 142, 0.1);
+  --color-primary-fg: #ffffff;
+
+  --color-blue: #1e56a8;
+  --color-blue-strong: #163f80;
+  --color-blue-wash: #e6edf8;
+  --color-blue-fg: #ffffff;
+  --color-secondary: #2563eb;
+  --color-tertiary: #6366f1;
+
+  --color-brass: #b45309;
+  --color-brass-strong: #92400e;
+  --color-brass-wash: #fef3c7;
+
+  --status-queued-fg: #475569;
+  --status-queued-bg: #f1f5f9;
+  --status-running-fg: #00828e;
+  --status-running-bg: #e0f7fa;
+  --status-succeeded-fg: #047857;
+  --status-succeeded-bg: #d1fae5;
+  --status-failed-fg: #b91c1c;
+  --status-failed-bg: #fee2e2;
+
+  --grid-line-color: rgba(30, 86, 168, 0.04);
+  --shadow-hud: 0 0 15px -2px rgba(30, 86, 168, 0.2);
+}
+
+/* Dark theme — Stitch Precision CAD Workbench */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --color-canvas: #090d16;
+    --color-paper: #090d16;
+    --color-surface: #0d1322;
+    --color-surface-variant: rgba(19, 27, 46, 0.75);
+    --color-surface-elevated: #131b2e;
+    --color-rule: rgba(255, 255, 255, 0.1);
+    --color-rule-strong: rgba(255, 255, 255, 0.22);
+    --color-outline: rgba(255, 255, 255, 0.12);
+    --color-outline-hairline: rgba(255, 255, 255, 0.07);
+
+    --color-ink: #f8fafc;
+    --color-ink-muted: #94a3b8;
+    --color-ink-faint: #64748b;
+
+    --color-primary: #00f0ff;
+    --color-primary-focus: #00c2cf;
+    --color-primary-wash: rgba(0, 240, 255, 0.12);
+    --color-primary-fg: #090d16;
+
+    --color-blue: #00f0ff;
+    --color-blue-strong: #00c2cf;
+    --color-blue-wash: rgba(0, 240, 255, 0.12);
+    --color-blue-fg: #090d16;
+    --color-secondary: #3b82f6;
+    --color-tertiary: #6366f1;
+
+    --color-brass: #f59e0b;
+    --color-brass-strong: #d97706;
+    --color-brass-wash: rgba(245, 158, 11, 0.15);
+
+    --status-queued-fg: #94a3b8;
+    --status-queued-bg: rgba(148, 163, 184, 0.15);
+    --status-running-fg: #00f0ff;
+    --status-running-bg: rgba(0, 240, 255, 0.15);
+    --status-succeeded-fg: #10b981;
+    --status-succeeded-bg: rgba(16, 185, 129, 0.15);
+    --status-failed-fg: #ef4444;
+    --status-failed-bg: rgba(239, 68, 68, 0.15);
+
+    --grid-line-color: rgba(0, 240, 255, 0.04);
+    --shadow-hud: 0 0 15px -2px rgba(0, 240, 255, 0.35);
+  }
+}
+
+:root.dark, [data-theme="dark"] {
+  color-scheme: dark;
+  --color-canvas: #090d16;
+  --color-paper: #090d16;
+  --color-surface: #0d1322;
+  --color-surface-variant: rgba(19, 27, 46, 0.75);
+  --color-surface-elevated: #131b2e;
+  --color-rule: rgba(255, 255, 255, 0.1);
+  --color-rule-strong: rgba(255, 255, 255, 0.22);
+  --color-outline: rgba(255, 255, 255, 0.12);
+  --color-outline-hairline: rgba(255, 255, 255, 0.07);
+
+  --color-ink: #f8fafc;
+  --color-ink-muted: #94a3b8;
+  --color-ink-faint: #64748b;
+
+  --color-primary: #00f0ff;
+  --color-primary-focus: #00c2cf;
+  --color-primary-wash: rgba(0, 240, 255, 0.12);
+  --color-primary-fg: #090d16;
+
+  --color-blue: #00f0ff;
+  --color-blue-strong: #00c2cf;
+  --color-blue-wash: rgba(0, 240, 255, 0.12);
+  --color-blue-fg: #090d16;
+  --color-secondary: #3b82f6;
+  --color-tertiary: #6366f1;
+
+  --color-brass: #f59e0b;
+  --color-brass-strong: #d97706;
+  --color-brass-wash: rgba(245, 158, 11, 0.15);
+
+  --status-queued-fg: #94a3b8;
+  --status-queued-bg: rgba(148, 163, 184, 0.15);
+  --status-running-fg: #00f0ff;
+  --status-running-bg: rgba(0, 240, 255, 0.15);
+  --status-succeeded-fg: #10b981;
+  --status-succeeded-bg: rgba(16, 185, 129, 0.15);
+  --status-failed-fg: #ef4444;
+  --status-failed-bg: rgba(239, 68, 68, 0.15);
+
+  --grid-line-color: rgba(0, 240, 255, 0.04);
+  --shadow-hud: 0 0 15px -2px rgba(0, 240, 255, 0.35);
 }
 
 * {
@@ -126,44 +232,58 @@ h2 {
   line-height: 1.3;
 }
 
-/* Buttons and links styled as buttons share one primary (technical blue)
+/* Buttons and links styled as buttons share one primary (technical blue/cyan)
  * and one quiet (blue-wash) treatment, so every page gets the same look
  * without redefining color per page. */
 button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
-  border: 0;
+  gap: var(--space-2);
+  min-height: 38px;
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: var(--color-blue);
-  color: #fff;
-  padding: 0 18px;
+  color: var(--color-blue-fg, #fff);
+  padding: 0 16px;
   font-size: 0.85rem;
   font-weight: 600;
-  transition: background-color 120ms ease;
+  letter-spacing: -0.01em;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 80ms ease;
 }
 button:hover:not(:disabled) {
   background: var(--color-blue-strong);
+  box-shadow: var(--shadow-hud);
+}
+button:active:not(:disabled) {
+  transform: scale(0.98);
 }
 .quiet {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  min-height: 40px;
+  min-height: 38px;
   padding: 0 var(--space-4);
-  border: 0;
+  border: 1px solid var(--color-rule);
   border-radius: var(--radius-sm);
   background: var(--color-blue-wash);
-  color: var(--color-blue-strong);
+  color: var(--color-ink);
   font-size: 0.85rem;
   font-weight: 600;
   text-decoration: none;
-  transition: background-color 120ms ease;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
 }
 .quiet:hover:not(:disabled) {
-  background: #d9e4f3;
+  border-color: var(--color-blue);
+  color: var(--color-blue);
 }
 /* A `routerLink` that should read as the primary action (e.g. "Open your
  * dashboard" once signed in, replacing "Sign in") — same look as `button`,
@@ -172,29 +292,41 @@ a.cta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
+  min-height: 38px;
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: var(--color-blue);
-  color: #fff;
-  padding: 0 18px;
+  color: var(--color-blue-fg, #fff);
+  padding: 0 16px;
   font-size: 0.85rem;
   font-weight: 600;
   text-decoration: none;
-  transition: background-color 120ms ease;
+  letter-spacing: -0.01em;
+  transition:
+    background-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 80ms ease;
 }
 a.cta:hover {
   background: var(--color-blue-strong);
+  box-shadow: var(--shadow-hud);
+}
+a.cta:active {
+  transform: scale(0.98);
 }
 .danger {
   color: var(--status-failed-fg);
   background: var(--status-failed-bg);
+  border-color: rgba(239, 68, 68, 0.3);
 }
 .panel {
   background: var(--color-surface);
   border: 1px solid var(--color-rule);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   padding: var(--space-6);
   margin-bottom: var(--space-5);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(12px);
 }
 
 /* Eyebrow captions exist across the pre-slice-9 pages as short all-caps

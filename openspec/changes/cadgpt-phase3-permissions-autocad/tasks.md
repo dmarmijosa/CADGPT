@@ -184,14 +184,14 @@ appears anywhere in discovery output. ~100 changed lines.
 
 ## P3 Phase 1: Design Tokens + Shell Restyle (PR P3-1, executed via Gemini + Stitch MCP)
 
-- [ ] P3.1.1 Note: this task and every P3 task below is executed in the Gemini client with the
+- [x] P3.1.1 Note: this task and every P3 task below is executed in the Gemini client with the
   Stitch MCP connected (`redesign-reference.md`, read-only); Claude Code documents intent only.
-- [ ] P3.1.2 Extract color/type/spacing tokens from the Stitch project
+- [x] P3.1.2 Extract color/type/spacing tokens from the Stitch project
   (`https://stitch.withgoogle.com/projects/17866282666749971536`, external reference) into
   `apps/web/src/styles.css`, keeping the "CAD Agent Designer" brand name and drafting-paper/
   technical direction unless Stitch clearly supersedes it.
-- [ ] P3.1.3 Restyle `apps/web/src/app/layout/shell/*` (header, left rail, footer) from the new tokens; MUST stay theme-aware (light/dark) and responsive at ~400px.
-- [ ] P3.1.4 Keep every existing shell Vitest spec green (`apps/web/src/app/layout/shell/shell.spec.ts`); update only assertions tied to removed/renamed classes, never behavior.
+- [x] P3.1.3 Restyle `apps/web/src/app/layout/shell/*` (header, left rail, footer) from the new tokens; MUST stay theme-aware (light/dark) and responsive at ~400px.
+- [x] P3.1.4 Keep every existing shell Vitest spec green (`apps/web/src/app/layout/shell/shell.spec.ts`); update only assertions tied to removed/renamed classes, never behavior.
 
 Acceptance: shell renders per the Stitch reference at both themes and ~400px width; the shell's
 existing test suite passes unmodified in behavior. ~350 changed lines.

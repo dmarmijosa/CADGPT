@@ -95,7 +95,10 @@
   - [x] P2.4.2 Updated tests in `apps/api/test/tools.test.ts` verifying that an AutoCAD device advertising proven ops successfully enqueues boolean, transform, read_scene, and export_design ops.
   - [x] P2.4.3 (RED then GREEN) Extended `agent/tests/test_ops_allowlist.py` and `agent/tests/test_strategies.py` asserting `AUTOCAD_OPS` matches `ops-allowlist.json` and excludes unproven/refuted ops; all 122 agent tests and 86 API tests GREEN.
 
-
-
-
-
+### Slice P3.1 — Design Tokens + Shell Restyle (PR P3-1)
+- **Status**: done (tasks P3.1.1-P3.1.4 complete).
+- **Completed Tasks**:
+  - [x] P3.1.1 Executed via Gemini with Stitch MCP connected against project `17866282666749971536`.
+  - [x] P3.1.2 Extracted color/type/spacing tokens from Stitch into `apps/web/src/styles.css` (Inter, JetBrains Mono, canvas `#090D16`, surface `#0D1322`, cyan `#00F0FF`, cobalt `#3B82F6`, hairline outlines, dark/light theme awareness, CAD coordinate grid background).
+  - [x] P3.1.3 Restyled `apps/web/src/app/layout/shell/*` (header, left rail with SVG icons, daemon status indicator, technical footer) staying theme-aware and responsive down to 400px.
+  - [x] P3.1.4 All 66 tests passing GREEN in `apps/web/src/app/layout/shell/shell.spec.ts` and entire suite.
