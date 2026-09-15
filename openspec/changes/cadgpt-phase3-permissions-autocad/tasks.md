@@ -173,9 +173,9 @@ prove live; 0–100 if refuted (guard tests only).
 
 ## P2 Phase 4: `AUTOCAD_OPS`/Discovery Update + Parity Test (PR P2-5, depends on: P2.1–P2.3)
 
-- [ ] P2.4.1 Update `AUTOCAD_OPS` in `agent/cadgpt_agent/discovery.py` to list exactly the ops proven and implemented in P2.1–P2.3 (spec cad-discovery "Reported ops match allowlist subset").
-- [ ] P2.4.2 Update the enqueue gate in `apps/api/src/tools.ts`/`store.ts` so AutoCAD's advertised `capabilities.ops` includes the newly proven ops (additive, per-CAD gating already in place from phase 2).
-- [ ] P2.4.3 (RED then GREEN) Add/extend `agent/tests/test_ops_allowlist.py`: assert `AUTOCAD_OPS` is a subset of `ops-allowlist.json`'s canonical op names (spec "Reported ops match allowlist subset"); assert any unproven family's names are absent (spec "Unproven op excluded from AUTOCAD_OPS").
+- [x] P2.4.1 Update `AUTOCAD_OPS` in `agent/cadgpt_agent/discovery.py` to list exactly the ops proven and implemented in P2.1–P2.3 (spec cad-discovery "Reported ops match allowlist subset").
+- [x] P2.4.2 Update the enqueue gate in `apps/api/src/tools.ts`/`store.ts` so AutoCAD's advertised `capabilities.ops` includes the newly proven ops (additive, per-CAD gating already in place from phase 2).
+- [x] P2.4.3 (RED then GREEN) Add/extend `agent/tests/test_ops_allowlist.py`: assert `AUTOCAD_OPS` is a subset of `ops-allowlist.json`'s canonical op names (spec "Reported ops match allowlist subset"); assert any unproven family's names are absent (spec "Unproven op excluded from AUTOCAD_OPS").
 
 Acceptance: every op in `AUTOCAD_OPS` is present in `ops-allowlist.json`; no unproven op family
 appears anywhere in discovery output. ~100 changed lines.

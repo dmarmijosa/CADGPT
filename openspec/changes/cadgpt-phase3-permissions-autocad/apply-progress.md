@@ -88,6 +88,14 @@
   - [x] P2.3.4 Extended `agent/cadgpt_agent/strategies/autocad.py` to support `read_scene` and `export_design` with proven non-hanging commands (`_DXFOUT`, `_ACISOUT`, `_STLOUT`).
   - [x] P2.3.5 Enforced rejection of refuted export format (`step`) with `ValueError`; confirmed all 120 tests GREEN.
 
+### Slice P2.4 — AUTOCAD_OPS / Discovery Update + Parity Test (PR P2-5)
+- **Status**: done (tasks P2.4.1-P2.4.3 complete).
+- **Completed Tasks**:
+  - [x] P2.4.1 Updated `AUTOCAD_OPS` in `agent/cadgpt_agent/discovery.py` to list all 13 proven ops in lockstep with `ops-allowlist.json`.
+  - [x] P2.4.2 Updated tests in `apps/api/test/tools.test.ts` verifying that an AutoCAD device advertising proven ops successfully enqueues boolean, transform, read_scene, and export_design ops.
+  - [x] P2.4.3 (RED then GREEN) Extended `agent/tests/test_ops_allowlist.py` and `agent/tests/test_strategies.py` asserting `AUTOCAD_OPS` matches `ops-allowlist.json` and excludes unproven/refuted ops; all 122 agent tests and 86 API tests GREEN.
+
+
 
 
 

@@ -21,15 +21,15 @@ FREECAD_OPS = [
 ]
 
 # Ops the AutoCAD adapter can actually run today. Kept in lockstep with
-# `strategies.autocad._CREATE_OPS` (the agent's own gate) so the API's
-# capability check (`cad.capabilities.ops`) never advertises an op the agent
-# would then reject. Slice 13a shipped create ops only; boolean/transform/
-# read_scene/export ops are deferred (13b.6) pending a non-vlax scene-readback
-# design. STL preview (`capabilities.mesh`) is proven for these create ops as
-# of slice 14 (see `strategies.autocad.render_script`'s `_STLOUT` sequence).
+# `strategies.autocad` so the API's capability check (`cad.capabilities.ops`)
+# advertises exactly the proven ops (Pillar 2 parity).
 AUTOCAD_OPS = [
     "create_box", "create_cylinder", "create_sphere", "create_cone", "extrude_rect",
+    "boolean_cut", "boolean_union", "boolean_intersect",
+    "translate_object", "rotate_object", "scale_object",
+    "read_scene", "export_design",
 ]
+
 
 
 def _iter_subkeys(key):

@@ -647,19 +647,23 @@ class AutoCadStrategyArgvTests(unittest.TestCase):
             self.assertNotIn("_SAVEAS", scr)
             self.assertIn("_QUIT\r\n", scr)
 
-    def test_boolean_op_refused_when_absent_from_autocad_ops(self):
-        """P2.1.4: spec 'Boolean op refused before Spike A resolves' — asserts
-        rejection when the op is absent from AUTOCAD_OPS."""
+    def test_unproven_ops_refused_from_autocad_ops(self):
+        """P2.4: spec 'Unproven op excluded from AUTOCAD_OPS' — asserts that
+        unproven or refuted ops are excluded from AUTOCAD_OPS."""
         from cadgpt_agent import discovery
-        for op in ("boolean_cut", "boolean_union", "boolean_intersect"):
+        for op in ("step_export", "iges_export", "fillet", "chamfer", "loft", "sweep"):
             self.assertNotIn(op, discovery.AUTOCAD_OPS)
 
-    def test_transform_op_refused_when_absent_from_autocad_ops(self):
-        """P2.2.4: spec 'Transform op refused before Spike A resolves' — asserts
-        rejection when the op is absent from AUTOCAD_OPS."""
+    def test_proven_ops_included_in_autocad_ops(self):
+        """P2.4: spec 'Reported ops match allowlist subset' — asserts all proven
+        ops are listed in AUTOCAD_OPS."""
         from cadgpt_agent import discovery
-        for op in ("translate_object", "rotate_object", "scale_object"):
-            self.assertNotIn(op, discovery.AUTOCAD_OPS)
+        for op in ("create_box", "create_cylinder", "create_sphere", "create_cone", "extrude_rect",
+                   "boolean_cut", "boolean_union", "boolean_intersect",
+                   "translate_object", "rotate_object", "scale_object",
+                   "read_scene", "export_design"):
+            self.assertIn(op, discovery.AUTOCAD_OPS)
+
 
     def test_run_scr_contains_the_stlout_block_with_job_dir_stl_path(self):
         """14.1 (RED): the rendered `run.scr` on disk must include the proven

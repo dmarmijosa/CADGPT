@@ -269,6 +269,107 @@ test('13b.1/13b.5: an op outside AutoCAD capabilities.ops is rejected before enq
   assert.equal(store.jobs('alice').length, 1);
 });
 
+test('P2.4.2: an AutoCAD device advertising proven ops enqueues boolean, transform, read_scene, export_design', async () => {
+  const autocadFull = {
+    ...autocad,
+    capabilities: {
+      ...autocad.capabilities,
+      ops: [
+        'create_box', 'create_cylinder', 'create_sphere', 'create_cone', 'extrude_rect',
+        'boolean_cut', 'boolean_union', 'boolean_intersect',
+        'translate_object', 'rotate_object', 'scale_object',
+        'read_scene', 'export_design',
+      ],
+    },
+  };
+  const store = new Store(':memory:');
+  const device = pairAndApprove(store, 'alice', 'Workstation', [autocadFull]);
+  const client = await connectClient(store, 'alice');
+  const created = await client.callTool({
+    name: 'create_box',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'autocad',
+      length: 10,
+      width: 10,
+      height: 10,
+      confirmed: true,
+    },
+  });
+  function drainAndComplete() {
+    const picked = store.heartbeat(device.credential!, [autocadFull]);
+    if (picked.job) {
+      store.complete(device.credential!, picked.job.id, 'ok', true);
+    }
+  }
+
+  const createdBody = JSON.parse(
+    (created.content as { type: string; text: string }[])[0].text,
+  );
+  const documentId = createdBody.documentId;
+  drainAndComplete();
+
+  // boolean_cut enqueues successfully
+  const booleanRes = await client.callTool({
+    name: 'boolean_cut',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'autocad',
+      documentId,
+      base: '2A',
+      tool: '2B',
+      confirmed: true,
+    },
+  });
+  assert.equal(booleanRes.isError, undefined);
+  drainAndComplete();
+
+  // translate_object enqueues successfully
+  const translateRes = await client.callTool({
+    name: 'translate_object',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'autocad',
+      documentId,
+      object: '2A',
+      dx: 5,
+      dy: 0,
+      dz: 0,
+      confirmed: true,
+    },
+  });
+  assert.equal(translateRes.isError, undefined);
+  drainAndComplete();
+
+  // read_scene enqueues successfully
+  const readRes = await client.callTool({
+    name: 'read_scene',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'autocad',
+      documentId,
+    },
+  });
+  assert.equal(readRes.isError, undefined);
+  drainAndComplete();
+
+  // export_design enqueues successfully
+  const exportRes = await client.callTool({
+    name: 'export_design',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'autocad',
+      documentId,
+      format: 'dxf',
+      confirmed: true,
+    },
+  });
+  assert.equal(exportRes.isError, undefined);
+  drainAndComplete();
+  assert.equal(store.jobs('alice').length, 5);
+});
+
+
 test('13b.5: FreeCAD enqueue path (no capabilities field) is unaffected by the AutoCAD gate', async () => {
   const store = new Store(':memory:');
   const device = pairAndApprove(store, 'alice', 'Workstation', [freecad]);
