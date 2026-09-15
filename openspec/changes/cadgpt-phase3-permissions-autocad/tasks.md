@@ -217,9 +217,9 @@ into per-page slices if it exceeds 800 in practice).
 
 ## P3 Phase 4: Allowlist Management Surface (PR P3-4, depends on: P1.4, P1.5, P3.1)
 
-- [ ] P3.4.1 Restyle the P1.5 allowlist management surface to match the P3.1 tokens/layout.
-- [ ] P3.4.2 If P1 has not yet merged when this slice starts, stub or hide the surface behind a feature flag rather than blocking the redesign chain (per `redesign-reference.md`).
-- [ ] P3.4.3 Keep the P1.5.4 Vitest suite green; theme-aware and responsive at ~400px.
+- [x] P3.4.1 Restyle the P1.5 allowlist management surface to match the P3.1 tokens/layout.
+- [x] P3.4.2 If P1 has not yet merged when this slice starts, stub or hide the surface behind a feature flag rather than blocking the redesign chain (per `redesign-reference.md`).
+- [x] P3.4.3 Keep the P1.5.4 Vitest suite green; theme-aware and responsive at ~400px.
 
 Acceptance: the allowlist surface is visually consistent with the rest of the redesigned
 dashboard and its existing tests stay green (or is safely stubbed if P1 is not yet merged).

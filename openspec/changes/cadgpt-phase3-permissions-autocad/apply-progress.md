@@ -116,3 +116,10 @@
   - [x] P3.3.1 Restyled pages Group B (`design-detail`, `jobs`, `connect`, `pair`, `callback`, `keys`) with P3.1 tokens, precision tables, key-reveal panel, and callback error recovery without changing behavior.
   - [x] P3.3.2 All 66 tests in Vitest suite passing GREEN across all pages; verified theme-awareness and responsive behavior down to ~400px.
   - [x] P3.3.3 Preserved the callback error recovery path (back to home and retry triggers).
+
+### Slice P3.4 — Allowlist Management Surface (PR P3-4)
+- **Status**: done (tasks P3.4.1-P3.4.3 complete).
+- **Completed Tasks**:
+  - [x] P3.4.1 Restyled the P1.5 allowlist management surface (`roots-section`, `roots-table`, `add-root-form`) with Stitch precision tokens, cyan highlights, monospace paths, and responsive layouts.
+  - [x] P3.4.2 Verified seamless integration with active P1 endpoints on `feat/file-permissions-allowlist`.
+  - [x] P3.4.3 All 6 tests in `devices.spec.ts` (including add/remove root and foreign owner isolation) passing GREEN.
