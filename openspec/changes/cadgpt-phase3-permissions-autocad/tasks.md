@@ -198,9 +198,9 @@ existing test suite passes unmodified in behavior. ~350 changed lines.
 
 ## P3 Phase 2: Restyle Pages Group A (PR P3-2, depends on: P3.1)
 
-- [ ] P3.2.1 Restyle `apps/web/src/app/pages/home/*`, `pages/about/*`, `pages/devices/*`, `pages/designs/*` from the P3.1 tokens; behavior unchanged.
-- [ ] P3.2.2 Keep each page's existing Vitest suite green; theme-aware and responsive at ~400px for all four pages.
-- [ ] P3.2.3 Preserve the fixed auth-reactive behavior (Sign in vs. dashboard CTA; no hung "Signing you in…") across the restyle.
+- [x] P3.2.1 Restyle `apps/web/src/app/pages/home/*`, `pages/about/*`, `pages/devices/*`, `pages/designs/*` from the P3.1 tokens; behavior unchanged.
+- [x] P3.2.2 Keep each page's existing Vitest suite green; theme-aware and responsive at ~400px for all four pages.
+- [x] P3.2.3 Preserve the fixed auth-reactive behavior (Sign in vs. dashboard CTA; no hung "Signing you in…") across the restyle.
 
 Acceptance: home/about/devices/designs match the Stitch visual reference, keep passing tests,
 and remain theme-aware/responsive. ~450 changed lines.

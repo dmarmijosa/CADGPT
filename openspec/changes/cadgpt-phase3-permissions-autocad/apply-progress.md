@@ -102,3 +102,10 @@
   - [x] P3.1.2 Extracted color/type/spacing tokens from Stitch into `apps/web/src/styles.css` (Inter, JetBrains Mono, canvas `#090D16`, surface `#0D1322`, cyan `#00F0FF`, cobalt `#3B82F6`, hairline outlines, dark/light theme awareness, CAD coordinate grid background).
   - [x] P3.1.3 Restyled `apps/web/src/app/layout/shell/*` (header, left rail with SVG icons, daemon status indicator, technical footer) staying theme-aware and responsive down to 400px.
   - [x] P3.1.4 All 66 tests passing GREEN in `apps/web/src/app/layout/shell/shell.spec.ts` and entire suite.
+
+### Slice P3.2 — Restyle Pages Group A (PR P3-2)
+- **Status**: done (tasks P3.2.1-P3.2.3 complete).
+- **Completed Tasks**:
+  - [x] P3.2.1 Restyled pages Group A (`home`, `about`, `devices`, `designs`) leveraging the P3.1 tokens, data table borders/hover, status pill styles, and Stitch precision CAD aesthetics without changing behavior.
+  - [x] P3.2.2 Kept all existing Vitest suites green (66 tests passing); verified theme-awareness and responsive behavior down to ~400px.
+  - [x] P3.2.3 Preserved the fixed auth-reactive behavior (sign in vs. dashboard CTA) and device/root management flows.

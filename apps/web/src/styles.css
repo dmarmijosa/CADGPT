@@ -355,32 +355,45 @@ a.cta:active {
   color: var(--status-failed-fg);
 }
 .status {
-  font-size: 0.7rem;
-  background: var(--color-paper);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: var(--color-surface-variant);
   color: var(--color-ink-muted);
-  padding: 5px 10px;
-  border-radius: 999px;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-outline-hairline);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 .status.online,
 .status.succeeded {
   background: var(--status-succeeded-bg);
   color: var(--status-succeeded-fg);
+  border-color: rgba(16, 185, 129, 0.25);
 }
 .status.queued {
   background: var(--status-queued-bg);
   color: var(--status-queued-fg);
+  border-color: rgba(148, 163, 184, 0.25);
 }
 .status.running {
   background: var(--status-running-bg);
   color: var(--status-running-fg);
+  border-color: rgba(0, 240, 255, 0.3);
 }
 .status.failed {
   background: var(--status-failed-bg);
   color: var(--status-failed-fg);
+  border-color: rgba(239, 68, 68, 0.3);
 }
 .empty {
   text-align: center;
-  padding: 40px;
+  padding: 48px var(--space-6);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-rule-strong);
+  border-radius: var(--radius-md);
 }
 .stl-viewer {
   height: 420px;
@@ -475,16 +488,24 @@ a.cta:active {
 .cad-summary {
   display: block;
   margin-bottom: var(--space-2);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
 }
 .cad-summary:last-child {
   margin-bottom: 0;
+}
+.cad-summary strong {
+  color: var(--color-ink);
 }
 .confirm-row {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   font-size: 0.8rem;
+  background: var(--status-failed-bg);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(239, 68, 68, 0.25);
 }
 
 /* API keys page: scope fieldset, the one-time key-reveal panel, and the
@@ -556,22 +577,40 @@ tr.revoked td {
   margin: 0;
 }
 
-/* Data tables (About's compatibility table; reusable by later slices). */
+/* Data tables */
 table.data {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 0.85rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: var(--space-5);
+  box-shadow: var(--shadow-sm);
 }
 table.data th,
 table.data td {
   text-align: left;
-  padding: var(--space-3) var(--space-4);
+  padding: 12px var(--space-4);
   border-bottom: 1px solid var(--color-rule);
-  vertical-align: top;
+  vertical-align: middle;
 }
 table.data th {
+  background: var(--color-surface-variant);
   color: var(--color-ink-muted);
+  font-family: var(--font-headline);
+  font-size: 0.75rem;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+table.data tbody tr:last-child td {
+  border-bottom: none;
+}
+table.data tbody tr:hover td {
+  background: var(--color-primary-wash);
 }
 
 /* Home page — scroll-driven exploded-view hero (features/exploded).
@@ -966,9 +1005,13 @@ table.data th {
 .device-select label {
   margin-bottom: 0;
   white-space: nowrap;
+  font-size: 0.82rem;
+  color: var(--color-ink-muted);
 }
 .device-select select {
   width: auto;
   min-width: 180px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
 }
 
