@@ -1,28 +1,25 @@
 import 'dotenv/config';
-import Joi from 'joi';
+import { z } from 'zod';
 
-/** Environment variables read by the API process, validated once at load time. */
-interface EnvVars {
-  PORT: number;
-  HOST: string;
-  PUBLIC_ORIGIN: string;
-  OIDC_ISSUER: string;
-  OIDC_AUDIENCE: string;
-  OIDC_JWKS_URL?: string;
-  DATA_DIR?: string;
-  NODE_ENV: 'development' | 'production' | 'test';
-}
-
-const envSchema = Joi.object<EnvVars>({
-  PORT: Joi.number().default(3000),
-  HOST: Joi.string().default('127.0.0.1'),
-  PUBLIC_ORIGIN: Joi.string().uri().required(),
-  OIDC_ISSUER: Joi.string().uri().required(),
-  OIDC_AUDIENCE: Joi.string().required(),
-  OIDC_JWKS_URL: Joi.string().uri(),
-  DATA_DIR: Joi.string(),
-  NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
-}).unknown(true);
+/** Environment variables read by the API process, validated once at load time using Zod. */
+const envSchema = z
+  .object({
+    PORT: z.coerce.number().default(3000),
+    HOST: z.string().default('127.0.0.1'),
+    PUBLIC_ORIGIN: z.string().url(),
+    OIDC_ISSUER: z.string().url(),
+    OIDC_AUDIENCE: z.string().min(1),
+    OIDC_JWKS_URL: z.string().url().optional(),
+    DATA_DIR: z.string().optional(),
+    NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+    KEYCLOAK_BASE_URL: z.string().url().optional(),
+    KEYCLOAK_REALM: z.string().optional(),
+    KEYCLOAK_ADMIN_USERNAME: z.string().optional(),
+    KEYCLOAK_ADMIN_PASSWORD: z.string().optional(),
+    KEYCLOAK_ADMIN_CLIENT_ID: z.string().optional(),
+    KEYCLOAK_ADMIN_CLIENT_SECRET: z.string().optional(),
+  })
+  .passthrough();
 
 /**
  * Validate and map a raw environment source into the typed, camelCase `envs` shape.
@@ -30,11 +27,12 @@ const envSchema = Joi.object<EnvVars>({
  * in particular — can exercise validation without mutating global process state.
  */
 export function loadEnvs(source: Record<string, string | undefined> = process.env) {
-  const { error, value } = envSchema.validate(source);
-  if (error) {
-    throw new Error(`Config validation error: ${error.message}`);
+  const parsed = envSchema.safeParse(source);
+  if (!parsed.success) {
+    const msg = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
+    throw new Error(`Config validation error: ${msg}`);
   }
-  const envVars = value as EnvVars;
+  const envVars = parsed.data;
   return {
     port: envVars.PORT,
     host: envVars.HOST,
@@ -44,6 +42,12 @@ export function loadEnvs(source: Record<string, string | undefined> = process.en
     oidcJwksUrl: envVars.OIDC_JWKS_URL,
     dataDir: envVars.DATA_DIR,
     nodeEnv: envVars.NODE_ENV,
+    keycloakBaseUrl: envVars.KEYCLOAK_BASE_URL,
+    keycloakRealm: envVars.KEYCLOAK_REALM,
+    keycloakAdminUsername: envVars.KEYCLOAK_ADMIN_USERNAME,
+    keycloakAdminPassword: envVars.KEYCLOAK_ADMIN_PASSWORD,
+    keycloakAdminClientId: envVars.KEYCLOAK_ADMIN_CLIENT_ID,
+    keycloakAdminClientSecret: envVars.KEYCLOAK_ADMIN_CLIENT_SECRET,
   };
 }
 

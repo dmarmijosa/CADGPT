@@ -39,3 +39,28 @@ test('unknown keys are tolerated', () => {
   const envs = loadEnvs({ ...validSource, SOME_UNRELATED_VAR: 'anything' });
   assert.equal(envs.publicOrigin, validSource.PUBLIC_ORIGIN);
 });
+
+test('keycloak configuration is mapped and validated correctly', () => {
+  const keycloakSource = {
+    ...validSource,
+    KEYCLOAK_BASE_URL: 'https://auth.example.com',
+    KEYCLOAK_REALM: 'cadgpt-realm',
+    KEYCLOAK_ADMIN_USERNAME: 'admin-user',
+    KEYCLOAK_ADMIN_PASSWORD: 'admin-password',
+    KEYCLOAK_ADMIN_CLIENT_ID: 'admin-client',
+    KEYCLOAK_ADMIN_CLIENT_SECRET: 'admin-secret',
+  };
+  const envs = loadEnvs(keycloakSource);
+  assert.equal(envs.keycloakBaseUrl, 'https://auth.example.com');
+  assert.equal(envs.keycloakRealm, 'cadgpt-realm');
+  assert.equal(envs.keycloakAdminUsername, 'admin-user');
+  assert.equal(envs.keycloakAdminPassword, 'admin-password');
+  assert.equal(envs.keycloakAdminClientId, 'admin-client');
+  assert.equal(envs.keycloakAdminClientSecret, 'admin-secret');
+
+  // Invalid KEYCLOAK_BASE_URL (not a URL) throws Config validation error
+  assert.throws(
+    () => loadEnvs({ ...validSource, KEYCLOAK_BASE_URL: 'not-a-valid-url' }),
+    /Config validation error: KEYCLOAK_BASE_URL: Invalid URL/i,
+  );
+});

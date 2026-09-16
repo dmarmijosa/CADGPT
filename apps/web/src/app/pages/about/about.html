@@ -67,3 +67,84 @@
     GitHub.
   </p>
 </section>
+
+<section class="panel panel-governance">
+  <h2>Account Governance / Right to Erasure</h2>
+  <p>
+    Exercise your Right to Erasure ("Derecho al olvido" under GDPR &amp; CCPA). Deleting your
+    account permanently purges all CAD documents, 3D preview meshes, linked devices, API keys, and
+    job history.
+  </p>
+  <button type="button" class="btn-destructive" (click)="openDeleteDialog()">
+    Eliminar cuenta
+  </button>
+</section>
+
+@if (isDialogOpen()) {
+  <div class="modal-backdrop" (click)="closeDeleteDialog()">
+    <div
+      class="modal-dialog"
+      (click)="$event.stopPropagation()"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delete-dialog-title"
+    >
+      <div class="modal-header">
+        <div class="modal-alert-badge">PELIGRO / IRREVERSIBLE</div>
+        <h3 id="delete-dialog-title">¿Eliminar cuenta permanentemente?</h3>
+      </div>
+      <div class="modal-body">
+        <p class="modal-warning-lead">
+          Esta acción es destructiva e irreversible. Una vez confirmada:
+        </p>
+        <ul class="modal-warning-list">
+          <li>Se eliminarán todos tus archivos y documentos CAD de la nube.</li>
+          <li>Se purgarán físicamente todas las mallas de previsualización 3D (.stl).</li>
+          <li>Se revocarán todas tus máquinas y dispositivos vinculados.</li>
+          <li>Se destruirán todas tus claves de API y el historial de trabajos.</li>
+          <li>Se cerrará tu sesión y se eliminará tu identidad en Keycloak.</li>
+        </ul>
+        <p class="modal-input-instruction">
+          Para confirmar la eliminación permanente, escribe exactamente <strong>ELIMINAR</strong> en
+          el siguiente campo:
+        </p>
+        <input
+          type="text"
+          class="delete-confirm-input"
+          placeholder="ELIMINAR"
+          [value]="deleteConfirmationInput()"
+          (input)="onConfirmationInputChange($event)"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        @if (errorMessage()) {
+          <div class="modal-error-message" role="alert">
+            {{ errorMessage() }}
+          </div>
+        }
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn-secondary"
+          (click)="closeDeleteDialog()"
+          [disabled]="isDeleting()"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn-confirm-delete"
+          (click)="confirmDelete()"
+          [disabled]="!canDelete()"
+        >
+          @if (isDeleting()) {
+            Eliminando...
+          } @else {
+            Eliminar permanentemente
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

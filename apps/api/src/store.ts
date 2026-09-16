@@ -1,5 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
+import { unlinkSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { z } from 'zod';
 
 // Complementary auth for the MCP endpoint (custom/programmatic clients, CI,
@@ -589,5 +591,46 @@ export class Store {
       throw e;
     }
     return { accepted: true };
+  }
+  transaction<T>(fn: () => T): T {
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      const result = fn();
+      this.db.exec('COMMIT');
+      return result;
+    } catch (e) {
+      this.db.exec('ROLLBACK');
+      throw e;
+    }
+  }
+  deleteAccount(owner: string, dataDir: string): void {
+    const meshRows = this.db
+      .prepare(
+        'SELECT job_id AS jobId FROM meshes WHERE document_id IN (SELECT id FROM documents WHERE owner = ?)',
+      )
+      .all(owner) as { jobId: string }[];
+    const meshesDir = resolve(dataDir, 'meshes');
+    for (const { jobId } of meshRows) {
+      for (const suffix of ['.stl', '.part', '.stl.part']) {
+        try {
+          unlinkSync(resolve(meshesDir, `${jobId}${suffix}`));
+        } catch (e: unknown) {
+          if ((e as { code?: string })?.code !== 'ENOENT') throw e;
+        }
+      }
+    }
+    this.transaction(() => {
+      this.db
+        .prepare(
+          'DELETE FROM meshes WHERE document_id IN (SELECT id FROM documents WHERE owner = ?)',
+        )
+        .run(owner);
+      this.db.prepare('DELETE FROM documents WHERE owner = ?').run(owner);
+      this.db.prepare('DELETE FROM jobs WHERE owner = ?').run(owner);
+      this.db.prepare('DELETE FROM allowed_roots WHERE owner = ?').run(owner);
+      this.db.prepare('DELETE FROM devices WHERE owner = ?').run(owner);
+      this.db.prepare('DELETE FROM api_keys WHERE owner = ?').run(owner);
+      this.db.prepare('DELETE FROM pairings WHERE owner = ?').run(owner);
+    });
   }
 }

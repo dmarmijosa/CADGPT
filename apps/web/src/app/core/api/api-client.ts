@@ -74,4 +74,8 @@ export class ApiClient {
   removeRoot(id: string): Promise<{ removed: boolean }> {
     return this.api.request<{ removed: boolean }>('/api/roots/' + id, 'DELETE');
   }
+
+  deleteAccount(): Promise<void> {
+    return this.api.requestVoid('/api/account', 'DELETE');
+  }
 }

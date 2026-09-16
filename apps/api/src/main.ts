@@ -19,6 +19,8 @@ import {
 } from './store.js';
 import { rootsRouter } from './roots.js';
 import { meshRouter } from './mesh.js';
+import { accountRouter } from './account.js';
+import { KeycloakAdminService } from './keycloak.js';
 import { registerTools } from './tools.js';
 import { registerGuidance, SERVER_INSTRUCTIONS } from './guidance.js';
 import { authenticator, combinedAuthenticator } from './auth.js';
@@ -44,6 +46,14 @@ const data = envs.dataDir ?? resolve('../../data');
 mkdirSync(data, { recursive: true, mode: 0o700 });
 mkdirSync(resolve(data, 'meshes'), { recursive: true, mode: 0o700 });
 const store = new Store(resolve(data, 'cadgpt.db'));
+const keycloak = new KeycloakAdminService({
+  baseUrl: envs.keycloakBaseUrl ?? issuer.replace(/\/realms\/[^/]+$/, ''),
+  realm: envs.keycloakRealm ?? issuer.split('/realms/')[1] ?? 'cadgpt',
+  clientId: envs.keycloakAdminClientId,
+  clientSecret: envs.keycloakAdminClientSecret,
+  username: envs.keycloakAdminUsername,
+  password: envs.keycloakAdminPassword,
+});
 // Complementary MCP auth (/mcp only — REST routes stay OIDC-only via `auth`).
 const authAny = combinedAuthenticator(auth, (key, scope) => store.verifyApiKey(key, scope));
 const app = await NestFactory.create(AppModule, { bodyParser: false });
@@ -54,12 +64,7 @@ http.use(express.json({ limit: '32kb' }));
 http.use(
   rateLimit({ windowMs: 60000, limit: 180, standardHeaders: 'draft-8', legacyHeaders: false }),
 );
-const wrap =
-  (fn: (req: Request, res: Response) => Promise<unknown> | unknown) =>
-  (req: Request, res: Response, next: NextFunction) =>
-    Promise.resolve()
-      .then(() => fn(req, res))
-      .catch(next);
+import { wrap } from './http.js';
 const token = (r: Request) => {
   const h = r.headers.authorization;
   if (!h?.startsWith('Bearer ')) throw new DomainError(401, 'Device credential required.');
@@ -197,6 +202,7 @@ http.post(
 // POST /api/devices/:deviceId/roots, GET /api/devices/:deviceId/roots, DELETE /api/roots/:id
 http.use(rootsRouter(store, { auth }));
 http.use(meshRouter(store, { dataDir: data, auth }));
+http.use(accountRouter(store, { dataDir: data, auth, keycloak }));
 const metadata = {
   resource: origin + '/mcp',
   authorization_servers: [issuer],

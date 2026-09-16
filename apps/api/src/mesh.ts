@@ -21,12 +21,7 @@ export interface MeshRouterOptions {
   auth: (header: string | undefined, scope?: string) => Promise<string>;
 }
 
-const wrap =
-  (fn: (req: Request, res: Response) => Promise<unknown> | unknown) =>
-  (req: Request, res: Response, next: NextFunction) =>
-    Promise.resolve()
-      .then(() => fn(req, res))
-      .catch(next);
+import { wrap } from './http.js';
 
 /** Same device-credential bearer scheme as `/api/agent/poll` and `/api/agent/results/:id`. */
 function deviceToken(req: Request): string {
