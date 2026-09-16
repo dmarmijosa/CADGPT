@@ -16,14 +16,26 @@ export class ApiService {
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
-    const data = await response.json();
-    if (!response.ok)
+    if (!response.ok) {
+      if (response.status === 401) {
+        void this.auth.logout();
+        throw new Error('Session expired. Signing out...');
+      }
+      const errData = await response.json().catch(() => undefined);
       throw new Error(
-        response.status === 401
-          ? 'Session expired. Sign out and sign in again.'
-          : ((data as { error?: string }).error ?? 'Request failed.'),
+        (errData as { error?: string } | undefined)?.error ??
+          `Request failed: HTTP ${response.status}`,
       );
+    }
+    if (response.status === 204 || response.headers.get('content-length') === '0') {
+      return undefined as T;
+    }
+    const data = await response.json();
     return data as T;
+  }
+
+  async requestVoid(url: string, method = 'DELETE', body?: unknown): Promise<void> {
+    await this.request<void>(url, method, body);
   }
 
   /** Bearer-authenticated binary fetch (used for `GET /api/designs/:id/mesh`,
@@ -36,7 +48,10 @@ export class ApiService {
       },
     });
     if (!response.ok) {
-      if (response.status === 401) throw new Error('Session expired. Sign out and sign in again.');
+      if (response.status === 401) {
+        void this.auth.logout();
+        throw new Error('Session expired. Signing out...');
+      }
       const data = await response.json().catch(() => undefined);
       throw new Error((data as { error?: string } | undefined)?.error ?? 'Request failed.');
     }

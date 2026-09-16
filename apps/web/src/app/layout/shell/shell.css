@@ -202,8 +202,10 @@ nav[aria-label='Account'] {
 
 main {
   padding: var(--space-6) var(--space-7);
-  max-width: 1040px;
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
+  box-sizing: border-box;
 }
 
 footer {

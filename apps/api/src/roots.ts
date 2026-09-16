@@ -10,12 +10,7 @@ export interface RootsRouterOptions {
   auth: (header: string | undefined, scope?: string) => Promise<string>;
 }
 
-const wrap =
-  (fn: (req: Request, res: Response) => Promise<unknown> | unknown) =>
-  (req: Request, res: Response, next: NextFunction) =>
-    Promise.resolve()
-      .then(() => fn(req, res))
-      .catch(next);
+import { wrap } from './http.js';
 
 export const rootPathSchema = z.string().min(1).max(1024).refine(isValidPathShape, {
   message: 'Path must be an absolute POSIX, Windows, or UNC path without .. or NUL bytes',

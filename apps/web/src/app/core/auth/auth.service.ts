@@ -146,7 +146,13 @@ export class AuthService {
     });
     if (location.pathname !== '/callback') {
       const user = await this.manager.getUser();
-      if (user && !user.expired) this.user.set(user);
+      if (user) {
+        if (user.expired) {
+          void this.logout();
+        } else {
+          this.user.set(user);
+        }
+      }
     }
   }
 }
