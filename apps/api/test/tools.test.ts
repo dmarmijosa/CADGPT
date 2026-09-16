@@ -10,6 +10,8 @@ import {
   createText3dSchema,
   extrudePolygonSchema,
   phase5CadSchemas,
+  analyzeImageToCadSchema,
+  analyzeImageToCadBaseSchema,
 } from '../src/tools.js';
 
 const freecad = {
@@ -821,4 +823,241 @@ test('happy path: extrude_polygon with holes enqueues a job with nested hole arr
   ]);
   assert.equal(picked.job?.depth, 10);
   assert.equal(picked.job?.plane, 'XY');
+});
+
+test('analyzeImageToCadSchema rejects code-shaped fields and owner/username', () => {
+  const valid = {
+    image_base64:
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+    create_solid: false,
+  };
+  assert.equal(analyzeImageToCadSchema.safeParse({ ...valid, code: 'rm -rf /' }).success, false);
+  assert.equal(
+    analyzeImageToCadSchema.safeParse({ ...valid, script: 'system.exec()' }).success,
+    false,
+  );
+
+  const keys = Object.keys(analyzeImageToCadBaseSchema.shape);
+  assert.equal(keys.includes('owner'), false, 'analyze_image_to_cad must not accept owner');
+  assert.equal(keys.includes('username'), false, 'analyze_image_to_cad must not accept username');
+
+  for (const [name, schema] of Object.entries(phase5CadSchemas)) {
+    assert.ok(name in phase5CadSchemas);
+    assert.ok(schema);
+  }
+});
+
+test('analyzeImageToCadSchema validation bounds and conditionals', () => {
+  const b64 =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
+  // Valid inspection payload
+  const validInspection = { image_base64: b64, create_solid: false };
+  assert.equal(analyzeImageToCadSchema.safeParse(validInspection).success, true);
+
+  // Rejects too-short image_base64
+  assert.equal(
+    analyzeImageToCadSchema.safeParse({ image_base64: 'short', create_solid: false }).success,
+    false,
+  );
+
+  // Rejects invalid threshold_mode
+  assert.equal(
+    analyzeImageToCadSchema.safeParse({ ...validInspection, threshold_mode: 'magic' }).success,
+    false,
+  );
+
+  // Tolerance bounds [0.0001, 0.1]
+  assert.equal(
+    analyzeImageToCadSchema.safeParse({ ...validInspection, tolerance: 0.0025 }).success,
+    true,
+  );
+  assert.equal(
+    analyzeImageToCadSchema.safeParse({ ...validInspection, tolerance: 0.00005 }).success,
+    false,
+  );
+  assert.equal(
+    analyzeImageToCadSchema.safeParse({ ...validInspection, tolerance: 0.2 }).success,
+    false,
+  );
+
+  // Solid mode requires depth and confirmed: true
+  assert.equal(
+    analyzeImageToCadSchema.safeParse({ image_base64: b64, create_solid: true, confirmed: true })
+      .success,
+    false,
+  );
+  assert.equal(
+    analyzeImageToCadSchema.safeParse({ image_base64: b64, create_solid: true, depth: 10 }).success,
+    false,
+  );
+  assert.equal(
+    analyzeImageToCadSchema.safeParse({
+      image_base64: b64,
+      create_solid: true,
+      depth: 10,
+      confirmed: true,
+    }).success,
+    true,
+  );
+
+  // Points reference dimension requires points array
+  assert.equal(
+    analyzeImageToCadSchema.safeParse({
+      ...validInspection,
+      reference_dimension: { type: 'points', value_mm: 50 },
+    }).success,
+    false,
+  );
+  assert.equal(
+    analyzeImageToCadSchema.safeParse({
+      ...validInspection,
+      reference_dimension: {
+        type: 'points',
+        value_mm: 50,
+        points: [
+          [0, 0],
+          [10, 10],
+        ],
+      },
+    }).success,
+    true,
+  );
+});
+
+test('happy path: analyze_image_to_cad inspection mode enqueues a job with exact parameters', async () => {
+  const store = new Store(':memory:');
+  const device = pairAndApprove(store, 'alice', 'Workstation', [freecad]);
+  const client = await connectClient(store, 'alice');
+  const b64 =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
+  const res = await client.callTool({
+    name: 'analyze_image_to_cad',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'cad',
+      image_base64: b64,
+      threshold_mode: 'adaptive',
+      invert: true,
+      tolerance: 0.005,
+      create_solid: false,
+    },
+  });
+  assert.equal(res.isError, undefined);
+  const text = (res.content as { type: string; text: string }[])[0].text;
+  const body = JSON.parse(text);
+  assert.equal(body.status, 'queued');
+
+  const picked = store.heartbeat(device.credential!, [freecad]) as {
+    job?: Record<string, unknown>;
+  };
+  assert.equal(picked.job?.id, body.jobId);
+  assert.equal(picked.job?.type, 'analyze_image_to_cad');
+  assert.equal(picked.job?.image_base64, b64);
+  assert.equal(picked.job?.threshold_mode, 'adaptive');
+  assert.equal(picked.job?.invert, true);
+  assert.equal(picked.job?.tolerance, 0.005);
+  assert.equal(picked.job?.create_solid, false);
+});
+
+test('happy path: analyze_image_to_cad solid generation mode enqueues a job with depth and confirmed', async () => {
+  const store = new Store(':memory:');
+  const device = pairAndApprove(store, 'alice', 'Workstation', [freecad]);
+  const client = await connectClient(store, 'alice');
+  const b64 =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
+  const res = await client.callTool({
+    name: 'analyze_image_to_cad',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'cad',
+      image_base64: b64,
+      create_solid: true,
+      depth: 25.0,
+      plane: 'XZ',
+      confirmed: true,
+    },
+  });
+  assert.equal(res.isError, undefined);
+  const text = (res.content as { type: string; text: string }[])[0].text;
+  const body = JSON.parse(text);
+  assert.equal(body.status, 'queued');
+
+  const picked = store.heartbeat(device.credential!, [freecad]) as {
+    job?: Record<string, unknown>;
+  };
+  assert.equal(picked.job?.id, body.jobId);
+  assert.equal(picked.job?.type, 'analyze_image_to_cad');
+  assert.equal(picked.job?.create_solid, true);
+  assert.equal(picked.job?.depth, 25.0);
+  assert.equal(picked.job?.plane, 'XZ');
+  assert.equal(picked.job?.confirmed, true);
+});
+
+test('analyze_image_to_cad solid mode rejects when depth is omitted and enqueues no job', async () => {
+  const store = new Store(':memory:');
+  const device = pairAndApprove(store, 'alice', 'Workstation', [freecad]);
+  const client = await connectClient(store, 'alice');
+  const b64 =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
+  const res = await client.callTool({
+    name: 'analyze_image_to_cad',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'cad',
+      image_base64: b64,
+      create_solid: true,
+      confirmed: true,
+    },
+  });
+  assert.equal(res.isError, true);
+  assert.equal(store.jobs('alice').length, 0);
+});
+
+test('analyze_image_to_cad requires write permission', async () => {
+  const store = new Store(':memory:');
+  pairAndApprove(store, 'alice', 'Workstation', [freecad]);
+  const client = await connectClient(store, 'alice', async () => {
+    throw new Error('Forbidden: insufficient scope.');
+  });
+  const b64 =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+  const res = await client.callTool({
+    name: 'analyze_image_to_cad',
+    arguments: {
+      image_base64: b64,
+      create_solid: false,
+    },
+  });
+  assert.equal(res.isError, true);
+  assert.equal(store.jobs('alice').length, 0);
+});
+
+test('analyzeImageToCadSchema rejects invalid format and oversized payloads', () => {
+  assert.equal(
+    analyzeImageToCadSchema.safeParse({
+      image_base64: 'data:text/html;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAA==',
+      create_solid: false,
+    }).success,
+    false,
+  );
+  assert.equal(
+    analyzeImageToCadSchema.safeParse({
+      image_base64: 'not valid base64 with special characters ???$$$###@@@',
+      create_solid: false,
+    }).success,
+    false,
+  );
+  // Oversized payload (> 5 MB)
+  const hugePayload = 'A'.repeat(5_000_001);
+  assert.equal(
+    analyzeImageToCadSchema.safeParse({
+      image_base64: hugePayload,
+      create_solid: false,
+    }).success,
+    false,
+  );
 });

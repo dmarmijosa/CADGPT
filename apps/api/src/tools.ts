@@ -351,6 +351,76 @@ export const createText3dSchema = createText3dBaseSchema.superRefine((val, ctx) 
   }
 });
 
+const imageBase64Frag = z
+  .string()
+  .min(20)
+  .max(5_000_000)
+  .refine(
+    (val) => {
+      const s = val.trim();
+      if (s.startsWith('data:image/')) {
+        return /^data:image\/[a-zA-Z0-9.+_-]+;base64,[A-Za-z0-9+/=]+$/.test(s);
+      }
+      return /^[A-Za-z0-9+/=\s]+$/.test(s);
+    },
+    { message: 'Must be a valid raw base64 string or Data URI (data:image/...;base64,...)' },
+  );
+
+export const analyzeImageToCadBaseSchema = z
+  .object({
+    deviceId: deviceIdFrag,
+    cadId: cadIdFrag,
+    documentId: documentIdFrag,
+    name: nameFrag,
+    image_base64: imageBase64Frag,
+    reference_dimension: z
+      .object({
+        type: z.enum(['width', 'height', 'points']),
+        value_mm: mmFrag,
+        points: z
+          .array(z.tuple([coordFrag, coordFrag]))
+          .length(2)
+          .optional(),
+      })
+      .strict()
+      .optional(),
+    threshold_mode: z.enum(['otsu', 'adaptive', 'canny']).default('otsu'),
+    invert: z.boolean().default(false),
+    tolerance: z.number().finite().min(0.0001).max(0.1).default(0.0025),
+    create_solid: z.boolean().default(false),
+    depth: mmFrag.optional(),
+    plane: planeFrag.default('XY'),
+    position: positionFrag,
+    confirmed: z.literal(true).optional(),
+  })
+  .strict();
+
+export const analyzeImageToCadSchema = analyzeImageToCadBaseSchema.superRefine((val, ctx) => {
+  if (val.create_solid) {
+    if (val.depth == null) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'depth is required when create_solid is true',
+        path: ['depth'],
+      });
+    }
+    if (val.confirmed !== true) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'confirmed must be true when create_solid is true',
+        path: ['confirmed'],
+      });
+    }
+  }
+  if (val.reference_dimension?.type === 'points' && !val.reference_dimension.points) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'points array is required when reference_dimension type is points',
+      path: ['reference_dimension', 'points'],
+    });
+  }
+});
+
 /** Advanced CAD operations schemas; asserted alongside batch A/B1/B2 to never carry `owner`/`username`. */
 export const advancedCadSchemas = {
   create_wedge: createWedgeSchema,
@@ -364,6 +434,7 @@ export const batchB3Schemas = advancedCadSchemas;
 
 export const phase5CadSchemas = {
   create_text_3d: createText3dSchema,
+  analyze_image_to_cad: analyzeImageToCadSchema,
 } as const;
 
 type ToolResult = { content: { type: 'text'; text: string }[] };
@@ -984,6 +1055,60 @@ export function registerTools(
           { text, size, thickness, mode, target_object, plane, position, tracking, font },
           { deviceId, cadId, documentId },
           name ?? 'Text3D',
+        ),
+      );
+    },
+  );
+  server.registerTool(
+    'analyze_image_to_cad',
+    {
+      description:
+        'Analyze a 2D drawing or silhouette image to extract calibrated CAD contours and nested holes, optionally extruding into a 3D solid prism. Ask user to confirm dimensions before mutating.',
+      inputSchema: analyzeImageToCadSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (p) => {
+      await requireWrite();
+      const {
+        deviceId,
+        cadId,
+        documentId,
+        name,
+        image_base64,
+        reference_dimension,
+        threshold_mode,
+        invert,
+        tolerance,
+        create_solid,
+        depth,
+        plane,
+        position,
+        confirmed,
+      } = p;
+      return result(
+        enqueueOp(
+          store,
+          owner,
+          'analyze_image_to_cad',
+          {
+            image_base64,
+            reference_dimension,
+            threshold_mode,
+            invert,
+            tolerance,
+            create_solid,
+            depth,
+            plane,
+            position,
+            confirmed,
+          },
+          { deviceId, cadId, documentId },
+          name ?? 'ImageToCad',
         ),
       );
     },

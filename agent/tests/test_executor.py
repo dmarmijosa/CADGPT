@@ -12,13 +12,17 @@ Covers all 7 escape vectors in the design Threat Matrix ('Caller-controlled path
 Plus the positive acceptance case:
 - canonical path inside allowed root accepted
 """
+import json
 import os
+from pathlib import Path
 import platform
 import tempfile
+import time
 import unittest
-from pathlib import Path
+from unittest.mock import MagicMock, patch
+import uuid
 
-from cadgpt_agent.executor import resolve_external_path
+from cadgpt_agent.executor import execute, resolve_external_path
 
 
 class ExternalPathContainmentTests(unittest.TestCase):
@@ -127,6 +131,138 @@ class ExternalPathContainmentTests(unittest.TestCase):
             resolve_external_path("", [str(self.allowed_root)])
         with self.assertRaises(ValueError):
             resolve_external_path(str(self.allowed_root / "part.FCStd"), [])
+
+
+class AnalyzeImageToCadExecutorTests(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp_dir.name).resolve()
+        self.cads = [{
+            "id": "cad-freecad",
+            "name": "FreeCAD",
+            "path": str(self.root / "fake_freecad"),
+            "executable": True,
+            "capabilities": {"execute": True, "ops": ["analyze_image_to_cad", "extrude_polygon"]},
+        }]
+        Path(self.cads[0]["path"]).write_text("#!/bin/sh\nexit 0\n")
+        Path(self.cads[0]["path"]).chmod(0o755)
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def test_inspection_mode_writes_inspection_json_and_skips_subprocess(self):
+        try:
+            from .test_vision import make_test_image_b64
+        except (ImportError, ValueError):
+            from test_vision import make_test_image_b64
+        b64 = make_test_image_b64(outer_box=(50, 50, 350, 350), holes=[(100, 100, 150, 150)])
+        job_id = str(uuid.uuid4())
+        job = {
+            "id": job_id,
+            "cadId": "cad-freecad",
+            "type": "analyze_image_to_cad",
+            "image_base64": b64,
+            "create_solid": False,
+            "threshold_mode": "otsu",
+            "tolerance": 0.0025,
+            "expires": (time.time() + 300) * 1000,
+            "confirmed": True,
+        }
+
+        with patch("cadgpt_agent.executor.subprocess.Popen") as popen_mock:
+            res_str = execute(job, self.cads, str(self.root))
+            popen_mock.assert_not_called()
+
+        res = json.loads(res_str)
+        self.assertIn("outer_boundary", res)
+        self.assertIn("holes", res)
+        self.assertEqual(len(res["holes"]), 1)
+        self.assertIn("scaling_factor", res)
+        self.assertIn("bounds_mm", res)
+        self.assertIn("vertex_count", res)
+
+        inspection_file = self.root / "jobs" / job_id / "inspection.json"
+        self.assertTrue(inspection_file.is_file())
+        saved_data = json.loads(inspection_file.read_text(encoding="utf-8"))
+        self.assertEqual(saved_data["vertex_count"], res["vertex_count"])
+
+    def test_solid_generation_mode_delegates_to_extrude_polygon_subprocess(self):
+        try:
+            from .test_vision import make_test_image_b64
+        except (ImportError, ValueError):
+            from test_vision import make_test_image_b64
+        b64 = make_test_image_b64(outer_box=(50, 50, 350, 350))
+        job_id = str(uuid.uuid4())
+        job = {
+            "id": job_id,
+            "cadId": "cad-freecad",
+            "type": "analyze_image_to_cad",
+            "image_base64": b64,
+            "create_solid": True,
+            "depth": 15.0,
+            "plane": "XY",
+            "expires": (time.time() + 300) * 1000,
+            "confirmed": True,
+        }
+
+        with patch("cadgpt_agent.executor.subprocess.Popen") as popen_mock:
+            job_dir = self.root / "jobs" / job_id
+            def side_effect(*args, **kwargs):
+                (job_dir / "design.FCStd").write_text("fake_fcstd")
+                (job_dir / "preview.stl").write_text("solid fake_stl\nendsolid\n")
+                mock_proc = MagicMock()
+                mock_proc.wait.return_value = 0
+                mock_proc.stdout.read.side_effect = [b"Extrusion complete", b""]
+                return mock_proc
+
+            popen_mock.side_effect = side_effect
+            res_str = execute(job, self.cads, str(self.root))
+            popen_mock.assert_called_once()
+
+        self.assertIn("Created", res_str)
+        request_file = self.root / "jobs" / job_id / "request.json"
+        self.assertTrue(request_file.is_file())
+        req = json.loads(request_file.read_text(encoding="utf-8"))
+        self.assertEqual(req["op"], "extrude_polygon")
+        self.assertIn("points", req)
+        self.assertIn("holes", req)
+        self.assertEqual(req["depth"], 15.0)
+        self.assertEqual(req["plane"], "XY")
+
+    def test_solid_mode_requires_confirmed_and_depth(self):
+        try:
+            from .test_vision import make_test_image_b64
+        except (ImportError, ValueError):
+            from test_vision import make_test_image_b64
+        b64 = make_test_image_b64()
+        job_base = {
+            "id": str(uuid.uuid4()),
+            "cadId": "cad-freecad",
+            "type": "analyze_image_to_cad",
+            "image_base64": b64,
+            "create_solid": True,
+            "expires": (time.time() + 300) * 1000,
+        }
+        with self.assertRaises(ValueError) as ctx:
+            execute({**job_base, "depth": 10.0}, self.cads, str(self.root))
+        self.assertIn("confirmation required", str(ctx.exception))
+
+        with self.assertRaises(ValueError) as ctx:
+            execute({**job_base, "confirmed": True}, self.cads, str(self.root))
+        self.assertIn("depth must be finite", str(ctx.exception))
+
+    def test_corrupt_base64_raises_value_error(self):
+        job = {
+            "id": str(uuid.uuid4()),
+            "cadId": "cad-freecad",
+            "type": "analyze_image_to_cad",
+            "image_base64": "corrupt_base64_data_string_not_valid",
+            "create_solid": False,
+            "expires": (time.time() + 300) * 1000,
+            "confirmed": True,
+        }
+        with self.assertRaises(ValueError):
+            execute(job, self.cads, str(self.root))
 
 
 if __name__ == "__main__":

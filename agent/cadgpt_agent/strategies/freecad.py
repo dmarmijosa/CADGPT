@@ -9,7 +9,7 @@ class FreeCadStrategy:
     kind = "FreeCAD"
 
     def supports(self, op: str) -> bool:
-        return op in OPS
+        return op in OPS or op == "analyze_image_to_cad"
 
     def build_argv(self, cad_path: Path, job_dir: Path, doc_dir: Path | None) -> list[str]:
         worker = Path(__file__).resolve().parent.parent / "freecad_worker.py"

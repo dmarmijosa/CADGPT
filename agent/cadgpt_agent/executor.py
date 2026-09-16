@@ -50,13 +50,22 @@ def validate(job):
     # other op's params are re-validated inside the FreeCAD worker itself
     # (before any FreeCAD call), since the worker is the one that understands
     # each op's own parameter shape.
-    if (job.get("type") or "create_box") == "create_box":
+    op = job.get("type") or "create_box"
+    if op == "create_box":
         for key in ("length", "width", "height"):
             n = job[key]
             if isinstance(n, bool) or not isinstance(n, (int, float)) or not math.isfinite(n) or not 0 < n <= 10000:
                 raise ValueError("Dimensions must be finite and between 0 and 10000 mm")
-    if job.get("confirmed") is not True:
-        raise ValueError("Explicit confirmation required")
+    if op == "analyze_image_to_cad":
+        if job.get("create_solid") is True:
+            if job.get("confirmed") is not True:
+                raise ValueError("Explicit confirmation required")
+            depth = job.get("depth")
+            if isinstance(depth, bool) or not isinstance(depth, (int, float)) or not math.isfinite(depth) or not 0 < depth <= 10000:
+                raise ValueError("depth must be finite and between 0 and 10000 mm when create_solid is true")
+    else:
+        if job.get("confirmed") is not True:
+            raise ValueError("Explicit confirmation required")
 
 def resolve_document_dir(root, document_id):
     """Validate `document_id` and return its containment-checked directory, or None.
@@ -156,14 +165,48 @@ def execute(job, cads, root, allowed_roots=None, timeout=120):
     if doc_dir is not None:
         doc_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
     request = directory / "request.json"
-    # request.json carries the op discriminator plus every non-envelope job
-    # field as-is; the worker re-validates each value before touching FreeCAD.
-    # No path ever crosses this boundary: only the UUID document_id does.
-    envelope_keys = {"id", "cadId", "expires", "confirmed", "type", "documentId", "deviceId"}
-    params = {k: v for k, v in job.items() if k not in envelope_keys}
-    if contained_path is not None:
-        params["native_path"] = str(contained_path)
-    request.write_text(json.dumps({"op": op, "document_id": job.get("documentId"), **params}), encoding="utf-8")
+    if op == "analyze_image_to_cad":
+        from .vision import process_image
+        image_base64 = job.get("image_base64")
+        if not image_base64 or not isinstance(image_base64, str):
+            raise ValueError("image_base64 is required for analyze_image_to_cad")
+        vision_result = process_image(
+            image_base64=image_base64,
+            threshold_mode=job.get("threshold_mode", "otsu"),
+            invert=bool(job.get("invert", False)),
+            tolerance=float(job.get("tolerance", 0.0025)),
+            reference_dimension=job.get("reference_dimension"),
+        )
+        if not bool(job.get("create_solid", False)):
+            inspection_path = directory / "inspection.json"
+            inspection_path.write_text(json.dumps(vision_result), encoding="utf-8")
+            return json.dumps(vision_result)
+
+        worker_op = "extrude_polygon"
+        extrude_params = {
+            "op": worker_op,
+            "document_id": job.get("documentId"),
+            "name": job.get("name", "ImageToCad"),
+            "points": vision_result["outer_boundary"],
+            "holes": vision_result["holes"],
+            "depth": job["depth"],
+            "plane": job.get("plane", "XY"),
+        }
+        if job.get("position") is not None:
+            extrude_params["position"] = job["position"]
+        if contained_path is not None:
+            extrude_params["native_path"] = str(contained_path)
+        request.write_text(json.dumps(extrude_params), encoding="utf-8")
+    else:
+        worker_op = op
+        # request.json carries the op discriminator plus every non-envelope job
+        # field as-is; the worker re-validates each value before touching FreeCAD.
+        # No path ever crosses this boundary: only the UUID document_id does.
+        envelope_keys = {"id", "cadId", "expires", "confirmed", "type", "documentId", "deviceId"}
+        params = {k: v for k, v in job.items() if k not in envelope_keys}
+        if contained_path is not None:
+            params["native_path"] = str(contained_path)
+        request.write_text(json.dumps({"op": op, "document_id": job.get("documentId"), **params}), encoding="utf-8")
     base_env = {k: v for k, v in os.environ.items() if k not in ("PYTHONHOME", "PYTHONPATH", "LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH")}
     base_env["CADGPT_JOB_DIR"] = str(directory.resolve())
     if doc_dir is not None:
@@ -197,7 +240,7 @@ def execute(job, cads, root, allowed_roots=None, timeout=120):
     finally:
         reader.join(timeout=5)
         process.stdout.close()
-    artifacts = strategy.artifacts(op, directory, doc_dir)
+    artifacts = strategy.artifacts(worker_op, directory, doc_dir)
     output = contained_path if contained_path else artifacts["native"]
     if code != 0 or not output.is_file():
         if backup_path and backup_path.is_file() and contained_path:
