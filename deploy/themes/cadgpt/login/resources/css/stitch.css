@@ -56,11 +56,21 @@ body,
   min-height: 100vh !important;
 }
 
+/* Outer Login Container Wrapper */
+.pf-v5-c-login__container {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  max-width: 480px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+}
+
 /* Card Container */
 .card-pf,
 .pf-v5-c-card,
 .pf-v5-c-login__main,
-.pf-v5-c-login__container,
 #kc-content-wrapper,
 .login-pf-page .card-pf {
   background-color: var(--stitch-surface) !important;
@@ -71,7 +81,9 @@ body,
     0 12px 40px rgba(0, 0, 0, 0.6) !important;
   color: var(--stitch-ink) !important;
   max-width: 480px !important;
+  width: 100% !important;
   margin: 0 auto !important;
+  overflow: hidden !important;
 }
 
 .pf-v5-c-login__main-header,
@@ -278,14 +290,35 @@ a:hover,
 }
 
 /* Footer / Info Notes */
-#kc-info-wrapper,
-.pf-v5-c-login__main-footer {
+.pf-v5-c-login__main-footer:empty {
+  display: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+}
+
+.pf-v5-c-login__main-footer:not(:empty) {
   border-top: 1px solid var(--stitch-border) !important;
   margin-top: 1.5rem !important;
   padding-top: 1rem !important;
   text-align: center !important;
   font-size: 0.85rem !important;
   color: var(--stitch-ink-muted) !important;
+}
+
+#kc-info-wrapper {
+  border-top: 1px solid var(--stitch-border) !important;
+  margin-top: 1.5rem !important;
+  padding-top: 1rem !important;
+  text-align: center !important;
+  font-size: 0.85rem !important;
+  color: var(--stitch-ink-muted) !important;
+}
+
+.pf-v5-c-login__main-footer #kc-info-wrapper {
+  border-top: none !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }
 
 /* ==========================================================================

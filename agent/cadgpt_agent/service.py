@@ -128,13 +128,16 @@ def get_service_status() -> dict:
             }
 
 
-def install_service(exe_path: str = None) -> None:
+def install_service(exe_path: str = None, extra_args: list[str] = None) -> None:
     """Install and enable the background daemon."""
-    exe, extra_args = get_agent_command(exe_path)
+    exe, default_args = get_agent_command(exe_path)
+    combined_args = list(default_args)
+    if extra_args:
+        combined_args.extend(extra_args)
     system = platform.system()
 
     if system == "Windows":
-        tr_arg = f'"{exe}"' if not extra_args else f'"{exe}" ' + " ".join(extra_args)
+        tr_arg = f'"{exe}"' if not combined_args else f'"{exe}" ' + " ".join(combined_args)
         cmd = [
             "schtasks",
             "/Create",
@@ -155,7 +158,7 @@ def install_service(exe_path: str = None) -> None:
         plist_dir.mkdir(parents=True, exist_ok=True)
         plist_path = plist_dir / f"{LAUNCHAGENT_LABEL}.plist"
         args_elements = f"        <string>{exe}</string>\n" + "".join(
-            f"        <string>{arg}</string>\n" for arg in extra_args
+            f"        <string>{arg}</string>\n" for arg in combined_args
         )
         plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -188,7 +191,7 @@ def install_service(exe_path: str = None) -> None:
         unit_dir = Path.home() / ".config/systemd/user"
         unit_dir.mkdir(parents=True, exist_ok=True)
         unit_path = unit_dir / SYSTEMD_SERVICE_NAME
-        exec_start = exe if not extra_args else f"{exe} " + " ".join(extra_args)
+        exec_start = exe if not combined_args else f"{exe} " + " ".join(combined_args)
         unit_content = f"""[Unit]
 Description=CAD Engine Background Agent
 After=network.target
