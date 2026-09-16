@@ -6,8 +6,8 @@ The GitHub repository hosts source and downloadable agents, not a running authen
 
 1. Provision a persistent server with Node 24 and HTTPS reverse proxy; run `npm ci && npm run build`.
 2. Deploy Keycloak separately with its supported production database, TLS hostname, backups, SMTP, email verification and appropriate registration policy. **Do not deploy the supplied start-dev container to the Internet.**
-3. Create the `cadgpt-web` public OAuth client using authorization code flow and required S256 PKCE. Disable password/direct grants.
-4. Allow only `https://YOUR_CADGPT_HOST/callback` as redirect URI and the exact dashboard origin. Configure the logout return URI.
+3. Create the `cadgpt-web` and `cadgpt-chatgpt` public OAuth clients using authorization code flow and required S256 PKCE. Disable implicit, password/direct and service-account grants.
+4. For `cadgpt-web`, allow only `https://YOUR_CADGPT_HOST/callback` and the exact dashboard origin, then configure the logout return URI. For `cadgpt-chatgpt`, allow only the exact callback URI displayed by ChatGPT; do not add a web origin or logout redirect.
 5. Create `cad:read` and `cad:write` client scopes and include them in access tokens. Add an audience mapper for `cadgpt-api`.
 6. Set `PUBLIC_ORIGIN`, `OIDC_ISSUER`, `OIDC_AUDIENCE`, `DATA_DIR` and optionally `OIDC_JWKS_URL`. Start `npm start` from the repository root. Keep the API bound to loopback behind the proxy.
 7. Route the dashboard, `/api`, `/mcp` and `/.well-known/oauth-protected-resource/mcp` to NestJS. Preserve Authorization headers. Disable caching for API/auth responses. Add request/body/rate limits at the proxy.
@@ -69,7 +69,8 @@ The API validates its environment once at process start (`apps/api/src/config/en
 
 1. Wait for DNS to resolve and for Traefik to obtain a certificate (the health probe warning tells you if this is still in progress; retry `curl -I https://cadengine.danny-armijos.com/`).
 2. Log in to the Keycloak admin console at `https://cadengine.danny-armijos.com/auth/admin` with the bootstrap admin account, then set a permanent admin password and disable further use of the bootstrap credentials.
-3. Follow [Connect an MCP client](#connect-an-mcp-client) below to register the OAuth client(s) ChatGPT/Claude will use — this is not automated by the realm import.
+3. Apply the `cadgpt-chatgpt` client from `deploy/prod/cadgpt-realm.prod.json` to the existing realm through the Keycloak admin console/API. Realm import does not update an existing realm.
+4. Run `npm run verify:chatgpt-oauth -w api -- https://cadengine.danny-armijos.com`, then follow [Connect an MCP client](#connect-an-mcp-client) for the browser acceptance test.
 
 ### Rollback
 
@@ -101,6 +102,29 @@ Register a **separate OAuth client for each AI integration** in the identity pro
 6. First test `list_devices`; then explicitly authorize a small box on a disposable FreeCAD workspace.
 
 Client setup screens, plan availability and OAuth registration requirements vary. Automatic dynamic client registration is **not implemented** here. Do not enable unrestricted dynamic registration as a shortcut. If the selected client cannot use a pre-registered OAuth client with this provider, stop and implement/test the required authorization integration before advertising compatibility.
+
+### ChatGPT production client
+
+The production realm export includes a dedicated public client named `cadgpt-chatgpt`. It uses authorization code flow with mandatory S256 PKCE, explicit user consent, the `openid`, `email`, `cad:read`, and `cad:write` scopes, and an access-token audience of `cadgpt-api`. The realm defines the `email` mapper explicitly so the claim is available from UserInfo. The client has no secret and permits only:
+
+```text
+https://chatgpt.com/connector_platform_oauth_redirect
+```
+
+Do not add wildcard or dashboard callback URLs to this client. Before changing the callback, copy the exact redirect URI shown by ChatGPT's connector setup UI; if it differs from the value above, replace the allowlisted URI rather than adding a pattern.
+
+After applying the client to the existing production realm, run the non-interactive discovery check:
+
+```bash
+npm run verify:chatgpt-oauth -w api -- https://cadengine.danny-armijos.com
+```
+
+That command verifies protected-resource metadata, OIDC authorization/token/UserInfo endpoints, PKCE S256, scopes, and the unauthenticated MCP challenge. It cannot prove a user login. Complete the acceptance test in ChatGPT and inspect the resulting access token before announcing support:
+
+1. Add `https://cadengine.danny-armijos.com/mcp` as the MCP server and use client ID `cadgpt-chatgpt` with no client secret.
+2. Complete sign-in and consent. Verify the access token has issuer `https://cadengine.danny-armijos.com/auth/realms/cadgpt`, audience `cadgpt-api`, subject, and both CAD scopes.
+3. Call the OIDC UserInfo endpoint with that token and verify it returns the same subject and the user's email.
+4. Run `tools/list`, then `list_devices`. Exercise a write tool only in a disposable CAD document and only after explicit confirmation.
 
 MCP is implemented using the official TypeScript SDK v1.30 maintenance line. The handler authenticates every request and creates no cross-user MCP session. ChatGPT/Claude live account integration remains a deployment acceptance test, not a completed certification.
 
