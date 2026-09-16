@@ -1,21 +1,50 @@
 [Setup]
-AppId=CADGPT-Bridge
-AppName=CAD Agent Designer Bridge
-AppVersion=0.1.0-alpha.2
-DefaultDirName={autopf}\CAD Agent Designer
-DefaultGroupName=CAD Agent Designer
+AppId=CADEngine
+AppName=CAD Engine
+AppVersion=0.1.0
+DefaultDirName={autopf}\CAD Engine
+DefaultGroupName=CAD Engine
 PrivilegesRequired=admin
+ChangesEnvironment=yes
 OutputDir=..\dist
-OutputBaseFilename=CADGPT-Setup-windows-x64
+OutputBaseFilename=CADEngine-Setup-windows-x64
 Compression=lzma2
 SolidCompression=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-UninstallDisplayIcon={app}\CADGPT.exe
+UninstallDisplayIcon={app}\cadengine.exe
+
 [Files]
-Source: "..\dist\CADGPT\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\cadengine\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
 [Icons]
-Name: "{group}\CAD Agent Designer"; Filename: "{app}\CADGPT.exe"
-Name: "{autodesktop}\CAD Agent Designer"; Filename: "{app}\CADGPT.exe"
+Name: "{group}\CAD Engine"; Filename: "{app}\cadengine.exe"
+Name: "{autodesktop}\CAD Engine"; Filename: "{app}\cadengine.exe"
+
+[Registry]
+Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; \
+    ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; \
+    Check: NeedsAddPath(ExpandConstant('{app}'))
+
 [Run]
-Filename: "{app}\CADGPT.exe"; Description: "Connect this computer to CAD Agent Designer"; Flags: nowait postinstall skipifsilent
+Filename: "schtasks.exe"; Parameters: "/Create /TN ""CADEngineAgent"" /TR ""\""{app}\cadengine.exe\"""" /SC ONLOGON /RL LIMITED /F"; Flags: runhidden
+Filename: "{app}\cadengine.exe"; Description: "Launch CAD Engine Agent"; Flags: nowait postinstall skipifsilent
+
+[UninstallRun]
+Filename: "schtasks.exe"; Parameters: "/Delete /TN ""CADEngineAgent"" /F"; Flags: runhidden
+
+[Code]
+function NeedsAddPath(Param: string): boolean;
+var
+  OrigPath: string;
+begin
+  if not RegQueryStringValue(HKEY_LOCAL_MACHINE,
+    'SYSTEM\CurrentControlSet\Control\Session Manager\Environment',
+    'Path', OrigPath)
+  then begin
+    Result := True;
+    exit;
+  end;
+  { Look for the path with leading and trailing semicolons }
+  Result := Pos(';' + UpperCase(Param) + ';', ';' + UpperCase(OrigPath) + ';') = 0;
+end;

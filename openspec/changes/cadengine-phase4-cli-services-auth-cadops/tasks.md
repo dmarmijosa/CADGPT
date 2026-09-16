@@ -53,6 +53,6 @@ Chain strategy: feature-branch-chain
 
 ## Work Unit 4: Background Daemons & Windows MSI Packaging
 
-- [ ] 4.1 Add daemon commands to [main.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/cadgpt_agent/main.py) for Windows `schtasks /SC ONLOGON /RL LIMITED`, Linux user systemd, and macOS LaunchAgent.
-- [ ] 4.2 Author WiX v4 installer [cadengine.wxs](file:///Users/danny/Documents/ChatGPT/CADGPT/packaging/wix/cadengine.wxs) targeting `%ProgramFiles%\CAD Engine\`, system `PATH`, and `ONLOGON` task actions.
-- [ ] 4.3 Update [windows.iss](file:///Users/danny/Documents/ChatGPT/CADGPT/packaging/windows.iss) and [build.py](file:///Users/danny/Documents/ChatGPT/CADGPT/packaging/build.py) for PyInstaller `cadengine` build.
+- [x] 4.1 Add daemon commands to [main.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/cadgpt_agent/main.py) for Windows `schtasks /SC ONLOGON /RL LIMITED`, Linux user systemd, and macOS LaunchAgent.
+- [x] 4.2 Author WiX v4 installer [cadengine.wxs](file:///Users/danny/Documents/ChatGPT/CADGPT/packaging/wix/cadengine.wxs) targeting `%ProgramFiles%\CAD Engine\`, system `PATH`, and `ONLOGON` task actions.
+- [x] 4.3 Update [windows.iss](file:///Users/danny/Documents/ChatGPT/CADGPT/packaging/windows.iss) and [build.py](file:///Users/danny/Documents/ChatGPT/CADGPT/packaging/build.py) for PyInstaller `cadengine` build.

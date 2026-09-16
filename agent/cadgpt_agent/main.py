@@ -601,7 +601,8 @@ def cmd_service(args):
     """Handle service management commands (install, start, stop, status, uninstall)."""
     action = getattr(args, "action", None)
     if action == "install":
-        install_service()
+        exe = getattr(args, "exe", None)
+        install_service(exe_path=exe)
         print("Service installed successfully.")
     elif action == "start":
         start_service()
@@ -611,10 +612,13 @@ def cmd_service(args):
         print("Service stopped.")
     elif action == "status":
         status = get_service_status()
-        print(f"Service: {status['name']}")
-        print(f"Installed: {status['installed']}")
-        print(f"Active: {status['active']}")
-        print(f"Status: {status['status']}")
+        if getattr(args, "json", False):
+            print(json.dumps(status, indent=2))
+        else:
+            print(f"Service: {status['name']}")
+            print(f"Installed: {status['installed']}")
+            print(f"Active: {status['active']}")
+            print(f"Status: {status['status']}")
     elif action == "uninstall":
         uninstall_service()
         print("Service uninstalled.")
@@ -1264,6 +1268,8 @@ def create_parser():
     # service
     p_service = subparsers.add_parser("service", help="Manage background daemon service")
     p_service.add_argument("action", choices=["install", "start", "stop", "status", "uninstall"], help="Service action")
+    p_service.add_argument("--exe", default=None, help="Custom executable path for background service")
+    p_service.add_argument("--json", action="store_true", help="Output service status in JSON format")
 
     # logs
     p_logs = subparsers.add_parser("logs", help="View or follow agent logs")
