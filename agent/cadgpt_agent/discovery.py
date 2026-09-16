@@ -32,6 +32,8 @@ FREECAD_OPS = [
     "scale_object",
     "read_scene",
     "export_design",
+    "create_text_3d",
+    "analyze_image_to_cad",
 ]
 
 # Ops the AutoCAD adapter can actually run today. Kept in lockstep with

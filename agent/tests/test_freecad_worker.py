@@ -422,11 +422,242 @@ class FreeCadAdvancedOpsTests(unittest.TestCase):
             mock_doc.addObject.assert_called_with("Part::Feature", "Loft")
             Part.makeLoft.assert_called_with(unittest.mock.ANY, False, True)
 
-    def test_loft_validation_rejects_fewer_than_two_sections(self):
-        """Scenario: Reject loft with fewer than two sections."""
+    def test_font_resolution_default_bundled_font(self):
+        """Scenario: Default resolution resolves to bundled Inter-Bold font."""
+        font = freecad_worker._resolve_font(None)
+        self.assertTrue(font.endswith("Inter-Bold.ttf"))
+        self.assertTrue(os.path.isfile(font))
+
+    def test_font_resolution_explicit_valid_font(self):
+        """Scenario: Explicit font path resolves when file exists."""
+        temp_font = self.job_dir / "test_font.ttf"
+        temp_font.write_bytes(b"dummy_ttf_bytes")
+        font = freecad_worker._resolve_font(str(temp_font))
+        self.assertEqual(font, str(temp_font.resolve()))
+
+    def test_font_resolution_nonexistent_path_falls_back_to_bundled(self):
+        """Scenario: Nonexistent font path gracefully falls back to bundled font."""
+        font = freecad_worker._resolve_font("/nonexistent/custom.ttf")
+        self.assertTrue(font.endswith("Inter-Bold.ttf"))
+        self.assertTrue(os.path.isfile(font))
+
+    def test_font_resolution_falls_back_to_os_when_bundled_missing(self):
+        """Scenario: Headless environment resolves to system OS font when bundled is absent."""
+        def mock_isfile(p):
+            if str(p).endswith("Inter-Bold.ttf"):
+                return False
+            return str(p).endswith("Arial.ttf")
+
+        with patch("os.path.isfile", side_effect=mock_isfile):
+            font = freecad_worker._resolve_font()
+            self.assertTrue(font.endswith("Arial.ttf"))
+
+    def test_font_resolution_fails_when_no_fonts_found(self):
+        """Scenario: Resolution fails with diagnostic error when no valid fonts found."""
+        with patch("os.path.isfile", return_value=False):
+            with self.assertRaises(ValueError) as ctx:
+                freecad_worker._resolve_font()
+            self.assertIn("No valid TrueType or OpenType font", str(ctx.exception))
+
+    def test_create_text_3d_validation(self):
+        """Scenario: Rejection of empty text and invalid parameters."""
         with self.assertRaises(ValueError):
-            freecad_worker._loft({
-                "sections": [[[0, 0, 0], [10, 0, 0], [10, 10, 0]]],
+            freecad_worker._create_text_3d({"text": ""}, self.doc_dir)
+        with self.assertRaises(ValueError):
+            freecad_worker._create_text_3d({"text": "A" * 121}, self.doc_dir)
+        with self.assertRaises(ValueError):
+            freecad_worker._create_text_3d({"text": "OK", "size": -5}, self.doc_dir)
+        with self.assertRaises(ValueError):
+            freecad_worker._create_text_3d({"text": "OK", "size": 10, "thickness": 0}, self.doc_dir)
+        with self.assertRaises(ValueError):
+            freecad_worker._create_text_3d({"text": "OK", "size": 10, "thickness": 2, "mode": "invalid"}, self.doc_dir)
+        with self.assertRaises(ValueError):
+            freecad_worker._create_text_3d({"text": "OK", "size": 10, "thickness": 2, "mode": "emboss"}, self.doc_dir)
+        with self.assertRaises(ValueError):
+            freecad_worker._create_text_3d({"text": "OK", "size": 10, "thickness": 2, "plane": "INVALID"}, self.doc_dir)
+        with self.assertRaises(ValueError):
+            freecad_worker._create_text_3d({"text": "OK", "size": 10, "thickness": 2, "position": {"x": 150000}}, self.doc_dir)
+        with self.assertRaises(ValueError):
+            freecad_worker._create_text_3d({"text": "OK", "size": 10, "thickness": 2, "tracking": 999}, self.doc_dir)
+
+    def test_create_text_3d_flat_xy(self):
+        """Scenario: Generate flat 3D text solid on XY plane."""
+        data = {
+            "op": "create_text_3d",
+            "text": "CAD-01",
+            "size": 12.0,
+            "thickness": 2.5,
+            "mode": "flat",
+            "plane": "XY",
+            "tracking": 1.5,
+        }
+        mock_doc = MagicMock()
+        mock_doc.FileName = ""
+        mock_doc.Name = "CADGPTDesign"
+        mock_doc.Objects = []
+        mock_ss = MagicMock()
+        mock_ss.Name = "ShapeString"
+        mock_shape_2d = MagicMock()
+        mock_ss.Shape = mock_shape_2d
+        mock_solid = MagicMock()
+        mock_shape_2d.extrude.return_value = mock_solid
+
+        with patch.dict("sys.modules", {"FreeCAD": MagicMock(), "Draft": MagicMock(), "Part": MagicMock(), "MeshPart": MagicMock()}):
+            import FreeCAD
+            import Draft
+            FreeCAD.newDocument.return_value = mock_doc
+            Draft.make_shapestring.return_value = mock_ss
+            freecad_worker.run(self.job_dir, self.doc_dir, data)
+
+            Draft.make_shapestring.assert_called_with(
+                String="CAD-01",
+                FontFile=unittest.mock.ANY,
+                Size=12.0,
+                Tracking=1.5,
+            )
+            mock_shape_2d.extrude.assert_called()
+            mock_doc.addObject.assert_called_with("Part::Feature", "Text3D")
+
+    def test_create_text_3d_emboss(self):
+        """Scenario: Emboss text onto existing solid surface."""
+        mock_doc, mock_bracket, _ = self._setup_mock_doc()
+        mock_bracket.Name = "Bracket"
+        orig_shape = mock_bracket.Shape
+        mock_doc.getObject.side_effect = lambda name: mock_bracket if name == "Bracket" else None
+
+        data = {
+            "op": "create_text_3d",
+            "text": "REV-2",
+            "size": 10.0,
+            "thickness": 1.0,
+            "mode": "emboss",
+            "target_object": "Bracket",
+        }
+        mock_ss = MagicMock()
+        mock_ss.Name = "ShapeString"
+        mock_shape_2d = MagicMock()
+        mock_ss.Shape = mock_shape_2d
+        mock_solid = MagicMock()
+        mock_shape_2d.extrude.return_value = mock_solid
+        orig_shape.fuse.return_value = MagicMock()
+
+        with patch.dict("sys.modules", {"FreeCAD": MagicMock(), "Draft": MagicMock(), "Part": MagicMock(), "MeshPart": MagicMock()}):
+            import FreeCAD
+            import Draft
+            FreeCAD.newDocument.return_value = mock_doc
+            FreeCAD.openDocument.return_value = mock_doc
+            Draft.make_shapestring.return_value = mock_ss
+            freecad_worker.run(self.job_dir, self.doc_dir, data)
+            orig_shape.fuse.assert_called_with(mock_solid)
+
+    def test_create_text_3d_engrave(self):
+        """Scenario: Engrave text into existing solid surface."""
+        mock_doc, mock_panel, _ = self._setup_mock_doc()
+        mock_panel.Name = "Panel"
+        orig_shape = mock_panel.Shape
+        mock_doc.getObject.side_effect = lambda name: mock_panel if name == "Panel" else None
+
+        data = {
+            "op": "create_text_3d",
+            "text": "OFF",
+            "size": 8.0,
+            "thickness": 0.5,
+            "mode": "engrave",
+            "target_object": "Panel",
+        }
+        mock_ss = MagicMock()
+        mock_ss.Name = "ShapeString"
+        mock_shape_2d = MagicMock()
+        mock_ss.Shape = mock_shape_2d
+        mock_solid = MagicMock()
+        mock_shape_2d.extrude.return_value = mock_solid
+        orig_shape.cut.return_value = MagicMock()
+
+        with patch.dict("sys.modules", {"FreeCAD": MagicMock(), "Draft": MagicMock(), "Part": MagicMock(), "MeshPart": MagicMock()}):
+            import FreeCAD
+            import Draft
+            FreeCAD.newDocument.return_value = mock_doc
+            FreeCAD.openDocument.return_value = mock_doc
+            Draft.make_shapestring.return_value = mock_ss
+            freecad_worker.run(self.job_dir, self.doc_dir, data)
+            orig_shape.cut.assert_called_with(mock_solid)
+
+    def test_create_text_3d_boolean_failure_triggers_rollback(self):
+        """Scenario: Boolean failure triggers automatic document rollback."""
+        mock_doc, mock_panel, _ = self._setup_mock_doc()
+        mock_panel.Name = "Panel"
+        mock_doc.getObject.side_effect = lambda name: mock_panel if name == "Panel" else None
+
+        design_file = self.doc_dir / "design.FCStd"
+        original_bytes = b"pristine_fcstd_data_before_text_engrave"
+        design_file.write_bytes(original_bytes)
+
+        data = {
+            "op": "create_text_3d",
+            "text": "FAIL",
+            "size": 8.0,
+            "thickness": 0.5,
+            "mode": "engrave",
+            "target_object": "Panel",
+        }
+        mock_ss = MagicMock()
+        mock_ss.Name = "ShapeString"
+        mock_shape_2d = MagicMock()
+        mock_ss.Shape = mock_shape_2d
+        mock_solid = MagicMock()
+        mock_shape_2d.extrude.return_value = mock_solid
+        mock_panel.Shape.cut.side_effect = RuntimeError("OpenCASCADE Boolean Cut failure")
+
+        with patch.dict("sys.modules", {"FreeCAD": MagicMock(), "Draft": MagicMock(), "Part": MagicMock(), "MeshPart": MagicMock()}):
+            import FreeCAD
+            import Draft
+            FreeCAD.newDocument.return_value = mock_doc
+            FreeCAD.openDocument.return_value = mock_doc
+            Draft.make_shapestring.return_value = mock_ss
+            with self.assertRaises(RuntimeError) as ctx:
+                freecad_worker.run(self.job_dir, self.doc_dir, data)
+            self.assertIn("Boolean Cut failure", str(ctx.exception))
+            self.assertEqual(design_file.read_bytes(), original_bytes)
+
+    def test_extrude_polygon_with_nested_holes(self):
+        """Scenario: Extrude polygon with nested hole cutouts."""
+        data = {
+            "op": "extrude_polygon",
+            "points": [[0, 0], [100, 0], [100, 100], [0, 100]],
+            "holes": [
+                [[20, 20], [40, 20], [40, 40], [20, 40]],
+                [[60, 60], [80, 60], [80, 80], [60, 80]],
+            ],
+            "depth": 10.0,
+            "plane": "XY",
+        }
+        mock_doc = MagicMock()
+        mock_doc.FileName = ""
+        mock_doc.Name = "CADGPTDesign"
+        mock_doc.Objects = []
+        with patch.dict("sys.modules", {"FreeCAD": MagicMock(), "Part": MagicMock(), "MeshPart": MagicMock()}):
+            import FreeCAD
+            import Part
+            FreeCAD.newDocument.return_value = mock_doc
+            freecad_worker.run(self.job_dir, self.doc_dir, data)
+            self.assertEqual(Part.makePolygon.call_count, 3)
+            Part.Face.assert_called()
+            mock_doc.addObject.assert_called_with("Part::Feature", "ExtrudePolygon")
+
+    def test_extrude_polygon_holes_validation(self):
+        """Scenario: Reject invalid hole loops in extrude_polygon."""
+        with self.assertRaises(ValueError):
+            freecad_worker._extrude_polygon({
+                "points": [[0, 0], [10, 0], [10, 10]],
+                "holes": [[[0, 0], [5, 5]]],
+                "depth": 5,
+            }, self.doc_dir)
+
+        with self.assertRaises(ValueError):
+            freecad_worker._extrude_polygon({
+                "points": [[0, 0], [10, 0], [10, 10]],
+                "holes": [[[0, 0], [5, 0], [5, 5]]] * 21,
+                "depth": 5,
             }, self.doc_dir)
 
 
