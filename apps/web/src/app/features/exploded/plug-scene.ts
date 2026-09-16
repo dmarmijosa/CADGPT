@@ -31,14 +31,14 @@ const PARTS: ReadonlyArray<{
   metalness: number;
   roughness: number;
 }> = [
-  { file: '1_terminal', zmin: 52, zmax: 60, color: 0x8c9199, metalness: 0.75, roughness: 0.32 },
-  { file: '2_insulator', zmin: 22, zmax: 52, color: 0xece6d8, metalness: 0.05, roughness: 0.62 },
-  { file: '3_hexbody', zmin: 16, zmax: 26, color: 0x565c63, metalness: 0.7, roughness: 0.35 },
-  { file: '4_thread', zmin: 0, zmax: 16, color: 0x9aa1a8, metalness: 0.8, roughness: 0.28 },
-  { file: '5_electrode', zmin: -9, zmax: 2, color: 0xb17a45, metalness: 0.55, roughness: 0.4 },
+  { file: '1_foundation', zmin: 0, zmax: 5, color: 0x475569, metalness: 0.1, roughness: 0.9 },
+  { file: '2_walls', zmin: 5, zmax: 30, color: 0xf1f5f9, metalness: 0.05, roughness: 0.65 },
+  { file: '3_roof', zmin: 30, zmax: 50, color: 0x0f172a, metalness: 0.35, roughness: 0.4 },
+  { file: '4_chimney', zmin: 25, zmax: 56, color: 0x991b1b, metalness: 0.1, roughness: 0.8 },
+  { file: '5_accents', zmin: 0, zmax: 26, color: 0xd97706, metalness: 0.25, roughness: 0.35 },
 ];
 
-const MODEL_BASE_URL = '/models/sparkplug';
+const MODEL_BASE_URL = '/models/house';
 /** Radians added to the assembly's spin per `setProgress` call (rAF-cadence). */
 const ROTATION_SPEED = 0.0022;
 /** Explode travel per assembly-height unit, at full explosion. */
@@ -139,7 +139,7 @@ export async function createPlugScene(
   const radiusXY = (overallBounds.max.x - overallBounds.min.x) / 2;
   const radius = Math.max(totalHeight / 2, radiusXY) + maxOffset;
   const camera = new PerspectiveCamera(38, 1, radius / 100, radius * 50);
-  camera.position.set(radius * 0.55, radius * 0.15, radius * 2.6);
+  camera.position.set(radius * 0.75, radius * 0.45, radius * 2.3);
   camera.lookAt(0, 0, 0);
 
   const renderer = new WebGLRenderer({ antialias: true, alpha: true });
