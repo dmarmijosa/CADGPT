@@ -182,6 +182,59 @@ _PLANE_2D_TO_3D = {
 }
 
 
+BUNDLED_FONT_PATH = Path(__file__).resolve().parent / "fonts" / "Inter-Bold.ttf"
+
+OS_FONT_FALLBACKS = {
+    "Windows": [
+        r"C:\Windows\Fonts\arial.ttf",
+        r"C:\Windows\Fonts\calibri.ttf",
+        r"C:\Windows\Fonts\tahoma.ttf",
+    ],
+    "Darwin": [
+        "/System/Library/Fonts/Supplemental/Arial.ttf",
+        "/Library/Fonts/Arial.ttf",
+        "/System/Library/Fonts/Helvetica.ttc",
+    ],
+    "Linux": [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
+        "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
+    ],
+}
+
+
+def _resolve_font(font_param=None):
+    """Resolve font file path following the fallback chain:
+    1. Explicit font path (must exist and end with .ttf or .otf).
+    2. Bundled font: agent/cadgpt_agent/fonts/Inter-Bold.ttf.
+    3. OS system fallbacks by platform.
+    Raises ValueError if no valid font is found.
+    """
+    if font_param and isinstance(font_param, str):
+        p = Path(font_param)
+        if p.suffix.lower() in (".ttf", ".otf") and p.is_file():
+            return str(p.resolve())
+        print(f"cadgpt worker warning: font path '{font_param}' not found or invalid format; falling back", flush=True)
+
+    if os.path.isfile(str(BUNDLED_FONT_PATH)):
+        return str(BUNDLED_FONT_PATH.resolve())
+
+    import platform
+    sys_name = platform.system()
+    candidate_paths = OS_FONT_FALLBACKS.get(sys_name, [])
+    for p_str in candidate_paths:
+        if os.path.isfile(p_str):
+            return p_str
+
+    for os_key, p_list in OS_FONT_FALLBACKS.items():
+        if os_key != sys_name:
+            for p_str in p_list:
+                if os.path.isfile(p_str):
+                    return p_str
+
+    raise ValueError("No valid TrueType or OpenType font found on host system.")
+
+
 def _extrude_polygon(data, doc_dir):
     raw_points = data.get("points")
     if not isinstance(raw_points, list) or len(raw_points) < 3 or len(raw_points) > 100:
@@ -193,6 +246,24 @@ def _extrude_polygon(data, doc_dir):
         u = _coord(pt[0], f"points[{i}][0]")
         v = _coord(pt[1], f"points[{i}][1]")
         points.append((u, v))
+
+    raw_holes = data.get("holes")
+    parsed_holes = []
+    if raw_holes is not None:
+        if not isinstance(raw_holes, list) or len(raw_holes) > 20:
+            raise ValueError("holes must be a list of up to 20 hole loops")
+        for h_idx, loop in enumerate(raw_holes):
+            if not isinstance(loop, list) or len(loop) < 3 or len(loop) > 100:
+                raise ValueError(f"holes[{h_idx}] must contain 3 to 100 2D coordinate pairs")
+            hole_pts = []
+            for pt_idx, pt in enumerate(loop):
+                if not isinstance(pt, (list, tuple)) or len(pt) != 2:
+                    raise ValueError(f"holes[{h_idx}][{pt_idx}] must be a 2D coordinate pair [u, v]")
+                hu = _coord(pt[0], f"holes[{h_idx}][{pt_idx}][0]")
+                hv = _coord(pt[1], f"holes[{h_idx}][{pt_idx}][1]")
+                hole_pts.append((hu, hv))
+            parsed_holes.append(hole_pts)
+
     depth = _mm(data.get("depth"), "depth")
     plane = data.get("plane", "XY")
     if plane not in _PLANE_NORMALS:
@@ -206,16 +277,134 @@ def _extrude_polygon(data, doc_dir):
     if points[0] != points[-1]:
         points = list(points) + [points[0]]
     pts_3d = [FreeCAD.Vector(*_PLANE_2D_TO_3D[plane](u, v, x, y, z)) for u, v in points]
+    outer_wire = Part.makePolygon(pts_3d)
 
-    wire = Part.makePolygon(pts_3d)
-    face = Part.Face(wire)
+    hole_wires = []
+    for hole_pts in parsed_holes:
+        if hole_pts[0] != hole_pts[-1]:
+            hole_pts = list(hole_pts) + [hole_pts[0]]
+        h_pts_3d = [FreeCAD.Vector(*_PLANE_2D_TO_3D[plane](hu, hv, x, y, z)) for hu, hv in hole_pts]
+        hole_wires.append(Part.makePolygon(h_pts_3d))
+
+    if hole_wires:
+        try:
+            face = Part.Face([outer_wire] + hole_wires)
+        except Exception:
+            outer_face = Part.Face(outer_wire)
+            for hw in hole_wires:
+                try:
+                    outer_face = outer_face.cut(Part.Face(hw))
+                except Exception:
+                    pass
+            face = outer_face
+    else:
+        face = Part.Face(outer_wire)
+
     normal = FreeCAD.Vector(*_PLANE_NORMALS[plane](depth))
     shape = face.extrude(normal)
 
-    obj = document.addObject("Part::Feature", "ExtrudePolygon")
+    obj = document.addObject("Part::Feature", data.get("name") or "ExtrudePolygon")
     obj.Shape = shape
     document.recompute()
     return document
+
+
+def _create_text_3d(data, doc_dir):
+    text = data.get("text")
+    if not isinstance(text, str) or not (1 <= len(text) <= 120):
+        raise ValueError("text must be a non-empty string between 1 and 120 characters")
+    size = _mm(data.get("size"), "size")
+    thickness = _mm(data.get("thickness"), "thickness")
+    mode = data.get("mode", "flat")
+    if mode not in ("flat", "emboss", "engrave"):
+        raise ValueError("mode must be one of flat, emboss, engrave")
+    target_name = None
+    if mode in ("emboss", "engrave"):
+        raw_target = data.get("target_object")
+        if not raw_target:
+            raise ValueError("target_object is required for emboss and engrave modes")
+        target_name = _object_name(raw_target, "target_object")
+    plane = data.get("plane", "XY")
+    if plane not in _PLANE_NORMALS:
+        raise ValueError("plane must be one of XY, XZ, YZ")
+    x, y, z = _position(data)
+    tracking = _bounded(data.get("tracking", 0.0) if data.get("tracking") is not None else 0.0, "tracking", -5, 50)
+    font_file = _resolve_font(data.get("font"))
+
+    document = _open_or_new(data, doc_dir)
+    target = None
+    if target_name is not None:
+        target = _get_object(document, target_name)
+
+    import FreeCAD
+    import Draft
+    import Part
+
+    make_shapestring = getattr(Draft, "make_shapestring", None) or getattr(Draft, "makeShapeString", None)
+    if make_shapestring is None:
+        raise RuntimeError("Draft.make_shapestring is unavailable")
+
+    try:
+        ss_obj = make_shapestring(String=text, FontFile=font_file, Size=size, Tracking=tracking)
+    except TypeError:
+        ss_obj = make_shapestring(text, font_file, size, tracking)
+
+    shape_2d = ss_obj.Shape if hasattr(ss_obj, "Shape") else ss_obj
+
+    if plane == "XY":
+        extrude_vec = FreeCAD.Vector(0.0, 0.0, -thickness if mode == "engrave" else thickness)
+        rotation = FreeCAD.Rotation()
+    elif plane == "XZ":
+        extrude_vec = FreeCAD.Vector(0.0, 0.0, thickness if mode == "engrave" else -thickness)
+        rotation = FreeCAD.Rotation(FreeCAD.Vector(1, 0, 0), 90)
+    elif plane == "YZ":
+        extrude_vec = FreeCAD.Vector(0.0, 0.0, -thickness if mode == "engrave" else thickness)
+        rotation = FreeCAD.Rotation(FreeCAD.Vector(1, 1, 1), 120)
+
+    if hasattr(shape_2d, "extrude"):
+        text_solid = shape_2d.extrude(extrude_vec)
+    else:
+        text_solid = shape_2d
+
+    placement = FreeCAD.Placement(FreeCAD.Vector(x, y, z), rotation)
+    if hasattr(text_solid, "Placement"):
+        text_solid.Placement = placement
+    elif hasattr(text_solid, "transformShape"):
+        mat = placement.toMatrix()
+        text_solid.transformShape(mat)
+
+    if hasattr(document, "removeObject") and hasattr(ss_obj, "Name"):
+        try:
+            document.removeObject(ss_obj.Name)
+        except Exception:
+            pass
+
+    feature_name = data.get("name") or "Text3D"
+    if mode == "flat":
+        obj = document.addObject("Part::Feature", feature_name)
+        obj.Shape = text_solid
+        document.recompute()
+        return document
+    elif mode == "emboss":
+        if hasattr(target.Shape, "fuse"):
+            target.Shape = target.Shape.fuse(text_solid)
+        else:
+            text_feature = document.addObject("Part::Feature", "TextTool")
+            text_feature.Shape = text_solid
+            fuse_obj = document.addObject("Part::Fuse", feature_name)
+            fuse_obj.Base, fuse_obj.Tool = target, text_feature
+        document.recompute()
+        return document
+    elif mode == "engrave":
+        if hasattr(target.Shape, "cut"):
+            target.Shape = target.Shape.cut(text_solid)
+        else:
+            text_feature = document.addObject("Part::Feature", "TextTool")
+            text_feature.Shape = text_solid
+            cut_obj = document.addObject("Part::Cut", feature_name)
+            cut_obj.Base, cut_obj.Tool = target, text_feature
+        document.recompute()
+        return document
 
 
 def _boolean(feature_type):
@@ -451,6 +640,7 @@ OPS = {
     "scale_object": _scale_object,
     "read_scene": _read_scene,
     "export_design": _export_design,
+    "create_text_3d": _create_text_3d,
 }
 
 # Every op except the two read-only/non-mutating ones persists a change to disk.

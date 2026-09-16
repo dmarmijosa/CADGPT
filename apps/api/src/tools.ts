@@ -30,6 +30,8 @@ export const FREECAD_OPS = [
   'scale_object',
   'read_scene',
   'export_design',
+  'create_text_3d',
+  'analyze_image_to_cad',
 ] as const;
 
 // Shared MCP tool param fragments (design "MCP Tool Catalog"). Every schema
@@ -256,6 +258,15 @@ export const extrudePolygonSchema = z
       .array(z.tuple([coordFrag, coordFrag]))
       .min(3)
       .max(100),
+    holes: z
+      .array(
+        z
+          .array(z.tuple([coordFrag, coordFrag]))
+          .min(3)
+          .max(100),
+      )
+      .max(20)
+      .optional(),
     depth: mmFrag,
     plane: planeFrag,
     position: positionFrag,
@@ -311,6 +322,35 @@ export const loftSchema = z
   })
   .strict();
 
+export const createText3dBaseSchema = z
+  .object({
+    deviceId: deviceIdFrag,
+    cadId: cadIdFrag,
+    documentId: documentIdFrag,
+    name: nameFrag,
+    text: z.string().min(1).max(120),
+    size: mmFrag,
+    thickness: mmFrag,
+    mode: z.enum(['flat', 'emboss', 'engrave']).default('flat'),
+    target_object: objectNameFrag.optional(),
+    plane: planeFrag.default('XY'),
+    position: positionFrag,
+    tracking: z.number().finite().min(-5).max(50).default(0),
+    font: z.string().min(1).max(120).optional(),
+    confirmed: confirmedFrag,
+  })
+  .strict();
+
+export const createText3dSchema = createText3dBaseSchema.superRefine((val, ctx) => {
+  if ((val.mode === 'emboss' || val.mode === 'engrave') && !val.target_object) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'target_object is required when mode is emboss or engrave',
+      path: ['target_object'],
+    });
+  }
+});
+
 /** Advanced CAD operations schemas; asserted alongside batch A/B1/B2 to never carry `owner`/`username`. */
 export const advancedCadSchemas = {
   create_wedge: createWedgeSchema,
@@ -321,6 +361,10 @@ export const advancedCadSchemas = {
 } as const;
 
 export const batchB3Schemas = advancedCadSchemas;
+
+export const phase5CadSchemas = {
+  create_text_3d: createText3dSchema,
+} as const;
 
 type ToolResult = { content: { type: 'text'; text: string }[] };
 const result = (value: unknown): ToolResult => ({
@@ -649,7 +693,7 @@ export function registerTools(
       name,
       {
         description: `Combine two existing objects on a design (${name}). Ask the user to confirm before mutating.`,
-        inputSchema: batchB1Schemas[name],
+        inputSchema: booleanSchema,
         annotations: {
           readOnlyHint: false,
           destructiveHint: false,
@@ -659,7 +703,7 @@ export function registerTools(
       },
       async (p) => {
         await requireWrite();
-        const { deviceId, cadId, documentId, base, tool, path } = p as any;
+        const { deviceId, cadId, documentId, base, tool, path } = p;
         return result(
           enqueueOp(
             store,
@@ -886,15 +930,60 @@ export function registerTools(
     },
     async (p) => {
       await requireWrite();
-      const { deviceId, cadId, documentId, name, points, depth, plane, position } = p;
+      const { deviceId, cadId, documentId, name, points, holes, depth, plane, position } = p;
       return result(
         enqueueOp(
           store,
           owner,
           'extrude_polygon',
-          { points, depth, plane, position },
+          { points, holes, depth, plane, position },
           { deviceId, cadId, documentId },
           name ?? 'ExtrudePolygon',
+        ),
+      );
+    },
+  );
+  server.registerTool(
+    'create_text_3d',
+    {
+      description:
+        'Create 3D lettering as a standalone solid (flat), or embossed/engraved onto an existing target object via boolean operations. Ask the user to confirm dimensions first.',
+      inputSchema: createText3dSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (p) => {
+      await requireWrite();
+      const {
+        deviceId,
+        cadId,
+        documentId,
+        name,
+        text,
+        size,
+        thickness,
+        mode,
+        target_object,
+        plane,
+        position,
+        tracking,
+        font,
+      } = p;
+      if ((mode === 'emboss' || mode === 'engrave') && !target_object) {
+        throw new DomainError(400, 'target_object is required when mode is emboss or engrave.');
+      }
+      return result(
+        enqueueOp(
+          store,
+          owner,
+          'create_text_3d',
+          { text, size, thickness, mode, target_object, plane, position, tracking, font },
+          { deviceId, cadId, documentId },
+          name ?? 'Text3D',
         ),
       );
     },

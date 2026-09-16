@@ -14,17 +14,20 @@ FIXTURE = Path(__file__).resolve().parents[2] / "ops-allowlist.json"
 class OpsAllowlistTests(unittest.TestCase):
     def test_worker_ops_is_a_superset_of_the_shared_allowlist(self):
         fixture_ops = set(json.loads(FIXTURE.read_text(encoding="utf-8"))["ops"])
+        # analyze_image_to_cad executes host-side CV in agent (AD-01), delegating extrude_polygon to worker
+        worker_ops = fixture_ops - {"analyze_image_to_cad"}
         self.assertTrue(
-            fixture_ops.issubset(set(OPS)),
-            f"OPS is missing: {fixture_ops - set(OPS)}",
+            worker_ops.issubset(set(OPS)),
+            f"OPS is missing: {worker_ops - set(OPS)}",
         )
+        self.assertEqual(len(OPS), 19)
 
     def test_freecad_ops_matches_canonical_allowlist(self):
         from cadgpt_agent.discovery import FREECAD_OPS
         fixture_list = json.loads(FIXTURE.read_text(encoding="utf-8"))["ops"]
         self.assertEqual(FREECAD_OPS, fixture_list)
         self.assertEqual(set(FREECAD_OPS), set(fixture_list))
-        self.assertEqual(len(FREECAD_OPS), 18)
+        self.assertEqual(len(FREECAD_OPS), 20)
 
     def test_autocad_ops_matches_proven_shared_allowlist(self):
         from cadgpt_agent.discovery import AUTOCAD_OPS

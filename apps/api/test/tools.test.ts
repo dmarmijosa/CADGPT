@@ -4,7 +4,13 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { Store } from '../src/store.js';
-import { registerTools, batchASchemas } from '../src/tools.js';
+import {
+  registerTools,
+  batchASchemas,
+  createText3dSchema,
+  extrudePolygonSchema,
+  phase5CadSchemas,
+} from '../src/tools.js';
 
 const freecad = {
   id: 'cad',
@@ -568,4 +574,251 @@ test('results endpoint persists valid nativePath and rejects out-of-allowlist na
   store.complete(device.credential!, job.id, 'ok', true, '/home/alice/allowed/result.FCStd');
   const updatedDoc = store.getDocument(doc.id, 'alice');
   assert.equal(updatedDoc.nativePath, '/home/alice/allowed/result.FCStd');
+});
+
+test('createText3dSchema rejects code-shaped fields and owner/username', () => {
+  const keys = Object.keys(createText3dSchema.shape);
+  assert.equal(keys.includes('owner'), false, 'create_text_3d must not accept owner');
+  assert.equal(keys.includes('username'), false, 'create_text_3d must not accept username');
+
+  const validArgs = {
+    text: 'CAD-01',
+    size: 12,
+    thickness: 2.5,
+    mode: 'flat' as const,
+    confirmed: true as const,
+  };
+  const parsedExtra = createText3dSchema.safeParse({
+    ...validArgs,
+    script: 'os.system("rm -rf /")',
+  });
+  assert.equal(parsedExtra.success, false, 'create_text_3d must reject script extra field');
+
+  const parsedCode = createText3dSchema.safeParse({ ...validArgs, code: 'import os' });
+  assert.equal(parsedCode.success, false, 'create_text_3d must reject code extra field');
+});
+
+test('createText3dSchema validation bounds and conditional target_object', () => {
+  // Empty text rejected
+  assert.equal(
+    createText3dSchema.safeParse({ text: '', size: 10, thickness: 2, confirmed: true }).success,
+    false,
+  );
+  // Negative size rejected
+  assert.equal(
+    createText3dSchema.safeParse({ text: 'CAD', size: -1, thickness: 2, confirmed: true }).success,
+    false,
+  );
+  // Emboss requires target_object
+  assert.equal(
+    createText3dSchema.safeParse({
+      text: 'CAD',
+      size: 10,
+      thickness: 2,
+      mode: 'emboss',
+      confirmed: true,
+    }).success,
+    false,
+  );
+  // Emboss with target_object succeeds
+  assert.equal(
+    createText3dSchema.safeParse({
+      text: 'CAD',
+      size: 10,
+      thickness: 2,
+      mode: 'emboss',
+      target_object: 'Box',
+      confirmed: true,
+    }).success,
+    true,
+  );
+  // Engrave requires target_object
+  assert.equal(
+    createText3dSchema.safeParse({
+      text: 'CAD',
+      size: 10,
+      thickness: 2,
+      mode: 'engrave',
+      confirmed: true,
+    }).success,
+    false,
+  );
+  // Engrave with target_object succeeds
+  assert.equal(
+    createText3dSchema.safeParse({
+      text: 'CAD',
+      size: 10,
+      thickness: 2,
+      mode: 'engrave',
+      target_object: 'Panel',
+      confirmed: true,
+    }).success,
+    true,
+  );
+});
+
+test('extrudePolygonSchema validates nested holes array and limits', () => {
+  const validOuter: [number, number][] = [
+    [0, 0],
+    [100, 0],
+    [100, 100],
+    [0, 100],
+  ];
+  const validHole: [number, number][] = [
+    [20, 20],
+    [40, 20],
+    [40, 40],
+  ];
+
+  // Valid holes succeeds
+  assert.equal(
+    extrudePolygonSchema.safeParse({
+      points: validOuter,
+      holes: [validHole],
+      depth: 10,
+      plane: 'XY',
+      confirmed: true,
+    }).success,
+    true,
+  );
+
+  // Hole loop with fewer than 3 points rejected
+  assert.equal(
+    extrudePolygonSchema.safeParse({
+      points: validOuter,
+      holes: [
+        [
+          [20, 20],
+          [40, 20],
+        ],
+      ],
+      depth: 10,
+      plane: 'XY',
+      confirmed: true,
+    }).success,
+    false,
+  );
+
+  // More than 20 hole loops rejected
+  const twentyOneHoles = Array.from({ length: 21 }, () => validHole);
+  assert.equal(
+    extrudePolygonSchema.safeParse({
+      points: validOuter,
+      holes: twentyOneHoles,
+      depth: 10,
+      plane: 'XY',
+      confirmed: true,
+    }).success,
+    false,
+  );
+});
+
+test('happy path: create_text_3d enqueues a job with the exact worker-shaped payload', async () => {
+  const store = new Store(':memory:');
+  const device = pairAndApprove(store, 'alice', 'Workstation', [freecad]);
+  const client = await connectClient(store, 'alice');
+  const res = await client.callTool({
+    name: 'create_text_3d',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'cad',
+      text: 'CAD-01',
+      size: 15,
+      thickness: 3,
+      mode: 'flat',
+      plane: 'XY',
+      tracking: 1.2,
+      confirmed: true,
+    },
+  });
+  assert.equal(res.isError, undefined);
+  const text = (res.content as { type: string; text: string }[])[0].text;
+  const body = JSON.parse(text);
+  assert.equal(body.status, 'queued');
+  const picked = store.heartbeat(device.credential!, [freecad]) as {
+    job?: Record<string, unknown>;
+  };
+  assert.equal(picked.job?.id, body.jobId);
+  assert.equal(picked.job?.type, 'create_text_3d');
+  assert.equal(picked.job?.text, 'CAD-01');
+  assert.equal(picked.job?.size, 15);
+  assert.equal(picked.job?.thickness, 3);
+  assert.equal(picked.job?.mode, 'flat');
+  assert.equal(picked.job?.plane, 'XY');
+  assert.equal(picked.job?.tracking, 1.2);
+});
+
+test('create_text_3d emboss mode without target_object fails validation and enqueues no job', async () => {
+  const store = new Store(':memory:');
+  const device = pairAndApprove(store, 'alice', 'Workstation', [freecad]);
+  const client = await connectClient(store, 'alice');
+  const res = await client.callTool({
+    name: 'create_text_3d',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'cad',
+      text: 'FAIL',
+      size: 10,
+      thickness: 2,
+      mode: 'emboss',
+      confirmed: true,
+    },
+  });
+  assert.equal(res.isError, true);
+  assert.equal(store.jobs('alice').length, 0);
+});
+
+test('happy path: extrude_polygon with holes enqueues a job with nested hole arrays', async () => {
+  const store = new Store(':memory:');
+  const device = pairAndApprove(store, 'alice', 'Workstation', [freecad]);
+  const client = await connectClient(store, 'alice');
+  const res = await client.callTool({
+    name: 'extrude_polygon',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'cad',
+      points: [
+        [0, 0],
+        [100, 0],
+        [100, 100],
+        [0, 100],
+      ],
+      holes: [
+        [
+          [20, 20],
+          [40, 20],
+          [40, 40],
+          [20, 40],
+        ],
+      ],
+      depth: 10,
+      plane: 'XY',
+      confirmed: true,
+    },
+  });
+  assert.equal(res.isError, undefined);
+  const text = (res.content as { type: string; text: string }[])[0].text;
+  const body = JSON.parse(text);
+  assert.equal(body.status, 'queued');
+  const picked = store.heartbeat(device.credential!, [freecad]) as {
+    job?: Record<string, unknown>;
+  };
+  assert.equal(picked.job?.id, body.jobId);
+  assert.equal(picked.job?.type, 'extrude_polygon');
+  assert.deepEqual(picked.job?.points, [
+    [0, 0],
+    [100, 0],
+    [100, 100],
+    [0, 100],
+  ]);
+  assert.deepEqual(picked.job?.holes, [
+    [
+      [20, 20],
+      [40, 20],
+      [40, 40],
+      [20, 40],
+    ],
+  ]);
+  assert.equal(picked.job?.depth, 10);
+  assert.equal(picked.job?.plane, 'XY');
 });
