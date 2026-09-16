@@ -1,8 +1,16 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { User, UserManager, WebStorageStateStore } from 'oidc-client-ts';
+import { z } from 'zod';
 import { environment } from '../../../environments/environment';
 
 const RETURN_URL_KEY = 'cadgpt:returnUrl';
+const CONSENT_KEY_PREFIX = 'cadgpt:consent:v1:';
+
+const authConfigSchema = z.object({
+  issuer: z.string().min(1),
+  clientId: z.string().min(1),
+  scopes: z.string(),
+});
 
 /**
  * Wraps `UserManager` (oidc-client-ts) with signals for the current user and
@@ -14,6 +22,22 @@ const RETURN_URL_KEY = 'cadgpt:returnUrl';
 export class AuthService {
   readonly user = signal<User | null>(null);
   readonly token = computed(() => this.user()?.access_token ?? '');
+
+  private readonly consentRevision = signal(0);
+
+  /** Reactive signal indicating whether the currently authenticated user has accepted data treatment consent. */
+  readonly hasConsent = computed<boolean>(() => {
+    this.consentRevision();
+    const sub = this.subOf(this.user());
+    if (!sub) return false;
+    return localStorage.getItem(`${CONSENT_KEY_PREFIX}${sub}`) !== null;
+  });
+
+  /** Checks consent for a specific OIDC sub without requiring it to be active in `user()`. */
+  hasConsentFor(sub: string): boolean {
+    this.consentRevision();
+    return localStorage.getItem(`${CONSENT_KEY_PREFIX}${sub}`) !== null;
+  }
 
   private manager?: UserManager;
   private readonly readyPromise: Promise<void>;
@@ -77,9 +101,38 @@ export class AuthService {
     await this.manager?.signoutRedirect();
   }
 
+  /**
+   * Records GDPR/ISO data treatment consent for the active user (or explicit sub)
+   * with an ISO 8601 timestamp under 'cadgpt:consent:v1:<sub_or_version>'.
+   */
+  recordConsent(explicitSub?: string): void {
+    const sub = explicitSub ?? this.subOf(this.user());
+    if (!sub) return;
+    localStorage.setItem(`${CONSENT_KEY_PREFIX}${sub}`, new Date().toISOString());
+    this.consentRevision.update((v) => v + 1);
+  }
+
+  /**
+   * Clears GDPR/ISO data treatment consent for the active user (or explicit sub).
+   */
+  clearConsent(explicitSub?: string): void {
+    const sub = explicitSub ?? this.subOf(this.user());
+    if (!sub) return;
+    localStorage.removeItem(`${CONSENT_KEY_PREFIX}${sub}`);
+    this.consentRevision.update((v) => v + 1);
+  }
+
+  private subOf(user: User | null): string | undefined {
+    return user?.profile.sub;
+  }
+
   private async init(): Promise<void> {
     const response = await fetch(environment.apiBaseUrl + '/api/config');
-    const config = (await response.json()) as { issuer: string; clientId: string; scopes: string };
+    if (!response.ok) {
+      throw new Error(`Failed to load auth config: HTTP ${response.status}`);
+    }
+    const raw: unknown = await response.json();
+    const config = authConfigSchema.parse(raw);
     this.manager = new UserManager({
       authority: config.issuer,
       client_id: config.clientId,

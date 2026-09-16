@@ -182,3 +182,129 @@
     <span>FreeCAD execution, AutoCAD Core Console parity, and remote MCP.</span>
   </div>
 </footer>
+
+@if (isConsentRequired()) {
+  <div id="consent-backdrop" class="stitch-consent-backdrop active" aria-hidden="true"></div>
+  <div
+    id="consent-sheet"
+    class="stitch-consent-sheet active"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="consent-title"
+  >
+    <div class="stitch-consent-header">
+      <div class="stitch-consent-badge">GDPR &amp; ISO/IEC 27001</div>
+      <h2 id="consent-title" class="stitch-consent-title">Tratamiento de Datos y Gobernanza CAD</h2>
+      <p class="stitch-consent-subtitle">
+        Conformidad regulatoria para el procesamiento de modelos paramétricos y privacidad de
+        ingeniería.
+      </p>
+    </div>
+
+    <div class="stitch-consent-body">
+      <div class="stitch-consent-card">
+        <div class="stitch-consent-card-icon" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+            <line x1="8" y1="21" x2="16" y2="21" />
+            <line x1="12" y1="17" x2="12" y2="21" />
+          </svg>
+        </div>
+        <div class="stitch-consent-card-text">
+          <strong>Ejecución Local CAD</strong>
+          <p>
+            Los modelos paramétricos CAD y scripts de ingeniería se ejecutan exclusivamente de
+            manera local en los dispositivos vinculados del usuario.
+          </p>
+        </div>
+      </div>
+
+      <div class="stitch-consent-card">
+        <div class="stitch-consent-card-icon" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+            />
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+            <line x1="12" y1="22.08" x2="12" y2="12" />
+          </svg>
+        </div>
+        <div class="stitch-consent-card-text">
+          <strong>Retención de Mallas STL</strong>
+          <p>
+            Únicamente las mallas de previsualización 3D trianguladas (STL) se almacenan
+            temporalmente en el servidor para permitir la visualización en el navegador.
+          </p>
+        </div>
+      </div>
+
+      <div class="stitch-consent-card">
+        <div class="stitch-consent-card-icon" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+        </div>
+        <div class="stitch-consent-card-text">
+          <strong>Derecho al Olvido</strong>
+          <p>
+            Los usuarios conservan el derecho incondicional de supresión permanente para purgar la
+            totalidad de datos de cuenta y máquinas vinculadas en cualquier momento.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="stitch-consent-footer">
+      <label class="stitch-consent-checkbox-label" for="consent-accept-check">
+        <input
+          type="checkbox"
+          id="consent-accept-check"
+          class="stitch-consent-checkbox"
+          [checked]="consentAccepted()"
+          (change)="onConsentCheckChange($event)"
+        />
+        <span
+          >He leído y acepto los Términos de Servicio y la Política de Privacidad y Tratamiento de
+          Datos.</span
+        >
+      </label>
+
+      <button
+        type="button"
+        id="consent-accept-btn"
+        class="stitch-consent-btn"
+        [disabled]="!consentAccepted()"
+        (click)="acceptConsent()"
+      >
+        Aceptar y Continuar
+      </button>
+    </div>
+  </div>
+}

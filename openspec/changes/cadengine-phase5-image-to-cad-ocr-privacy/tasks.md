@@ -47,10 +47,10 @@ Chain strategy: feature-branch-chain
 
 ## Work Unit 3: Consent Governance & Slide-Up Bottom Sheet
 
-- [ ] 3.1 Author [register.ftl](file:///Users/danny/Documents/ChatGPT/CADGPT/deploy/themes/cadgpt/login/register.ftl) with `#consent-backdrop`, `#consent-sheet`, GDPR/ISO notice, mandatory checkbox, and submit gating.
-- [ ] 3.2 Add `.stitch-consent-sheet` and `.stitch-consent-backdrop` in [stitch.css](file:///Users/danny/Documents/ChatGPT/CADGPT/deploy/themes/cadgpt/login/resources/css/stitch.css) with 12px blur, `#0D1322` surface, `#00F0FF` border, and slide-up animation.
-- [ ] 3.3 Implement first-login consent check in [auth.service.ts](file:///Users/danny/Documents/ChatGPT/CADGPT/apps/web/src/app/core/auth/auth.service.ts) via `cadgpt:consent:v1:<sub_or_version>` to intercept Google SSO.
-- [ ] 3.4 Add unit tests in [auth.service.spec.ts](file:///Users/danny/Documents/ChatGPT/CADGPT/apps/web/src/app/core/auth/auth.service.spec.ts) for modal interception, timestamp storage, and returning user bypass.
+- [x] 3.1 Author [register.ftl](file:///Users/danny/Documents/ChatGPT/CADGPT/deploy/themes/cadgpt/login/register.ftl) with `#consent-backdrop`, `#consent-sheet`, GDPR/ISO notice, mandatory checkbox, and submit gating.
+- [x] 3.2 Add `.stitch-consent-sheet` and `.stitch-consent-backdrop` in [stitch.css](file:///Users/danny/Documents/ChatGPT/CADGPT/deploy/themes/cadgpt/login/resources/css/stitch.css) with 12px blur, `#0D1322` surface, `#00F0FF` border, and slide-up animation.
+- [x] 3.3 Implement first-login consent check in [auth.service.ts](file:///Users/danny/Documents/ChatGPT/CADGPT/apps/web/src/app/core/auth/auth.service.ts) via `cadgpt:consent:v1:<sub_or_version>` to intercept Google SSO.
+- [x] 3.4 Add unit tests in [auth.service.spec.ts](file:///Users/danny/Documents/ChatGPT/CADGPT/apps/web/src/app/core/auth/auth.service.spec.ts) for modal interception, timestamp storage, and returning user bypass.
 
 ## Work Unit 4: Fail-Fast Atomic Account Deletion Cascade
 

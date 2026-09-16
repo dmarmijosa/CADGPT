@@ -499,3 +499,210 @@ a#social-google::after {
     padding: 0 12px !important;
   }
 }
+
+/* ==========================================================================
+   Consent Governance Bottom Sheet (Stitch Precision Dark Design System)
+   ========================================================================== */
+
+.stitch-consent-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: rgba(9, 13, 22, 0.75) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  z-index: 1000 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.stitch-consent-backdrop.active {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.stitch-consent-sheet {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 50% !important;
+  width: 100% !important;
+  max-width: 680px !important;
+  box-sizing: border-box !important;
+  z-index: 1001 !important;
+  background: var(--stitch-surface, #0d1322) !important;
+  border-top: 2px solid var(--stitch-primary, #00f0ff) !important;
+  border-left: 1px solid var(--stitch-border, rgba(255, 255, 255, 0.12)) !important;
+  border-right: 1px solid var(--stitch-border, rgba(255, 255, 255, 0.12)) !important;
+  border-bottom: none !important;
+  border-top-left-radius: 16px !important;
+  border-top-right-radius: 16px !important;
+  box-shadow:
+    0 -12px 48px rgba(0, 0, 0, 0.85),
+    0 0 24px -4px rgba(0, 240, 255, 0.25) !important;
+  padding: 24px 28px !important;
+  color: var(--stitch-ink, #f8fafc) !important;
+  transform: translate(-50%, 100%) !important;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 18px !important;
+}
+
+.stitch-consent-sheet.active {
+  transform: translate(-50%, 0%) !important;
+}
+
+.stitch-consent-header {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+.stitch-consent-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  width: fit-content !important;
+  font-family: var(--pf-v5-global--FontFamily--monospace, 'JetBrains Mono', monospace) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  color: var(--stitch-primary, #00f0ff) !important;
+  background: rgba(0, 240, 255, 0.08) !important;
+  border: 1px solid rgba(0, 240, 255, 0.3) !important;
+  border-radius: 4px !important;
+  padding: 3px 8px !important;
+}
+
+.stitch-consent-title {
+  font-family: var(--pf-v5-global--FontFamily--sans-serif, 'Inter', sans-serif) !important;
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  color: var(--stitch-ink, #f8fafc) !important;
+  margin: 0 !important;
+  letter-spacing: -0.01em !important;
+}
+
+.stitch-consent-subtitle {
+  font-size: 0.85rem !important;
+  color: var(--stitch-ink-muted, #94a3b8) !important;
+  margin: 0 !important;
+  line-height: 1.4 !important;
+}
+
+.stitch-consent-body {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+}
+
+.stitch-consent-card {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid var(--stitch-border, rgba(255, 255, 255, 0.08)) !important;
+  border-radius: 8px !important;
+  padding: 12px 14px !important;
+}
+
+.stitch-consent-card-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: var(--stitch-primary, #00f0ff) !important;
+  flex-shrink: 0 !important;
+  margin-top: 2px !important;
+}
+
+.stitch-consent-card-text {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+  font-size: 0.82rem !important;
+  line-height: 1.45 !important;
+}
+
+.stitch-consent-card-text strong {
+  color: var(--stitch-ink, #f8fafc) !important;
+  font-size: 0.88rem !important;
+}
+
+.stitch-consent-card-text p {
+  color: var(--stitch-ink-muted, #94a3b8) !important;
+  margin: 0 !important;
+}
+
+.stitch-consent-footer {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+  padding-top: 4px !important;
+}
+
+.stitch-consent-checkbox-label {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 10px !important;
+  font-size: 0.82rem !important;
+  line-height: 1.4 !important;
+  color: var(--stitch-ink, #f8fafc) !important;
+  cursor: pointer !important;
+  user-select: none !important;
+}
+
+.stitch-consent-checkbox {
+  accent-color: var(--stitch-primary, #00f0ff) !important;
+  width: 17px !important;
+  height: 17px !important;
+  margin-top: 2px !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+}
+
+.stitch-consent-btn,
+#consent-accept-btn {
+  background-color: var(--stitch-primary, #00f0ff) !important;
+  background-image: linear-gradient(135deg, #00f0ff 0%, #00c2cf 100%) !important;
+  border: none !important;
+  border-radius: 6px !important;
+  color: #090d16 !important;
+  font-family: var(--pf-v5-global--FontFamily--sans-serif, 'Inter', sans-serif) !important;
+  font-size: 0.92rem !important;
+  font-weight: 700 !important;
+  padding: 0.75rem 1.25rem !important;
+  cursor: pointer !important;
+  transition:
+    background-color 0.15s ease,
+    opacity 0.15s ease,
+    box-shadow 0.15s ease !important;
+  box-shadow: 0 0 16px -2px rgba(0, 240, 255, 0.3) !important;
+  width: 100% !important;
+  text-align: center !important;
+}
+
+.stitch-consent-btn:hover:not(:disabled),
+#consent-accept-btn:hover:not(:disabled) {
+  background-color: var(--stitch-primary-hover, #00c2cf) !important;
+  box-shadow: 0 0 20px -1px rgba(0, 240, 255, 0.45) !important;
+}
+
+.stitch-consent-btn:disabled,
+#consent-accept-btn:disabled {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 680px) {
+  .stitch-consent-sheet {
+    max-width: 100% !important;
+    border-radius: 16px 16px 0 0 !important;
+    padding: 20px 16px !important;
+  }
+}
