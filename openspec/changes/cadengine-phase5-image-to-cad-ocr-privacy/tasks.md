@@ -40,10 +40,10 @@ Chain strategy: feature-branch-chain
 
 ## Work Unit 2: Metric Image-to-CAD Computer Vision Pipeline
 
-- [ ] 2.1 Add `opencv-python-headless` and `numpy` in [pyproject.toml](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/pyproject.toml) and implement [vision.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/cadgpt_agent/vision.py) with binarization, `RETR_TREE`, nested holes, and Douglas-Peucker reduction.
-- [ ] 2.2 Implement metric calibration ($S = \text{dim}_{mm} / D_{px}$) and inverted-Y centered CAD mapping in [vision.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/cadgpt_agent/vision.py).
-- [ ] 2.3 Add `analyzeImageToCadSchema` and tool dispatch in [tools.ts](file:///Users/danny/Documents/ChatGPT/CADGPT/apps/api/src/tools.ts) for inspection and solid generation.
-- [ ] 2.4 Add CV tests in [test_vision.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/tests/test_vision.py) and schema tests in [tools.test.ts](file:///Users/danny/Documents/ChatGPT/CADGPT/apps/api/test/tools.test.ts).
+- [x] 2.1 Add `opencv-python-headless` and `numpy` in [pyproject.toml](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/pyproject.toml) and implement [vision.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/cadgpt_agent/vision.py) with binarization, `RETR_TREE`, nested holes, and Douglas-Peucker reduction.
+- [x] 2.2 Implement metric calibration ($S = \text{dim}_{mm} / D_{px}$) and inverted-Y centered CAD mapping in [vision.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/cadgpt_agent/vision.py).
+- [x] 2.3 Add `analyzeImageToCadSchema` and tool dispatch in [tools.ts](file:///Users/danny/Documents/ChatGPT/CADGPT/apps/api/src/tools.ts) for inspection and solid generation.
+- [x] 2.4 Add CV tests in [test_vision.py](file:///Users/danny/Documents/ChatGPT/CADGPT/agent/tests/test_vision.py) and schema tests in [tools.test.ts](file:///Users/danny/Documents/ChatGPT/CADGPT/apps/api/test/tools.test.ts).
 
 ## Work Unit 3: Consent Governance & Slide-Up Bottom Sheet
 
