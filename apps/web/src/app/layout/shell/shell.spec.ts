@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
@@ -13,6 +14,7 @@ describe('Shell (header, left rail nav, and footer)', () => {
       token: () => 'token',
       login: vi.fn(),
       logout: () => Promise.resolve(),
+      hasConsent: () => true,
     };
     TestBed.configureTestingModule({
       providers: [
@@ -72,5 +74,166 @@ describe('Shell (header, left rail nav, and footer)', () => {
     const shellElement = harness.routeNativeElement!;
     const signInBtn = shellElement.querySelector('nav[aria-label="Account"] button');
     expect(signInBtn?.textContent?.trim()).toBe('Sign in');
+  });
+
+  it('displays consent bottom sheet and backdrop when authenticated user lacks consent (spec: modal interception)', async () => {
+    const fakeAuth = {
+      ready: () => Promise.resolve(),
+      user: () => ({ profile: { sub: 'new-sub', preferred_username: 'ada' } }),
+      token: () => 'token',
+      login: vi.fn(),
+      logout: () => Promise.resolve(),
+      hasConsent: () => false,
+      recordConsent: vi.fn(),
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: fakeAuth },
+        provideRouter([{ path: '', component: Shell, children: routes }]),
+      ],
+    });
+
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/devices');
+
+    const shellElement = harness.routeNativeElement!;
+    const sheet = shellElement.querySelector('#consent-sheet');
+    const backdrop = shellElement.querySelector('#consent-backdrop');
+
+    expect(sheet).toBeTruthy();
+    expect(backdrop).toBeTruthy();
+    expect(sheet?.getAttribute('role')).toBe('dialog');
+    expect(sheet?.getAttribute('aria-modal')).toBe('true');
+    expect(sheet?.getAttribute('aria-labelledby')).toBe('consent-title');
+
+    const badge = sheet?.querySelector('.stitch-consent-badge');
+    expect(badge?.textContent?.trim()).toBe('GDPR & ISO/IEC 27001');
+
+    const title = sheet?.querySelector('#consent-title');
+    expect(title?.textContent?.trim()).toBe('Tratamiento de Datos y Gobernanza CAD');
+
+    // Disclosures
+    expect(sheet?.textContent).toContain('Ejecución Local CAD');
+    expect(sheet?.textContent).toContain('Retención de Mallas STL');
+    expect(sheet?.textContent).toContain('Derecho al Olvido');
+
+    // Checkbox and disabled button
+    const checkbox = sheet?.querySelector('#consent-accept-check') as HTMLInputElement;
+    expect(checkbox).toBeTruthy();
+    expect(checkbox.checked).toBe(false);
+
+    const acceptBtn = sheet?.querySelector('#consent-accept-btn') as HTMLButtonElement;
+    expect(acceptBtn).toBeTruthy();
+    expect(acceptBtn.disabled).toBe(true);
+    expect(acceptBtn.textContent?.trim()).toBe('Aceptar y Continuar');
+  });
+
+  it('gates acceptance button on mandatory checkbox toggle (spec: checkbox gating)', async () => {
+    const fakeAuth = {
+      ready: () => Promise.resolve(),
+      user: () => ({ profile: { sub: 'new-sub', preferred_username: 'ada' } }),
+      token: () => 'token',
+      login: vi.fn(),
+      logout: () => Promise.resolve(),
+      hasConsent: () => false,
+      recordConsent: vi.fn(),
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: fakeAuth },
+        provideRouter([{ path: '', component: Shell, children: routes }]),
+      ],
+    });
+
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/devices');
+
+    const shellElement = harness.routeNativeElement!;
+    const checkbox = shellElement.querySelector('#consent-accept-check') as HTMLInputElement;
+    const acceptBtn = shellElement.querySelector('#consent-accept-btn') as HTMLButtonElement;
+
+    expect(acceptBtn.disabled).toBe(true);
+
+    // Check the checkbox
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new Event('change'));
+    await harness.fixture.whenStable();
+
+    expect(acceptBtn.disabled).toBe(false);
+
+    // Uncheck the checkbox
+    checkbox.checked = false;
+    checkbox.dispatchEvent(new Event('change'));
+    await harness.fixture.whenStable();
+
+    expect(acceptBtn.disabled).toBe(true);
+  });
+
+  it('persists consent and dismisses bottom sheet upon clicking accept (spec: consent acknowledgment)', async () => {
+    const hasConsentSignal = signal(false);
+    const recordConsent = vi.fn(() => {
+      hasConsentSignal.set(true);
+    });
+    const fakeAuth = {
+      ready: () => Promise.resolve(),
+      user: () => ({ profile: { sub: 'new-sub', preferred_username: 'ada' } }),
+      token: () => 'token',
+      login: vi.fn(),
+      logout: () => Promise.resolve(),
+      hasConsent: hasConsentSignal,
+      recordConsent,
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: fakeAuth },
+        provideRouter([{ path: '', component: Shell, children: routes }]),
+      ],
+    });
+
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/devices');
+
+    const shellElement = harness.routeNativeElement!;
+    const checkbox = shellElement.querySelector('#consent-accept-check') as HTMLInputElement;
+    const acceptBtn = shellElement.querySelector('#consent-accept-btn') as HTMLButtonElement;
+
+    expect(shellElement.querySelector('#consent-sheet')).toBeTruthy();
+
+    // Check and click accept
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new Event('change'));
+    await harness.fixture.whenStable();
+
+    acceptBtn.click();
+    await harness.fixture.whenStable();
+
+    expect(recordConsent).toHaveBeenCalledTimes(1);
+    expect(shellElement.querySelector('#consent-sheet')).toBeNull();
+    expect(shellElement.querySelector('#consent-backdrop')).toBeNull();
+  });
+
+  it('does not display consent sheet when user already has consent (spec: returning user bypass)', async () => {
+    const fakeAuth = {
+      ready: () => Promise.resolve(),
+      user: () => ({ profile: { sub: 'returning-sub', preferred_username: 'ada' } }),
+      token: () => 'token',
+      login: vi.fn(),
+      logout: () => Promise.resolve(),
+      hasConsent: () => true,
+      recordConsent: vi.fn(),
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: fakeAuth },
+        provideRouter([{ path: '', component: Shell, children: routes }]),
+      ],
+    });
+
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/devices');
+
+    const shellElement = harness.routeNativeElement!;
+    expect(shellElement.querySelector('#consent-sheet')).toBeNull();
+    expect(shellElement.querySelector('#consent-backdrop')).toBeNull();
   });
 });
