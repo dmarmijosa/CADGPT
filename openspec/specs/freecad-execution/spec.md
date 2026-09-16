@@ -1,8 +1,10 @@
 ## freecad-execution (MODIFIED)
 
+Purpose: Expand FreeCAD worker execution to support parametric 3D typography (`create_text_3d`) and multi-contour nested cutouts (holes) in `extrude_polygon`.
+
 ### Requirement: Per-Operation Dispatch
-The FreeCAD worker MUST branch on an `op` field in `request.json` to run the requested operation across all 18 allowlisted operations (`create_box`, `create_cylinder`, `create_sphere`, `create_cone`, `extrude_rect`, `create_wedge`, `extrude_polygon`, `boolean_cut`, `boolean_union`, `boolean_intersect`, `fillet`, `chamfer`, `loft`, `translate_object`, `rotate_object`, `scale_object`, `read_scene`, `export_design`); modify operations MUST reopen the existing `.FCStd`, mutate, recompute, and save before re-export. If an unknown or unallowlisted `op` is received, the worker MUST exit immediately with code 2 without modifying any document or executing CAD operations.
-(Previously: `freecad_worker.py` only supported 13 initial operations.)
+The FreeCAD worker MUST branch on an `op` field in `request.json` to run the requested operation across all 19 allowlisted worker operations (`create_box`, `create_cylinder`, `create_sphere`, `create_cone`, `extrude_rect`, `create_wedge`, `extrude_polygon`, `boolean_cut`, `boolean_union`, `boolean_intersect`, `fillet`, `chamfer`, `loft`, `translate_object`, `rotate_object`, `scale_object`, `read_scene`, `export_design`, `create_text_3d`); modify operations MUST reopen the existing `.FCStd`, mutate, recompute, and save before re-export. If an unknown or unallowlisted `op` is received, the worker MUST exit immediately with code 2 without modifying any document or executing CAD operations.
+(Previously: `freecad_worker.py` supported 18 operations without 3D typography.)
 #### Scenario: Create operation
 - GIVEN a job with `op = "create_box"`
 - WHEN the worker runs
@@ -15,31 +17,22 @@ The FreeCAD worker MUST branch on an `op` field in `request.json` to run the req
 - GIVEN a job with `op = "create_wedge"` or `op = "loft"`
 - WHEN the worker runs
 - THEN it branches to the designated handler, generates the parametric geometry, saves the document, and exports preview STL
+#### Scenario: 3D typography operation dispatch
+- GIVEN a job with `op = "create_text_3d"`, `text = "CAD-01"`, `size = 15.0`, `thickness = 2.0`, and `mode = "flat"`
+- WHEN the worker runs
+- THEN it branches to the 3D typography handler, constructs the text solid, saves the document, and exports preview STL
 #### Scenario: Unknown op rejection
 - GIVEN a job with `op = "unsupported_operation"`
 - WHEN the worker runs
 - THEN it exits with code 2 and makes no changes to disk
 
-### Requirement: STL Export Step
-After every successful operation, the worker MUST export a binary STL via `MeshPart.meshFromShape` + mesh `write()`, in addition to the native save.
-(Previously: worker exported only STEP; no mesh export existed.)
-#### Scenario: STL produced alongside native save
-- GIVEN a successful create or modify operation
-- WHEN the worker completes
-- THEN both the native `.FCStd` save and a binary STL exist in the job directory
-
-### Requirement: Executor Strategy Dispatch
-`executor.py` MUST dispatch to a FreeCAD or AutoCAD strategy per the job's declared CAD, preserving exclusive job-dir creation, sanitized environment, `shell=False`, and fixed argv per strategy.
-(Previously: `execute()` was one hardcoded FreeCAD pipeline with no strategy selection.)
-#### Scenario: FreeCAD strategy selected
-- GIVEN a job targeting a FreeCAD device
-- WHEN the executor dispatches
-- THEN it runs the FreeCAD strategy with unchanged replay/sandboxing guarantees
+---
 
 ### Requirement: Wedge and Extruded Polygon Primitives
 The FreeCAD worker MUST support `create_wedge` and `extrude_polygon` operations:
 1. `create_wedge`: MUST construct a wedge solid via `Part.makeWedge(dx, dy, dz, top_length, pos)` with finite positive millimeters `length` (dx), `width` (dy), and `height` (dz). If `top_length` is omitted or 0, it MUST create a knife-edge wedge.
-2. `extrude_polygon`: MUST accept an array of 2D vertex points (`points`, between 3 and 100 points, each coordinate bounded in `[-100000, 100000]`), a positive `depth` in millimeters, and a projection plane (`"XY"`, `"XZ"`, or `"YZ"`). The worker MUST map the 2D coordinates to 3D space, close the polygon loop, form a planar face (`Part.Face(Part.makePolygon(...))`), and extrude the face along the plane normal vector by `depth`.
+2. `extrude_polygon`: MUST accept an array of 2D outer vertex points (`points`, between 3 and 100 points, each coordinate bounded in `[-100000, 100000]`), an optional array of nested hole vertex arrays (`holes`, containing 0 to 20 hole loops where each loop contains 3 to 100 2D coordinate points bounded in `[-100000, 100000]`), a positive `depth` in millimeters, and a projection plane (`"XY"`, `"XZ"`, or `"YZ"`). The worker MUST map the 2D coordinates to 3D space, close the polygon loops, form a planar face with internal hole loops subtracted from the outer boundary (`Part.Face(outer_wire).cut(hole_faces)` or composite wire face), and extrude the resulting face along the plane normal vector by `depth`.
+(Previously: `extrude_polygon` supported only a single outer closed loop without inner cutout holes.)
 
 #### Scenario: Create knife-edge wedge primitive
 - GIVEN a job with `op = "create_wedge"`, `length = 50`, `width = 20`, `height = 30`, and `top_length = 0`
@@ -56,6 +49,11 @@ The FreeCAD worker MUST support `create_wedge` and `extrude_polygon` operations:
 - WHEN the worker executes
 - THEN it creates a 3D extruded prism solid of 12 mm thickness along the Z axis
 
+#### Scenario: Extrude polygon with nested hole cutouts
+- GIVEN a job with `op = "extrude_polygon"`, `points = [[0, 0], [100, 0], [100, 100], [0, 100]]`, `holes = [[[20, 20], [40, 20], [40, 40], [20, 40]], [[60, 60], [80, 60], [80, 80], [60, 80]]]`, and `depth = 10`
+- WHEN the worker executes
+- THEN it creates a 100x100x10 mm solid plate featuring two distinct 20x20 mm square through-holes
+
 #### Scenario: Reject polygon with fewer than 3 vertices
 - GIVEN a job with `op = "extrude_polygon"` and `points = [[0, 0], [10, 10]]`
 - WHEN the worker validates the request
@@ -63,47 +61,27 @@ The FreeCAD worker MUST support `create_wedge` and `extrude_polygon` operations:
 
 ---
 
-### Requirement: Fillet and Chamfer Feature Dressing
-The FreeCAD worker MUST support parametric edge dressing operations `fillet` and `chamfer` on existing document objects:
-1. `fillet`: MUST apply a rounding fillet of `radius` millimeters to the object named in `object` within `document_id`. If `edge_indices` is omitted or empty, all edges of the object MUST be filleted. If `edge_indices` is specified, only the designated 1-based edge indices MUST be filleted.
-2. `chamfer`: MUST apply a planar bevel of `distance` millimeters to the object named in `object` within `document_id`. If `edge_indices` is omitted or empty, all edges of the object MUST be chamfered. If `edge_indices` is specified, only the designated 1-based edge indices MUST be chamfered.
-3. **Safety & Rollback**: All edge indices MUST be verified against `1 <= idx <= len(obj.Shape.Edges)`. If an edge index is out of bounds or OpenCASCADE fails to compute the fillet/chamfer geometry, the worker MUST catch the exception, restore the document from the pre-mutation backup file, and raise an error.
+### Requirement: 3D Typography Solid Generation
+The FreeCAD worker MUST support the `create_text_3d` operation to generate 3D lettering and mechanical engravings on solid geometry:
+1. **API Invocation & Font Resolution**: The worker MUST call `Draft.make_shapestring` (or fallback `Draft.makeShapeString`) passing the text string, resolved font file path, letter height `size`, and tracking offset. The font MUST resolve via caller-supplied font, bundled `Inter-Bold.ttf`, or standard operating system fonts.
+2. **Solid Creation**: The worker MUST extrude the generated planar glyph shapes along the normal vector of the specified `plane` (`XY`, `XZ`, `YZ`) by `thickness` millimeters.
+3. **Operational Modes**:
+   - `flat`: MUST place the extruded text solid at `position` as a standalone object without modifying other objects.
+   - `emboss`: MUST require `target_object` and perform a boolean union (`Shape.fuse`) uniting the text solid outward onto the target object.
+   - `engrave`: MUST require `target_object`, position the text solid recessed into the target object, and perform a boolean cut (`Shape.cut`) subtracting the text solid from the target object.
+4. **Safety & Rollback**: If `target_object` is missing for emboss/engrave or the OpenCASCADE boolean kernel encounters an error, the worker MUST catch the exception, restore the document from the pre-mutation backup file, and raise an error without corrupting the `.FCStd` file.
 
-#### Scenario: Fillet all edges of existing solid
-- GIVEN an existing document containing object `"Box"`
-- WHEN `fillet` is executed with `object = "Box"` and `radius = 2.0` without edge indices
-- THEN all sharp edges of `"Box"` are rounded with a 2.0 mm fillet and the document recomputes successfully
-
-#### Scenario: Chamfer specific edge indices
-- GIVEN an existing document containing object `"ExtrudePolygon"` having 8 edges
-- WHEN `chamfer` is executed with `object = "ExtrudePolygon"`, `distance = 1.5`, and `edge_indices = [1, 3]`
-- THEN only edges 1 and 3 receive a 1.5 mm chamfer bevel
-
-#### Scenario: Invalid edge index triggers backup rollback
-- GIVEN an existing document with object `"Box"` having 12 edges
-- WHEN `fillet` is executed with `edge_indices = [99]`
-- THEN validation fails, the worker restores the original document from backup, and reports the error without corrupting the document
-
----
-
-### Requirement: Loft Skinning Across Cross Sections
-The FreeCAD worker MUST support the `loft` operation to generate 3D solids or surfaces skinned across multiple cross-sectional profile wires:
-1. The operation MUST accept `sections`, containing an array of 2 to 20 profiles, where each profile contains 3 to 100 3D coordinate points `[x, y, z]`.
-2. The worker MUST form a closed wire for each section (`Part.makePolygon(...)`) and invoke `Part.makeLoft(wires, solid=solid, ruled=ruled)`.
-3. The `solid` parameter MUST default to `true` (creating a closed 3D solid) and support `false` (creating an open lofted surface shell).
-4. The `ruled` parameter MUST default to `false` (smooth B-spline interpolation) and support `true` (ruled planar surfaces between section profiles).
-
-#### Scenario: Smooth solid loft through multiple profiles
-- GIVEN a job with `op = "loft"`, `sections` containing 3 closed diamond profiles at Z=0, Z=150, and Z=300, and `solid = true`
+#### Scenario: Standalone 3D text creation
+- GIVEN a job with `op = "create_text_3d"`, `text = "FREE-CAD"`, `size = 10.0`, `thickness = 2.0`, and `mode = "flat"`
 - WHEN the worker executes
-- THEN it creates a closed manifold 3D solid skinned smoothly through all 3 sections
+- THEN it creates a standalone 3D text solid with 10 mm letter height and 2 mm thickness
 
-#### Scenario: Ruled surface loft with solid set to false
-- GIVEN a job with `op = "loft"`, `sections` containing 2 polygonal cross sections, `solid = false`, and `ruled = true`
-- WHEN the worker executes
-- THEN it creates a ruled open surface shell between the two profile wires
+#### Scenario: Emboss text onto target solid
+- GIVEN an existing solid `"Bracket"` in `document_id`
+- WHEN `create_text_3d` executes with `mode = "emboss"`, `target_object = "Bracket"`, `text = "REV-2"`, and `thickness = 1.0`
+- THEN the text geometry is united with `"Bracket"`, producing a single fused solid
 
-#### Scenario: Reject loft with fewer than two sections
-- GIVEN a job with `op = "loft"` and `sections` containing only 1 profile wire
-- WHEN the worker validates the request
-- THEN it raises a validation error and aborts execution before calling FreeCAD
+#### Scenario: Engrave text into target solid
+- GIVEN an existing solid `"Panel"` in `document_id`
+- WHEN `create_text_3d` executes with `mode = "engrave"`, `target_object = "Panel"`, `text = "OFF"`, and `thickness = 0.5`
+- THEN the text geometry is subtracted from `"Panel"`, cutting a 0.5 mm recessed cavity into the panel surface
