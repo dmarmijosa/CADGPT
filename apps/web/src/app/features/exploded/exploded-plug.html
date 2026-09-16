@@ -4,7 +4,7 @@
       #container
       class="exploded-hero__canvas"
       role="img"
-      aria-label="A CAD parametric house model separating into its five parts and reassembling as the page scrolls"
+      aria-label="An architectural citadel masterplan separating into five urban strata and reassembling as the page scrolls"
       [hidden]="unavailable()"
     ></div>
 
@@ -13,7 +13,7 @@
       <p class="lead">
         CAD Agent Designer links a computer you control to a fixed, allowlisted set of CAD
         operations, so an MCP-connected assistant can create, modify, and read named designs — drawn
-        here, live, as a parametric house the CAD engine assembles from five parts.
+        here, live, as an architectural citadel masterplan assembled from five strata.
       </p>
       <div class="hero-actions">
         <ng-content></ng-content>
@@ -23,17 +23,19 @@
           3D preview is unavailable in this browser. The connector still works without it.
         </p>
       } @else if (reducedMotion()) {
-        <p class="exploded-hero__note">Motion reduced — showing the parametric house assembled.</p>
+        <p class="exploded-hero__note">
+          Motion reduced — showing the architectural citadel assembled.
+        </p>
       }
     </div>
 
     @if (!unavailable() && !reducedMotion()) {
       <ul class="exploded-hero__labels" [class.is-visible]="labelsVisible()" aria-hidden="true">
-        <li>Foundation &amp; Steps</li>
-        <li>Walls &amp; Partitions</li>
-        <li>Pitched Roof</li>
-        <li>Chimney</li>
-        <li>Accents &amp; Openings</li>
+        <li>Terrain &amp; Roads</li>
+        <li>Residential Villas</li>
+        <li>Commercial Towers</li>
+        <li>Signals &amp; Infrastructure</li>
+        <li>Roofs &amp; Landmarks</li>
       </ul>
     }
   </div>

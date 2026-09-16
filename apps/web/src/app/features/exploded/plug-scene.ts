@@ -31,20 +31,31 @@ const PARTS: ReadonlyArray<{
   metalness: number;
   roughness: number;
 }> = [
-  { file: '1_foundation', zmin: 0, zmax: 5, color: 0x475569, metalness: 0.1, roughness: 0.9 },
-  { file: '2_walls', zmin: 5, zmax: 30, color: 0xf1f5f9, metalness: 0.05, roughness: 0.65 },
-  { file: '3_roof', zmin: 30, zmax: 50, color: 0x0f172a, metalness: 0.35, roughness: 0.4 },
-  { file: '4_chimney', zmin: 25, zmax: 56, color: 0x991b1b, metalness: 0.1, roughness: 0.8 },
-  { file: '5_accents', zmin: 0, zmax: 26, color: 0xd97706, metalness: 0.25, roughness: 0.35 },
+  { file: '1_terrain_roads', zmin: 0, zmax: 2, color: 0x1e293b, metalness: 0.1, roughness: 0.9 },
+  { file: '2_houses', zmin: 1.5, zmax: 9.5, color: 0xf8fafc, metalness: 0.05, roughness: 0.65 },
+  { file: '3_buildings', zmin: 1.5, zmax: 36, color: 0x38bdf8, metalness: 0.35, roughness: 0.35 },
+  {
+    file: '4_signals_infrastructure',
+    zmin: 1.2,
+    zmax: 7.7,
+    color: 0xf59e0b,
+    metalness: 0.4,
+    roughness: 0.4,
+  },
+  {
+    file: '5_roofs_landmarks',
+    zmin: 2,
+    zmax: 48,
+    color: 0x0f172a,
+    metalness: 0.6,
+    roughness: 0.25,
+  },
 ];
 
-const MODEL_BASE_URL = '/models/house';
-/** Radians added to the assembly's spin per `setProgress` call (rAF-cadence). */
-const ROTATION_SPEED = 0.0022;
+const MODEL_BASE_URL = '/models/citadel';
 /** Explode travel per assembly-height unit, at full explosion. */
-const GAP_SCALE = 0.42;
-/** Exponent on rank-distance-from-center so outer parts travel further than
- * a straight linear fan would (design: "outer parts travel a bit more"). */
+const GAP_SCALE = 0.55;
+/** Exponent on rank distance so upper strata lift gracefully into sky. */
 const FAN_EASE = 1.35;
 
 interface PlugPart {
@@ -66,7 +77,7 @@ interface PlugPart {
  */
 export async function createPlugScene(
   container: HTMLElement,
-  options: PlugSceneOptions,
+  _options: PlugSceneOptions,
 ): Promise<RenderedPlugScene> {
   const buffers = await Promise.all(
     PARTS.map(async (part) => {
@@ -84,10 +95,9 @@ export async function createPlugScene(
     return geometry;
   });
 
-  // All five parts share one assembled coordinate system (they were exported
-  // as one model split into parts), so centering applies the *same*
-  // translation to every geometry — this recenters the assembly without
-  // disturbing how the parts stack against each other.
+  // All five parts share one assembled coordinate system from AutoCAD 2026,
+  // so centering applies the *same* translation to every geometry — this
+  // recenters the assembly without disturbing how the strata stack.
   const overallBounds = new Box3();
   for (const geometry of geometries) {
     if (geometry.boundingBox) overallBounds.union(geometry.boundingBox);
@@ -95,21 +105,21 @@ export async function createPlugScene(
   const center = overallBounds.getCenter(new Vector3());
   for (const geometry of geometries) geometry.translate(-center.x, -center.y, -center.z);
 
-  const order = PARTS.map((part, index) => ({ index, mid: (part.zmin + part.zmax) / 2 })).sort(
-    (a, b) => a.mid - b.mid,
-  );
-  const centerRank = (order.length - 1) / 2;
-  const rankByIndex = new Map(order.map(({ index }, rank) => [index, rank]));
-
   const totalHeight = overallBounds.max.z - overallBounds.min.z || 1;
   const gapUnit = totalHeight * GAP_SCALE;
 
-  // FreeCAD's Z-up becomes the screen's vertical axis: rotating the group
+  // AutoCAD's Z-up becomes the screen's vertical axis: rotating the group
   // -90° about X maps local +Z to world +Y, so "explode along the assembly
-  // axis" reads as parts fanning vertically rather than toward the camera.
+  // axis" reads as strata lifting vertically rather than toward the camera.
   const group = new Group();
   group.rotation.x = -Math.PI / 2;
 
+  // Fixed isometric architectural angle: South-East elevated perspective (strictly no spin)
+  group.rotation.y = 0;
+
+  // Architectural Masterplan Explosion:
+  // Layer 0 (Terrain/Roads) anchors at ground base (offset 0).
+  // Successive strata lift upward into the sky.
   const parts: PlugPart[] = PARTS.map((part, index) => {
     const material = new MeshStandardMaterial({
       color: part.color,
@@ -119,11 +129,8 @@ export async function createPlugScene(
     const mesh = new Mesh(geometries[index], material);
     group.add(mesh);
 
-    const rank = rankByIndex.get(index) ?? centerRank;
-    const distance = rank - centerRank;
-    const direction = Math.sign(distance);
-    const magnitude = Math.pow(Math.abs(distance), FAN_EASE);
-    return { mesh, explodeOffset: direction * magnitude * gapUnit };
+    const magnitude = index === 0 ? 0 : Math.pow(index, FAN_EASE);
+    return { mesh, explodeOffset: magnitude * gapUnit };
   });
 
   const maxOffset = Math.max(0, ...parts.map((p) => Math.abs(p.explodeOffset)));
@@ -131,16 +138,20 @@ export async function createPlugScene(
   const scene = new Scene();
   scene.add(group);
 
-  scene.add(new HemisphereLight(0xffffff, 0x3d4a45, 1.1));
-  const key = new DirectionalLight(0xffffff, 1.3);
-  key.position.set(totalHeight * 2, totalHeight * 3, totalHeight * 2.5);
+  scene.add(new HemisphereLight(0xffffff, 0x1e293b, 1.2));
+  const key = new DirectionalLight(0xffffff, 1.4);
+  key.position.set(totalHeight * 2, totalHeight * 3.5, totalHeight * 2.5);
   scene.add(key);
 
+  const fill = new DirectionalLight(0x38bdf8, 0.5);
+  fill.position.set(-totalHeight * 2, totalHeight * 2, -totalHeight * 2);
+  scene.add(fill);
+
   const radiusXY = (overallBounds.max.x - overallBounds.min.x) / 2;
-  const radius = Math.max(totalHeight / 2, radiusXY) + maxOffset;
-  const camera = new PerspectiveCamera(38, 1, radius / 100, radius * 50);
-  camera.position.set(radius * 0.75, radius * 0.45, radius * 2.3);
-  camera.lookAt(0, 0, 0);
+  const radius = Math.max(totalHeight / 2, radiusXY) + maxOffset * 0.7;
+  const camera = new PerspectiveCamera(36, 1, radius / 100, radius * 50);
+  camera.position.set(radius * 0.95, radius * 0.75, radius * 1.55);
+  camera.lookAt(0, maxOffset * 0.22, 0);
 
   const renderer = new WebGLRenderer({ antialias: true, alpha: true });
   renderer.setClearColor(0x000000, 0);
@@ -169,7 +180,7 @@ export async function createPlugScene(
     for (const part of parts) {
       part.mesh.position.z = part.explodeOffset * clamped;
     }
-    if (!options.reducedMotion) group.rotation.y += ROTATION_SPEED;
+    // Strictly fixed architectural masterplan — no rotation on scroll or idle
     render();
   }
 

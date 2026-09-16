@@ -1,0 +1,32 @@
+[
+  {
+    "name": "1_terrain_roads",
+    "zmin": 0.0,
+    "zmax": 2.0,
+    "facets": 936
+  },
+  {
+    "name": "2_houses",
+    "zmin": 1.5,
+    "zmax": 9.5,
+    "facets": 448
+  },
+  {
+    "name": "3_buildings",
+    "zmin": 1.5,
+    "zmax": 36.0,
+    "facets": 494
+  },
+  {
+    "name": "4_signals_infrastructure",
+    "zmin": 1.2,
+    "zmax": 7.7,
+    "facets": 5928
+  },
+  {
+    "name": "5_roofs_landmarks",
+    "zmin": 2.0,
+    "zmax": 48.0,
+    "facets": 904
+  }
+]
