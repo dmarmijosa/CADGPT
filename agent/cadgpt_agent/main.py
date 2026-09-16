@@ -35,7 +35,7 @@ from .service import (
 )
 from .upload import upload_mesh
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 # Kept as "CADGPT" for compatibility: this is the OS keyring service name used
 # to look up credentials already stored by previously paired devices. Renaming
 # it would orphan every existing device's saved credential.
@@ -602,7 +602,22 @@ def cmd_service(args):
     action = getattr(args, "action", None)
     if action == "install":
         exe = getattr(args, "exe", None)
-        install_service(exe_path=exe)
+        extra = []
+        if getattr(args, "allow_file_credentials", False):
+            extra.append("--allow-file-credentials")
+        else:
+            root = Path(user_data_dir(SERVICE, appauthor=False))
+            cred_file = root / "credential.json"
+            if cred_file.is_file():
+                try:
+                    import keyring
+                    keyring.get_password(SERVICE, "test")
+                except Exception:
+                    extra.append("--allow-file-credentials")
+        kwargs = {"exe_path": exe}
+        if extra:
+            kwargs["extra_args"] = extra
+        install_service(**kwargs)
         print("Service installed successfully.")
     elif action == "start":
         start_service()
@@ -1269,6 +1284,7 @@ def create_parser():
     p_service = subparsers.add_parser("service", help="Manage background daemon service")
     p_service.add_argument("action", choices=["install", "start", "stop", "status", "uninstall"], help="Service action")
     p_service.add_argument("--exe", default=None, help="Custom executable path for background service")
+    p_service.add_argument("--allow-file-credentials", action="store_true", help="Include --allow-file-credentials in service definition")
     p_service.add_argument("--json", action="store_true", help="Output service status in JSON format")
 
     # logs
