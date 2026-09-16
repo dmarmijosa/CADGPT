@@ -9,7 +9,7 @@
   "identityProviders": [
     {
       "alias": "google",
-      "displayName": "Google",
+      "displayName": "Sign in with Google",
       "providerId": "google",
       "enabled": true,
       "updateProfileFirstLoginMode": "on",
