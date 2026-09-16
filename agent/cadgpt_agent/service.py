@@ -31,6 +31,16 @@ def get_agent_executable() -> str:
     return sys.executable
 
 
+def get_agent_command(exe_path: str = None) -> tuple[str, list[str]]:
+    """Return executable path and extra arguments for background service invocation."""
+    exe = exe_path or get_agent_executable()
+    # If not running as a frozen binary and path points to a python interpreter,
+    # invoke the cadgpt_agent.main module.
+    if not getattr(sys, "frozen", False) and Path(exe).name.lower().startswith("python"):
+        return exe, ["-m", "cadgpt_agent.main"]
+    return exe, []
+
+
 def get_service_status() -> dict:
     """Query the native platform service manager and return status dictionary."""
     system = platform.system()
@@ -120,17 +130,18 @@ def get_service_status() -> dict:
 
 def install_service(exe_path: str = None) -> None:
     """Install and enable the background daemon."""
-    exe = exe_path or get_agent_executable()
+    exe, extra_args = get_agent_command(exe_path)
     system = platform.system()
 
     if system == "Windows":
+        tr_arg = f'"{exe}"' if not extra_args else f'"{exe}" ' + " ".join(extra_args)
         cmd = [
             "schtasks",
             "/Create",
             "/TN",
             TASK_NAME_WINDOWS,
             "/TR",
-            f'"{exe}"',
+            tr_arg,
             "/SC",
             "ONLOGON",
             "/RL",
@@ -143,6 +154,9 @@ def install_service(exe_path: str = None) -> None:
         plist_dir = Path.home() / "Library/LaunchAgents"
         plist_dir.mkdir(parents=True, exist_ok=True)
         plist_path = plist_dir / f"{LAUNCHAGENT_LABEL}.plist"
+        args_elements = f"        <string>{exe}</string>\n" + "".join(
+            f"        <string>{arg}</string>\n" for arg in extra_args
+        )
         plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -151,8 +165,7 @@ def install_service(exe_path: str = None) -> None:
     <string>{LAUNCHAGENT_LABEL}</string>
     <key>ProgramArguments</key>
     <array>
-        <string>{exe}</string>
-    </array>
+{args_elements}    </array>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
@@ -175,12 +188,13 @@ def install_service(exe_path: str = None) -> None:
         unit_dir = Path.home() / ".config/systemd/user"
         unit_dir.mkdir(parents=True, exist_ok=True)
         unit_path = unit_dir / SYSTEMD_SERVICE_NAME
+        exec_start = exe if not extra_args else f"{exe} " + " ".join(extra_args)
         unit_content = f"""[Unit]
 Description=CAD Engine Background Agent
 After=network.target
 
 [Service]
-ExecStart={exe}
+ExecStart={exec_start}
 Restart=always
 RestartSec=10
 
@@ -207,7 +221,15 @@ def stop_service() -> None:
     """Stop the background service."""
     system = platform.system()
     if system == "Windows":
-        subprocess.run(["schtasks", "/End", "/TN", TASK_NAME_WINDOWS], check=True)
+        res = subprocess.run(
+            ["schtasks", "/End", "/TN", TASK_NAME_WINDOWS],
+            capture_output=True,
+            text=True,
+        )
+        if res.returncode != 0:
+            err = (res.stderr or res.stdout or "").lower()
+            if "no instance" not in err and "not running" not in err:
+                res.check_returncode()
     elif system == "Darwin":
         subprocess.run(["launchctl", "stop", LAUNCHAGENT_LABEL], check=True)
     else:
@@ -227,7 +249,15 @@ def uninstall_service() -> None:
     """Uninstall the background service."""
     system = platform.system()
     if system == "Windows":
-        subprocess.run(["schtasks", "/Delete", "/TN", TASK_NAME_WINDOWS, "/F"], check=True)
+        res = subprocess.run(
+            ["schtasks", "/Delete", "/TN", TASK_NAME_WINDOWS, "/F"],
+            capture_output=True,
+            text=True,
+        )
+        if res.returncode != 0:
+            err = (res.stderr or res.stdout or "").lower()
+            if "cannot find" not in err and "does not exist" not in err:
+                res.check_returncode()
     elif system == "Darwin":
         plist_path = Path.home() / "Library/LaunchAgents" / f"{LAUNCHAGENT_LABEL}.plist"
         try:
