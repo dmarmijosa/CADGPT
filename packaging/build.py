@@ -100,10 +100,18 @@ def get_pyinstaller_command(dist_dir: Path) -> list[str]:
         "keyring",
         "--collect-all",
         "platformdirs",
+        "--collect-all",
+        "cv2",
+        "--collect-all",
+        "numpy",
         "--add-data",
         f"{ROOT / 'agent/cadgpt_agent/freecad_worker.py'}{sep}cadgpt_agent",
         "--add-data",
+        f"{ROOT / 'agent/cadgpt_agent/vision.py'}{sep}cadgpt_agent",
+        "--add-data",
         f"{ROOT / 'agent/cadgpt_agent/autocad'}{sep}cadgpt_agent/autocad",
+        "--add-data",
+        f"{ROOT / 'agent/cadgpt_agent/fonts'}{sep}cadgpt_agent/fonts",
     ]
     if platform.system() == "Darwin":
         args += ["--windowed", "--osx-bundle-identifier", "com.cadengine.agent"]
@@ -203,7 +211,7 @@ def main():
 
     print(f"== CAD Engine Packaging (Platform: {platform.system()} {platform.machine()}) ==")
     validate_packaging_assets()
-    print("✓ Packaging asset validation passed (wix/cadengine.wxs, windows.iss, agent/launcher.py).")
+    print("[OK] Packaging asset validation passed (wix/cadengine.wxs, windows.iss, agent/launcher.py).")
 
     # 1. PyInstaller Build
     if not args.skip_pyinstaller:
@@ -213,7 +221,7 @@ def main():
         else:
             print(f"Running PyInstaller for cadengine...")
             subprocess.run(pyinstaller_cmd, cwd=ROOT, check=True)
-            print("✓ PyInstaller build complete.")
+            print("[OK] PyInstaller build complete.")
 
         # Alias/symlink
         create_alias_symlink(dist_dir, dry_run=args.dry_run)
