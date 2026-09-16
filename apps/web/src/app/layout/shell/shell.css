@@ -208,6 +208,21 @@ main {
   box-sizing: border-box;
 }
 
+.shell.is-home {
+  grid-template-columns: 1fr;
+}
+
+.shell.is-home .rail {
+  display: none;
+}
+
+.shell.is-home main,
+main.is-home {
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
 footer {
   flex: none;
   display: flex;

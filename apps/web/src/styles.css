@@ -661,7 +661,8 @@ table.data tbody tr:hover td {
 .exploded-hero {
   position: relative;
   height: 220vh;
-  margin: calc(-1 * var(--space-6)) calc(-1 * var(--space-7)) var(--space-6);
+  width: 100%;
+  margin: 0 0 var(--space-6);
 }
 .exploded-hero__sticky {
   position: sticky;
@@ -746,7 +747,7 @@ table.data tbody tr:hover td {
 @media (max-width: 800px) {
   .exploded-hero {
     height: 180vh;
-    margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-4)) var(--space-5);
+    margin: 0 0 var(--space-5);
   }
   .exploded-hero__copy {
     padding: 0 var(--space-4);
@@ -774,7 +775,12 @@ table.data tbody tr:hover td {
 .capability-sheet,
 .trust,
 .closing {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 var(--space-6);
   margin-bottom: var(--space-7);
+  box-sizing: border-box;
 }
 .reveal-pending {
   opacity: 0;
@@ -992,6 +998,13 @@ table.data tbody tr:hover td {
 }
 
 @media (max-width: 800px) {
+  .manifesto,
+  .flow,
+  .capability-sheet,
+  .trust,
+  .closing {
+    padding: 0 var(--space-4);
+  }
   .manifesto,
   .trust {
     grid-template-columns: 1fr;

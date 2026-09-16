@@ -50,7 +50,7 @@
     </nav>
   </div>
 </header>
-<div class="shell">
+<div class="shell" [class.is-home]="isHome()">
   <nav class="rail" aria-label="Primary">
     <a routerLink="/devices" routerLinkActive="active" ariaCurrentWhenActive="page">
       <span class="rail-icon" aria-hidden="true">
@@ -169,7 +169,7 @@
       </a>
     </div>
   </nav>
-  <main id="main-content">
+  <main id="main-content" [class.is-home]="isHome()">
     <router-outlet />
   </main>
 </div>

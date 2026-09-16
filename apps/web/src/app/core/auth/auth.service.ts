@@ -98,7 +98,13 @@ export class AuthService {
   }
 
   async logout(): Promise<void> {
-    await this.manager?.signoutRedirect();
+    this.user.set(null);
+    try {
+      await this.manager?.signoutRedirect();
+    } catch {
+      await this.manager?.removeUser();
+      window.location.href = '/';
+    }
   }
 
   /**
@@ -144,6 +150,15 @@ export class AuthService {
       automaticSilentRenew: false,
       loadUserInfo: false,
     });
+
+    // Automatically sign out when token expires or session error occurs
+    this.manager.events.addAccessTokenExpired(() => {
+      void this.logout();
+    });
+    this.manager.events.addSilentRenewError(() => {
+      void this.logout();
+    });
+
     if (location.pathname !== '/callback') {
       const user = await this.manager.getUser();
       if (user) {
