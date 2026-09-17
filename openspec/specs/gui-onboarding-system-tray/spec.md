@@ -11,17 +11,17 @@ The agent desktop application MUST provide a progressive 4-step onboarding wizar
    - Switching language MUST dynamically update all UI text, labels, and explanations across the wizard in real time.
 2. **Step 2 — Parametric CAD Prerequisite Verification Gate**:
    - The wizard MUST invoke the local discovery engine to detect installed CAD kernels.
-   - The step MUST display detection status for FreeCAD and AutoCAD.
-   - Progression MUST be blocked unless at least one valid CAD kernel is verified.
+   - The step MUST display detection status for FreeCAD and AutoCAD across Windows, Linux, and macOS.
+   - Progression MUST be strictly blocked unless at least one valid CAD kernel is verified.
 3. **Step 3 — Blender Tool Discovery & Configuration**:
    - The wizard MUST probe for a local Blender installation.
    - If detected, the wizard MUST display the detected executable path and enable Blender capabilities.
-   - If not detected, the wizard MUST present explicit user options to configure Blender or proceed without it.
-4. **Step 4 — Zero-URL Pairing HUD & Native Service Auto-Enrollment**:
-   - The wizard MUST eliminate manual server URL entry fields (`self.server_entry`) and manual code generation buttons from the user interface, locking default connectivity to the production server `DEFAULT_SERVER = "https://cadengine.danny-armijos.com"` (unless previously configured in `config.json`).
-   - The step MUST present a clean, high-contrast Zero-URL pairing HUD displaying exclusively the 12-character ephemeral pairing code (formatted as `XXXX-XXXX-XXXX`), an action button to copy the code to the system clipboard ("Copy Code" / "Copiar Código"), and an action button to launch the default web browser directly to the web dashboard pairing route ("Open Web Dashboard" / "Abrir Panel Web").
-   - **Offline 12-Character Fallback**: If the network request to `POST /api/pairings` fails, times out, or the server is temporarily unreachable, the wizard MUST NOT display a blocking error dialog; instead, it MUST generate a random 12-character alphanumeric pairing code locally (using cryptographically secure randomness `secrets.token_hex(6).upper()`) and display it in the pairing HUD while background polling retries connection.
-   - **Automatic Native Service Enrollment**: Upon confirmed pairing approval, the wizard MUST securely persist the authentication token in the OS Keyring under service `"CADGPT"`, persist `deviceId` and `server` in `config.json`, and MUST automatically invoke `install_service()` to enroll the workstation in native background startup (`schtasks.exe` on Windows, user `systemd` unit on Linux, `launchd` plist on macOS) without requiring manual terminal commands or administrative elevation prompts.
+   - If not detected, the wizard MUST present explicit user options to install Blender, configure a custom path, or proceed without it.
+4. **Step 4 — Server Pairing, Workspace Display & Startup Enrollment**:
+   - The wizard MUST request an ephemeral 12-character pairing code from the configured API server (`POST /api/pairings`).
+   - The wizard MUST display the pairing code, provide a one-click button to open the web dashboard pairing page in the default web browser, and poll the server for user approval.
+   - **Local Workspace Working Directory**: Step 4 MUST explicitly display the active local CAD workspace working directory (`%LOCALAPPDATA%\CADGPT\jobs` on Windows, `~/Library/Application Support/CADGPT/jobs` on macOS, or `~/.local/share/CADGPT/jobs` on Linux), clarifying that all CAD project files, solids, and intermediate exports remain strictly local.
+   - Upon confirmed pairing, the wizard MUST save the device credentials to the OS secure keyring (`keyring`), save the device configuration, and configure native background execution.
 
 #### Scenario: First launch runs onboarding wizard when credentials are absent
 - GIVEN the agent executable is launched interactively without existing keyring credentials
@@ -33,36 +33,32 @@ The agent desktop application MUST provide a progressive 4-step onboarding wizar
 - WHEN the user clicks the Spanish language toggle ("Español")
 - THEN all visible step headings, instructions, button labels, and descriptions immediately switch to Spanish without restarting the application
 
-#### Scenario: Approved pairing advances to completion, enrolls background service, and launches tray
+#### Scenario: Approved pairing advances to completion and launches tray
 - GIVEN the user is on Step 4 viewing the 12-character pairing code
 - WHEN the user approves the pairing in the web dashboard
-- THEN the background polling loop detects approval, stores credentials in the OS keyring, invokes `install_service()` to register the native background daemon, closes the wizard, and launches the persistent system tray icon
+- THEN the background polling loop detects approval, stores credentials in the OS keyring, closes the wizard, and launches the persistent system tray icon
 
-#### Scenario: Zero-URL pairing HUD displays 12-character code without server URL input
-- GIVEN the user navigates from Step 3 to Step 4 of the onboarding wizard
-- WHEN Step 4 initializes
-- THEN the step displays the 12-character pairing code formatted with hyphen separators, renders "Copy Code" and "Open Web Dashboard" action buttons, and contains no server URL input field or manual code generation button
-
-#### Scenario: Offline fallback generates 12-character pairing code when server is unreachable
-- GIVEN the host machine has no network connectivity to the CAD Engine production server
-- WHEN Step 4 initializes
-- THEN the wizard generates a random 12-character hexadecimal fallback code locally, displays it in the pairing HUD, enables the "Copy Code" button, and continues background retry polling without raising an unhandled exception or modal error dialog
+#### Scenario: Step 4 displays active local workspace directory
+- GIVEN the user advances to Step 4 of the onboarding wizard
+- WHEN the step renders
+- THEN it displays a dedicated workspace information card showing the absolute path to the local CAD workspace (`.../CADGPT/jobs`) and confirming local drawing persistence
 
 ---
 
 ### Requirement: Hard CAD Prerequisite Verification Gate
-The onboarding wizard MUST enforce a non-bypassable verification gate requiring at least one verified parametric CAD kernel (FreeCAD or AutoCAD):
-1. **Blocking Condition**: If discovery detects neither FreeCAD nor AutoCAD on the host workstation:
-   - The "Next" navigation button MUST be disabled or blocked.
-   - If the user attempts to proceed, the wizard MUST display a modal warning explaining that CAD Engine requires FreeCAD or AutoCAD for precision engineering geometry.
-2. **Guided Installation Assistance**:
-   - The wizard MUST provide guided installation commands and web links tailored to the host operating system:
+The onboarding wizard MUST enforce a non-bypassable verification gate requiring at least one verified parametric CAD kernel (FreeCAD or AutoCAD) across Windows, Linux, and macOS:
+1. **Blocking Condition**: If local discovery detects neither FreeCAD nor AutoCAD on the host workstation:
+   - The "Next" / "Siguiente" progression button MUST be strictly disabled.
+   - If the user attempts to proceed, the wizard MUST display an explanatory alert stating that CAD Engine requires FreeCAD or AutoCAD for precision 3D engineering geometry.
+2. **Guided Multi-OS Installation Commands**:
+   - The wizard MUST provide OS-specific guided installation commands with an interactive copy button and official web download links:
      - **Windows**: Command `winget install FreeCAD.FreeCAD` and link to official FreeCAD download page.
      - **macOS**: Command `brew install --cask freecad` and link to official FreeCAD DMG installer.
      - **Linux**: Command `sudo apt install freecad` (or distribution equivalent) and Flathub package link.
-3. **Re-Check Capability**:
-   - The wizard MUST provide a dedicated "Re-check / Volver a comprobar" button that triggers immediate re-discovery of host CAD installations without requiring wizard restart or state loss.
-   - Once a supported CAD kernel is detected, the blocking state MUST be lifted immediately and the "Next" button enabled.
+3. **Instant Re-Check Capability**:
+   - The wizard MUST provide a dedicated "Re-check / Volver a comprobar" button.
+   - Clicking this button MUST trigger immediate re-discovery of host CAD installations in-memory (`refresh_discovery()`) without restarting the wizard, resetting state, or discarding user input.
+   - Once a supported CAD kernel is detected, the blocking gate MUST immediately clear and the "Next" button MUST become enabled.
 
 #### Scenario: Wizard blocks advancement when no CAD kernel is detected
 - GIVEN a host computer with neither FreeCAD nor AutoCAD installed
@@ -79,22 +75,30 @@ The onboarding wizard MUST enforce a non-bypassable verification gate requiring 
 - WHEN Step 2 executes discovery
 - THEN the step marks AutoCAD as verified and allows immediate progression to Step 3
 
+#### Scenario: Multi-OS CAD blocking across Linux and macOS
+- GIVEN a macOS or Linux host lacking FreeCAD
+- WHEN Step 2 renders
+- THEN it displays `brew install --cask freecad` (on macOS) or `sudo apt install freecad` (on Linux) with an interactive copy button and keeps the progression button disabled until installed
+
 ---
 
 ### Requirement: Blender Tool Discovery and Path Configuration
-The onboarding wizard MUST detect local Blender installations while providing flexible configuration and opt-out mechanics:
+The onboarding wizard MUST detect local Blender installations while providing flexible configuration, guided installation UX, and opt-out mechanics:
 1. **Automated Discovery**:
    - The wizard MUST probe standard system locations:
      - Windows: `C:\Program Files\Blender Foundation\Blender*\blender.exe`, `%LOCALAPPDATA%\Programs\Blender Foundation\...`, and `PATH`.
      - macOS: `/Applications/Blender.app/Contents/MacOS/Blender`, `~/Applications/...`, and `PATH`.
      - Linux: `/usr/bin/blender`, `/usr/local/bin/blender`, `/snap/bin/blender`, `flatpak`.
-2. **Missing Blender Handling & User Choice**:
-   - If Blender is not detected, the wizard MUST NOT block progression and MUST present two explicit options:
-     - **"Enable Blender (3D Organic Modeling)"**: Allows the user to select an existing `blender` executable via file browser dialog, or provides a download link (`https://www.blender.org/download/`).
-     - **"Continue without Blender"**: Allows the user to opt out. Blender tools remain disabled, and the agent completes pairing with CAD capabilities only.
+2. **Missing Blender Handling & Guided Installation UX**:
+   - If Blender is not detected, the wizard MUST NOT block progression and MUST present explicit user options:
+     - **"Instalar Blender" / "Install Blender" Button**: A prominent action button that launches the official Blender download portal (`https://www.blender.org/download/`) or opens the platform package installer.
+     - **OS-Specific Guided Install Commands**: Display copyable platform installation commands (`winget install BlenderFoundation.Blender` on Windows, `brew install --cask blender` on macOS, `sudo apt install blender` on Linux) with an interactive copy button.
+     - **Custom Path Browser**: A browse button allowing the user to select a custom `blender` executable anywhere on the filesystem.
+     - **Instant Re-Check**: A dedicated "Re-check / Volver a comprobar" button that refreshes local discovery in-memory without resetting wizard state.
+     - **"Continue without Blender"**: Allows the user to opt out. Blender tools remain disabled, and the agent completes onboarding with CAD capabilities only.
 3. **User-Level Path Configuration**:
    - If the user selects a custom Blender executable located outside the system `PATH`:
-     - The agent MUST attempt to append the directory to the user environment `PATH` (`HKCU\Environment\Path` on Windows) without requiring elevated administrator (UAC) permissions.
+     - The agent MUST attempt to append the directory to the user environment `PATH` without requiring administrator (UAC) elevation.
      - If environment modification is restricted or fails, the agent MUST persist the absolute path in the user configuration file `config.json["blenderPath"]`.
      - The agent MUST use `config.json["blenderPath"]` as a primary invocation target during headless execution.
 
@@ -113,22 +117,24 @@ The onboarding wizard MUST detect local Blender installations while providing fl
 - WHEN the user selects "Continue without Blender" and proceeds
 - THEN the agent registers device capabilities advertising FreeCAD/AutoCAD operations while excluding Blender operations
 
+#### Scenario: User installs Blender via guided action and clicks Re-check
+- GIVEN Blender is initially missing on Step 3
+- WHEN the user clicks "Install Blender", installs the package via the guided command, and clicks "Re-check"
+- THEN discovery detects Blender, displays its version and executable path, and marks 3D organic modeling as ready
+
 ---
 
 ### Requirement: Background System Tray Application
 The agent MUST provide a background system tray process using `pystray` to maintain workstation connectivity and lifecycle management:
-1. **Visual Identity & Packaged Tray Icon Resolution**:
-   - The tray icon MUST use the official CAD Engine 3D isometric cube logo across all deployment formats:
-     - In PyInstaller packaged executable bundles (`getattr(sys, "frozen", False)`), the icon loader MUST resolve `Path(sys._MEIPASS) / "cadgpt_agent" / "assets" / "favicon.ico"`.
-     - In unpackaged source runs, the loader MUST resolve `Path(__file__).parent / "assets" / "favicon.ico"` and fallback to `apps/web/public/favicon.ico`.
-     - If no physical asset file is accessible on disk, the loader MUST dynamically render a high-DPI 3D isometric cube image in PIL using official CAD Engine brand colors (`#2563EB`, `#1D4ED8`, `#3B82F6`) as a programmatic fallback.
+1. **Visual Identity**:
+   - The tray icon MUST use the CAD Engine 3D isometric cube logo derived from `favicon.ico` / PNG assets.
    - On macOS, the icon MUST render as a native Menu Bar Extra item.
    - On Windows, the icon MUST reside in the Taskbar Notification Area with balloon notification support.
 2. **Tray Context Menu**:
    The tray context menu MUST expose the following actions:
    - **Status Header**: Non-clickable label displaying current connection state (e.g. `"CAD Engine: Connected (v0.2.0-alpha.1)"` or `"CAD Engine: Disconnected"`).
    - **View Pairing Code** (`Ver código de vinculación`): Displays the active pairing code if pending, or the workstation Device ID if already paired.
-   - **View Connection Status** (`Ver estado de conexión`): Opens a lightweight HUD dialog displaying Server URL, Workstation Hostname, Device ID, Active Engines (FreeCAD, AutoCAD, Blender), and Heartbeat Latency.
+   - **View Connection Status** (`Ver estado de conexión`): Opens a lightweight HUD dialog displaying Server URL, Workstation Hostname, Device ID, Active Engines (FreeCAD, AutoCAD, Blender), Heartbeat Latency, and **Active Workspace Directory** (`%LOCALAPPDATA%\CADGPT\jobs` on Windows, `~/Library/Application Support/CADGPT/jobs` on macOS, or `~/.local/share/CADGPT/jobs` on Linux).
    - **Open Web Dashboard** (`Abrir Panel Web`): Launches the default system browser to the configured server web URL.
    - **Unpair Device...** (`Desvincular equipo...`): Displays a modal confirmation prompt (`"Are you sure you want to disconnect this device? Saved credentials will be removed."`). Upon user confirmation, it revokes the device registration on the API server, deletes credentials from the OS keyring, and resets the agent to unpaired state.
    - **Exit / Quit** (`Salir`): Gracefully terminates polling workers, removes the tray icon, and exits the process.
@@ -136,10 +142,10 @@ The agent MUST provide a background system tray process using `pystray` to maint
    - On macOS and Windows, the GUI event loop MUST run on the main OS thread to prevent Cocoa/Win32 threading crashes.
    - Network polling and job worker processes MUST run on background threads communicating via thread-safe queues.
 
-#### Scenario: Tray menu opens connection status HUD
+#### Scenario: Tray menu opens connection status HUD with workspace directory
 - GIVEN the system tray application is running and connected
 - WHEN the user clicks "View Connection Status"
-- THEN a dialog displays the server URL, device ID, active engines (FreeCAD, AutoCAD, Blender), and last heartbeat latency
+- THEN a dialog displays the server URL, device ID, active engines (FreeCAD, AutoCAD, Blender), last heartbeat latency, and the absolute path to the local CAD workspace working directory
 
 #### Scenario: Unpair confirmation revokes credentials and resets state
 - GIVEN a paired agent running in the system tray
@@ -150,11 +156,6 @@ The agent MUST provide a background system tray process using `pystray` to maint
 - GIVEN the system tray application is running
 - WHEN the user selects "Exit"
 - THEN the agent stops network polling, unregisters the tray icon, and cleanly exits the process
-
-#### Scenario: Tray icon resolves favicon asset in packaged PyInstaller binary
-- GIVEN the agent is running as a packaged PyInstaller executable (`sys.frozen = True`)
-- WHEN `get_tray_icon_image()` executes
-- THEN it successfully loads the 3D cube icon from `sys._MEIPASS/cadgpt_agent/assets/favicon.ico` without falling back to blank or raising FileNotFoundError
 
 ---
 
