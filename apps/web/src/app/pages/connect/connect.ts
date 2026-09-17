@@ -1,7 +1,15 @@
 import { Component, DestroyRef, computed, effect, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { z } from 'zod';
 import { WorkspaceStore } from '../../core/state/workspace.store';
 import { TranslatePipe } from '../../core/i18n';
+
+const deviceQuerySchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(128)
+  .regex(/^[a-zA-Z0-9_-]+$/);
 
 const POLL_INTERVAL_MS = 10_000;
 
@@ -26,6 +34,40 @@ export class ConnectPage {
   readonly copied = signal(false);
   readonly copiedSnippet = signal<string | null>(null);
   readonly serviceInstallCommand = 'cadengine service install';
+
+  readonly geminiPythonSnippet = computed(
+    () => `# Google Gemini 2.5 / 1.5 with CAD Engine MCP Integration
+import os
+from google import genai
+from google.genai import types
+
+client = genai.Client()
+CAD_API_KEY = os.environ.get("CADENGINE_API_KEY", "cad_sk_your_api_key_here")
+CAD_ENDPOINT = "${this.resourceUrl}"
+
+# Register CAD Engine operations as Gemini function declarations
+response = client.models.generate_content(
+    model="gemini-2.5-flash",
+    contents="Model a mechanical mounting plate 100x50x10mm with 4 M5 corner holes in FreeCAD",
+    config=types.GenerateContentConfig(
+        tools=[...],  # Auto-mapped from CAD Engine tool schema
+    ),
+)
+print(response.text)`,
+  );
+
+  readonly genericMcpSnippet = computed(
+    () => `{
+  "mcpServers": {
+    "cadengine": {
+      "url": "${this.resourceUrl}",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY"
+      }
+    }
+  }
+}`,
+  );
 
   readonly linuxSnippet = computed(
     () => `sudo tee /etc/systemd/system/cadengine.service >/dev/null <<'EOF'
@@ -76,9 +118,14 @@ Register-ScheduledTask -TaskName "CAD Engine" -Action $action -Trigger $trigger 
 Start-ScheduledTask -TaskName "CAD Engine"`,
   );
 
+  readonly validatedDeviceId = computed(() => {
+    const res = deviceQuerySchema.safeParse(this.device());
+    return res.success ? res.data : undefined;
+  });
+
   /** The device this page was linked to, once `WorkspaceStore.devices` loads. */
   readonly boundDevice = computed(() => {
-    const id = this.device();
+    const id = this.validatedDeviceId();
     if (!id || !this.workspace.devices.hasValue()) return undefined;
     return this.workspace.devices.value().find((d) => d.id === id);
   });
@@ -87,7 +134,7 @@ Start-ScheduledTask -TaskName "CAD Engine"`,
 
   constructor() {
     effect(() => {
-      if (this.device() && !this.boundDeviceOnline()) {
+      if (this.validatedDeviceId() && !this.boundDeviceOnline()) {
         this.timer ??= setInterval(() => this.workspace.devices.reload(), POLL_INTERVAL_MS);
       } else if (this.timer) {
         clearInterval(this.timer);

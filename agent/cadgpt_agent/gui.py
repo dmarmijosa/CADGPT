@@ -105,6 +105,27 @@ def get_install_guide_for_system() -> dict[str, str]:
     )
 
 
+def get_blender_install_guide_for_system() -> dict[str, str]:
+    """Return OS-specific installation command and download URL for Blender."""
+    system = platform.system()
+    if system == "Windows":
+        return {
+            "cmd": "winget install BlenderFoundation.Blender",
+            "url": BLENDER_DOWNLOAD_URL,
+        }
+    elif system == "Darwin":
+        return {
+            "cmd": "brew install --cask blender",
+            "url": BLENDER_DOWNLOAD_URL,
+        }
+    else:
+        return {
+            "cmd": "sudo apt install blender",
+            "url": BLENDER_DOWNLOAD_URL,
+        }
+
+
+
 def register_user_blender_path(blender_path: str, config_path: Optional[Path] = None) -> bool:
     """Register blender executable path in config.json and HKCU Environment Path on Windows."""
     resolved = str(Path(blender_path).resolve())
@@ -676,8 +697,31 @@ class OnboardingWizard:
             cmd_lbl = ttk.Label(card, text=t("step2_install_cmd_label", lang), style="Sub.TLabel")
             cmd_lbl.pack(anchor="w", pady=(4, 2))
 
-            code_lbl = ttk.Label(card, text=guide["cmd"], style="Code.TLabel")
-            code_lbl.pack(anchor="w", fill="x", pady=(2, 8))
+            cmd_box = ttk.Frame(card)
+            cmd_box.pack(fill="x", pady=(2, 8))
+
+            code_lbl = ttk.Label(cmd_box, text=guide["cmd"], style="Code.TLabel")
+            code_lbl.pack(side="left", fill="x", expand=True)
+
+            def _copy_cad_cmd(btn=None, cmd=guide["cmd"]):
+                if self.master:
+                    try:
+                        self.master.clipboard_clear()
+                        self.master.clipboard_append(cmd)
+                        self.master.update()
+                    except Exception:
+                        pass
+                if btn:
+                    btn.config(text=t("btn_copied", lang))
+                    if self.master:
+                        self.master.after(2000, lambda: btn.config(text=t("btn_copy", lang)))
+
+            copy_cad_btn = ttk.Button(
+                cmd_box,
+                text=t("btn_copy", lang),
+                command=lambda: _copy_cad_cmd(copy_cad_btn),
+            )
+            copy_cad_btn.pack(side="right", padx=(8, 0))
 
             dl_btn = ttk.Button(
                 card,
@@ -743,25 +787,63 @@ class OnboardingWizard:
                 style="Sub.TLabel",
                 wraplength=520,
             )
-            note_lbl.pack(anchor="w", pady=(0, 14))
+            note_lbl.pack(anchor="w", pady=(0, 10))
 
-            # Action buttons: Browse custom binary and Download
+            blender_guide = get_blender_install_guide_for_system()
+
+            cmd_lbl = ttk.Label(card, text=t("step3_install_cmd_label", lang), style="Sub.TLabel")
+            cmd_lbl.pack(anchor="w", pady=(4, 2))
+
+            cmd_box = ttk.Frame(card)
+            cmd_box.pack(fill="x", pady=(2, 8))
+
+            code_lbl = ttk.Label(cmd_box, text=blender_guide["cmd"], style="Code.TLabel")
+            code_lbl.pack(side="left", fill="x", expand=True)
+
+            def _copy_blender_cmd(btn=None, cmd=blender_guide["cmd"]):
+                if self.master:
+                    try:
+                        self.master.clipboard_clear()
+                        self.master.clipboard_append(cmd)
+                        self.master.update()
+                    except Exception:
+                        pass
+                if btn:
+                    btn.config(text=t("btn_copied", lang))
+                    if self.master:
+                        self.master.after(2000, lambda: btn.config(text=t("btn_copy", lang)))
+
+            copy_blender_btn = ttk.Button(
+                cmd_box,
+                text=t("btn_copy", lang),
+                command=lambda: _copy_blender_cmd(copy_blender_btn),
+            )
+            copy_blender_btn.pack(side="right", padx=(8, 0))
+
+            # Action buttons: Install Blender, Browse custom binary, Re-check
             actions_frame = ttk.Frame(card)
             actions_frame.pack(fill="x", pady=6)
+
+            install_btn = ttk.Button(
+                actions_frame,
+                text=t("btn_install_blender", lang),
+                command=lambda: webbrowser.open(blender_guide["url"]),
+            )
+            install_btn.pack(side="left", padx=(0, 8))
 
             browse_btn = ttk.Button(
                 actions_frame,
                 text=t("btn_browse", lang),
                 command=self._on_browse_blender,
             )
-            browse_btn.pack(side="left", padx=(0, 10))
+            browse_btn.pack(side="left", padx=(0, 8))
 
-            dl_btn = ttk.Button(
+            recheck_btn = ttk.Button(
                 actions_frame,
-                text=t("btn_download_blender", lang),
-                command=lambda: webbrowser.open(BLENDER_DOWNLOAD_URL),
+                text=t("btn_recheck", lang),
+                command=self._on_recheck_blender,
             )
-            dl_btn.pack(side="left")
+            recheck_btn.pack(side="left")
 
         # Opt-out option
         ttk.Separator(card, orient="horizontal").pack(fill="x", pady=16)
@@ -795,6 +877,11 @@ class OnboardingWizard:
         else:
             self.controller.opt_out_blender()
 
+    def _on_recheck_blender(self) -> None:
+        self.controller.refresh_discovery()
+        self.show_step(3)
+
+
     # -----------------------------------------------------------------------
     # Step 4: Server Pairing & Startup Enrollment
     # -----------------------------------------------------------------------
@@ -814,6 +901,30 @@ class OnboardingWizard:
             self._render_pairing_code_box(lang)
         else:
             self._on_start_pairing()
+
+        # Workspace working directory information card
+        ws_path = str((self.controller.config_path.parent / "jobs").resolve())
+        ws_card = ttk.Frame(card, style="Card.TFrame", padding=12)
+        ws_card.pack(fill="x", pady=(12, 0))
+
+        ttk.Label(
+            ws_card,
+            text=t("step4_workspace_label", lang),
+            font=("Helvetica", 9, "bold"),
+        ).pack(anchor="w")
+
+        ttk.Label(
+            ws_card,
+            text=ws_path,
+            style="Code.TLabel",
+        ).pack(anchor="w", fill="x", pady=(2, 4))
+
+        ttk.Label(
+            ws_card,
+            text=t("step4_workspace_hint", lang),
+            style="Sub.TLabel",
+            wraplength=520,
+        ).pack(anchor="w")
 
     def _render_pairing_code_box(self, lang: str) -> None:
         for child in self.code_container.winfo_children():
@@ -1108,6 +1219,7 @@ class SystemTrayDaemon:
         self._refresh_engines()
         lang = get_language(self.config_path)
 
+        workspace_dir = str((self.config_path.parent / "jobs").resolve())
         engines_str = ", ".join(self.active_engines) or "None detected"
         latency_str = f"{self.heartbeat_latency_ms}" if self.heartbeat_latency_ms is not None else "--"
         status_text = "Connected" if self.is_connected else "Disconnected"
@@ -1116,6 +1228,7 @@ class SystemTrayDaemon:
             f"{t('hud_server_url', lang, url=self.server)}\n"
             f"{t('hud_hostname', lang, hostname=platform.node())}\n"
             f"{t('hud_device_id', lang, device_id=self.device_id or 'None')}\n"
+            f"{t('hud_workspace_dir', lang, path=workspace_dir)}\n"
             f"{t('hud_active_engines', lang, engines=engines_str)}\n"
             f"{t('hud_latency', lang, latency=latency_str)}\n"
             f"{t('hud_status', lang, status=status_text)}"

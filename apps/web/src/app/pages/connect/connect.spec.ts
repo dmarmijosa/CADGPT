@@ -187,6 +187,50 @@ describe('ConnectPage (spec mcp-client-onboarding)', () => {
       'Ejecuta validación integral del entorno con remediación automática (--fix) para FreeCAD headless.',
     );
 
+    // API Key Guide in Spanish
+    const apiKeyGuideEs = root.querySelector('[data-testid="api-key-guide"]');
+    expect(apiKeyGuideEs).toBeTruthy();
+    expect(apiKeyGuideEs?.querySelector('.status')?.textContent?.trim()).toBe(
+      'Paso 0 — Autenticación',
+    );
+    expect(apiKeyGuideEs?.querySelector('h2')?.textContent?.trim()).toBe(
+      'Configuración de Clave de API y Requisitos de Ámbitos',
+    );
+    expect(apiKeyGuideEs?.querySelector('a[routerLink="/api-keys"]')?.textContent?.trim()).toBe(
+      'Gestión de Claves de API',
+    );
+
+    // Google Gemini in Spanish
+    const geminiBlockEs = root.querySelector('[data-testid="gemini-steps"]');
+    expect(geminiBlockEs).toBeTruthy();
+    expect(geminiBlockEs?.querySelector('.status')?.textContent?.trim()).toBe('Google Gemini');
+    expect(geminiBlockEs?.querySelector('h2')?.textContent?.trim()).toBe(
+      'Conectar Google Gemini (API y Llamadas a Funciones)',
+    );
+    expect(
+      geminiBlockEs?.querySelector(
+        'button[aria-label="Copiar fragmento de integración Python para Google Gemini"]',
+      ),
+    ).toBeTruthy();
+
+    // Generic MCP Client in Spanish
+    const genericMcpBlockEs = root.querySelector('[data-testid="generic-mcp-steps"]');
+    expect(genericMcpBlockEs).toBeTruthy();
+    expect(genericMcpBlockEs?.querySelector('.status')?.textContent?.trim()).toBe('MCP Universal');
+    expect(genericMcpBlockEs?.querySelector('h2')?.textContent?.trim()).toBe(
+      'Configuración de Cliente MCP Genérico',
+    );
+    expect(
+      genericMcpBlockEs?.querySelector(
+        'button[aria-label="Copiar fragmento de configuración MCP genérico"]',
+      ),
+    ).toBeTruthy();
+    const mcpTableEs = genericMcpBlockEs?.querySelector('.mcp-paths-table');
+    expect(mcpTableEs?.querySelector('th:first-child')?.textContent?.trim()).toBe('Cliente / IDE');
+    expect(mcpTableEs?.querySelector('th:nth-child(2)')?.textContent?.trim()).toBe(
+      'Ruta del Archivo de Configuración',
+    );
+
     // Snippets remain intact and identical (shell commands not localized)
     const linuxSnippet = linuxBlock?.querySelector('pre code')?.textContent ?? '';
     expect(linuxSnippet).toContain('cadengine.service');
@@ -244,6 +288,123 @@ describe('ConnectPage (spec mcp-client-onboarding)', () => {
       'Run end-to-end environment validation with optional auto-remediation (--fix) for headless FreeCAD.',
     );
   });
+
+  it('renders API Key Setup Guide with internal router link and scope guidance', () => {
+    const { root } = setup([onlineDevice]);
+
+    const apiKeyPanel = root.querySelector('[data-testid="api-key-guide"]');
+    expect(apiKeyPanel).toBeTruthy();
+    expect(apiKeyPanel?.querySelector('.status')?.textContent?.trim()).toBe(
+      'Step 0 — Authentication',
+    );
+    expect(apiKeyPanel?.querySelector('h2')?.textContent?.trim()).toBe(
+      'API Key Setup & Scope Requirements',
+    );
+
+    const routerLink = apiKeyPanel?.querySelector('a[routerLink="/api-keys"]');
+    expect(routerLink).toBeTruthy();
+    expect(routerLink?.textContent?.trim()).toBe('API Key Management');
+
+    const panelText = apiKeyPanel?.textContent ?? '';
+    expect(panelText).toContain('cad:read');
+    expect(panelText).toContain('cad:write');
+    expect(panelText).toContain('Authorization: Bearer <your_api_key>');
+
+    const copyBtn = apiKeyPanel?.querySelector('button[aria-label="Copy snippet"]');
+    expect(copyBtn).toBeTruthy();
+  });
+
+  it('renders Google Gemini guide with copyable Python GenAI SDK snippet', () => {
+    const { root, fixture } = setup([onlineDevice]);
+
+    const geminiSection = root.querySelector('[data-testid="gemini-steps"]');
+    expect(geminiSection).toBeTruthy();
+    expect(geminiSection?.querySelector('.status')?.textContent?.trim()).toBe('Google Gemini');
+    expect(geminiSection?.querySelector('h2')?.textContent?.trim()).toBe(
+      'Connect Google Gemini (API & Function Calling)',
+    );
+
+    const snippet = geminiSection?.querySelector('pre code')?.textContent ?? '';
+    expect(snippet).toContain('from google import genai');
+    expect(snippet).toContain('CADENGINE_API_KEY');
+    expect(snippet).toContain('gemini-2.5-flash');
+    expect(snippet).toContain(fixture.componentInstance.resourceUrl);
+
+    const copyBtn = geminiSection?.querySelector(
+      'button[aria-label="Copy Google Gemini Python integration snippet"]',
+    );
+    expect(copyBtn).toBeTruthy();
+  });
+
+  it('renders Generic MCP client guide with mcpServers JSON snippet and client path matrix table', () => {
+    const { root, fixture } = setup([onlineDevice]);
+
+    const genericMcpSection = root.querySelector('[data-testid="generic-mcp-steps"]');
+    expect(genericMcpSection).toBeTruthy();
+    expect(genericMcpSection?.querySelector('.status')?.textContent?.trim()).toBe('Universal MCP');
+    expect(genericMcpSection?.querySelector('h2')?.textContent?.trim()).toBe(
+      'Generic MCP Client Configuration',
+    );
+
+    const snippet = genericMcpSection?.querySelector('pre code')?.textContent ?? '';
+    expect(snippet).toContain('"mcpServers"');
+    expect(snippet).toContain('"cadengine"');
+    expect(snippet).toContain(fixture.componentInstance.resourceUrl);
+    expect(snippet).toContain('"Authorization": "Bearer YOUR_API_KEY"');
+
+    // Parse snippet as valid JSON
+    const parsed = JSON.parse(snippet);
+    expect(parsed.mcpServers.cadengine.url).toBe(fixture.componentInstance.resourceUrl);
+
+    const copyBtn = genericMcpSection?.querySelector(
+      'button[aria-label="Copy generic MCP configuration snippet"]',
+    );
+    expect(copyBtn).toBeTruthy();
+
+    // Table matrix
+    const table = genericMcpSection?.querySelector('.mcp-paths-table');
+    expect(table).toBeTruthy();
+    const tableText = table?.textContent ?? '';
+    expect(tableText).toContain('Cursor');
+    expect(tableText).toContain('.cursor/mcp.json');
+    expect(tableText).toContain('Windsurf');
+    expect(tableText).toContain('~/.codeium/windsurf/mcp_config.json');
+    expect(tableText).toContain('Claude Desktop');
+    expect(tableText).toContain('claude_desktop_config.json');
+    expect(tableText).toContain('Antigravity / Gemini CLI');
+    expect(tableText).toContain('~/.gemini/antigravity-cli/mcp/');
+  });
+
+  it('copies API Key header, Gemini, and Generic MCP snippets via copySnippet handler', async () => {
+    const { fixture } = setup([onlineDevice]);
+    const writeTextMock = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: writeTextMock },
+      configurable: true,
+      writable: true,
+    });
+
+    await fixture.componentInstance.copySnippet(
+      'Authorization: Bearer <your_api_key>',
+      'api-key-header',
+    );
+    expect(writeTextMock).toHaveBeenCalledWith('Authorization: Bearer <your_api_key>');
+    expect(fixture.componentInstance.copiedSnippet()).toBe('api-key-header');
+
+    await fixture.componentInstance.copySnippet(
+      fixture.componentInstance.geminiPythonSnippet(),
+      'gemini',
+    );
+    expect(writeTextMock).toHaveBeenCalledWith(fixture.componentInstance.geminiPythonSnippet());
+    expect(fixture.componentInstance.copiedSnippet()).toBe('gemini');
+
+    await fixture.componentInstance.copySnippet(
+      fixture.componentInstance.genericMcpSnippet(),
+      'generic-mcp',
+    );
+    expect(writeTextMock).toHaveBeenCalledWith(fixture.componentInstance.genericMcpSnippet());
+    expect(fixture.componentInstance.copiedSnippet()).toBe('generic-mcp');
+  });
 });
 
 describe('ConnectPage device-status polling', () => {
@@ -278,5 +439,14 @@ describe('ConnectPage device-status polling', () => {
     fixture.destroy();
     vi.advanceTimersByTime(30_000);
     expect(workspace.devices.reload).not.toHaveBeenCalled();
+  });
+
+  it('rejects malformed device IDs via Zod schema and does not poll', () => {
+    const { fixture, workspace } = setup([offlineDevice], '<script>alert(1)</script>');
+    vi.advanceTimersByTime(30_000);
+    expect(fixture.componentInstance.validatedDeviceId()).toBeUndefined();
+    expect(fixture.componentInstance.boundDevice()).toBeUndefined();
+    expect(workspace.devices.reload).not.toHaveBeenCalled();
+    fixture.destroy();
   });
 });

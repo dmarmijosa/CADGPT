@@ -4,6 +4,47 @@
   <p>{{ 'connect.subtitle' | translate }}</p>
 </section>
 
+<section class="panel api-key-guide-panel" data-testid="api-key-guide">
+  <div class="panel-header">
+    <span class="status highlight">{{ 'connect.api_key_step_badge' | translate }}</span>
+    <h2>{{ 'connect.api_key_guide_title' | translate }}</h2>
+  </div>
+  <p>{{ 'connect.api_key_guide_lead' | translate }}</p>
+
+  <ol class="guide-steps">
+    <li>
+      {{ 'connect.api_key_step1_prefix' | translate }}
+      <a routerLink="/api-keys"
+        ><strong>{{ 'connect.api_key_step1_link' | translate }}</strong></a
+      >.
+    </li>
+    <li>
+      {{ 'connect.api_key_step2_prefix' | translate }}
+      <code>cad:read</code> {{ 'connect.api_key_step2_and' | translate }} <code>cad:write</code>
+      {{ 'connect.api_key_step2_suffix' | translate }}
+    </li>
+    <li>
+      {{ 'connect.api_key_step3_text' | translate }}
+      <div class="snippet-box">
+        <pre><code>Authorization: Bearer &lt;your_api_key&gt;</code></pre>
+        <button
+          type="button"
+          class="quiet"
+          (click)="copySnippet('Authorization: Bearer <your_api_key>', 'api-key-header')"
+          [attr.aria-label]="'connect.copy_snippet' | translate"
+        >
+          {{
+            (copiedSnippet() === 'api-key-header'
+              ? 'connect.snippet_copied'
+              : 'connect.copy_snippet'
+            ) | translate
+          }}
+        </button>
+      </div>
+    </li>
+  </ol>
+</section>
+
 <section class="panel">
   <h2>{{ 'connect.resource_url_title' | translate }}</h2>
   <p>
@@ -17,6 +58,82 @@
   >
     {{ (copied() ? 'connect.copied' : 'connect.copy_url') | translate }}
   </button>
+</section>
+
+<section class="panel" data-testid="gemini-steps">
+  <div class="os-guide-header">
+    <span class="status">{{ 'connect.gemini_badge' | translate }}</span>
+    <h2>{{ 'connect.gemini_title' | translate }}</h2>
+  </div>
+  <p>{{ 'connect.gemini_subtitle' | translate }}</p>
+
+  <div class="snippet-box">
+    <pre><code>{{ geminiPythonSnippet() }}</code></pre>
+    <button
+      type="button"
+      class="quiet"
+      (click)="copySnippet(geminiPythonSnippet(), 'gemini')"
+      [attr.aria-label]="'connect.gemini_copy_aria' | translate"
+    >
+      {{
+        (copiedSnippet() === 'gemini' ? 'connect.snippet_copied' : 'connect.copy_snippet')
+          | translate
+      }}
+    </button>
+  </div>
+</section>
+
+<section class="panel" data-testid="generic-mcp-steps">
+  <div class="os-guide-header">
+    <span class="status">{{ 'connect.generic_mcp_badge' | translate }}</span>
+    <h2>{{ 'connect.generic_mcp_title' | translate }}</h2>
+  </div>
+  <p>{{ 'connect.generic_mcp_subtitle' | translate }}</p>
+
+  <div class="snippet-box">
+    <pre><code>{{ genericMcpSnippet() }}</code></pre>
+    <button
+      type="button"
+      class="quiet"
+      (click)="copySnippet(genericMcpSnippet(), 'generic-mcp')"
+      [attr.aria-label]="'connect.generic_mcp_copy_aria' | translate"
+    >
+      {{
+        (copiedSnippet() === 'generic-mcp' ? 'connect.snippet_copied' : 'connect.copy_snippet')
+          | translate
+      }}
+    </button>
+  </div>
+
+  <table class="data mcp-paths-table">
+    <thead>
+      <tr>
+        <th>{{ 'connect.mcp_client_col' | translate }}</th>
+        <th>{{ 'connect.mcp_config_path_col' | translate }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Cursor</strong></td>
+        <td><code>.cursor/mcp.json</code></td>
+      </tr>
+      <tr>
+        <td><strong>Windsurf</strong></td>
+        <td><code>~/.codeium/windsurf/mcp_config.json</code></td>
+      </tr>
+      <tr>
+        <td><strong>Claude Desktop</strong></td>
+        <td>
+          <code>~/Library/Application Support/Claude/claude_desktop_config.json</code>
+          (macOS)<br /><code>%APPDATA%\Claude\claude_desktop_config.json</code> (Windows)
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Antigravity / Gemini CLI</strong></td>
+        <td><code>~/.gemini/antigravity-cli/mcp/</code></td>
+      </tr>
+    </tbody>
+  </table>
 </section>
 
 <section class="panel" data-testid="claude-steps">

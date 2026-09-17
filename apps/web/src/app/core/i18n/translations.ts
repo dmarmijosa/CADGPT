@@ -1,343 +1,369 @@
 export type SupportedLanguage = 'en' | 'es';
 
-export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
-  en: {
-    // Navigation and Shell
-    'nav.skip_to_content': 'Skip to content',
-    'nav.devices': 'Devices',
-    'nav.designs': 'Designs',
-    'nav.jobs': 'Jobs',
-    'nav.connect': 'Connect',
-    'nav.api_keys': 'API keys',
-    'nav.about': 'About',
-    'nav.sign_in': 'Sign in',
-    'nav.sign_out': 'Sign out',
-    'nav.daemon_online': 'Daemon Online',
-    'nav.version_tag': 'v0.2.0-alpha.1',
+const EN_TRANSLATIONS = {
+  // Navigation and Shell
+  'nav.skip_to_content': 'Skip to content',
+  'nav.devices': 'Devices',
+  'nav.designs': 'Designs',
+  'nav.jobs': 'Jobs',
+  'nav.connect': 'Connect',
+  'nav.api_keys': 'API keys',
+  'nav.about': 'About',
+  'nav.sign_in': 'Sign in',
+  'nav.sign_out': 'Sign out',
+  'nav.daemon_online': 'Daemon Online',
+  'nav.version_tag': 'v0.2.0-alpha.1',
 
-    // Footer
-    'footer.brand': 'CAD Engine',
-    'footer.status': '— experimental alpha',
-    'footer.tagline': 'FreeCAD execution, AutoCAD Core Console parity, and remote MCP.',
-    'footer.author_lead': 'Designed & Developed by',
-    'footer.author_name': 'Danny Armijos',
-    'footer.author_linkedin_aria': "Danny Armijos's LinkedIn Profile",
-    'footer.author_website_aria': "Danny Armijos's Personal Website",
-    'footer.author_website': 'danny-armijos.com',
-    'footer.data_governance_btn': 'Data Treatment & CAD Governance',
+  // Footer
+  'footer.brand': 'CAD Engine',
+  'footer.status': '— experimental alpha',
+  'footer.tagline': 'FreeCAD execution, AutoCAD Core Console parity, and remote MCP.',
+  'footer.author_lead': 'Designed & Developed by',
+  'footer.author_name': 'Danny Armijos',
+  'footer.author_linkedin_aria': "Danny Armijos's LinkedIn Profile",
+  'footer.author_website_aria': "Danny Armijos's Personal Website",
+  'footer.author_website': 'danny-armijos.com',
+  'footer.data_governance_btn': 'Data Treatment & CAD Governance',
 
-    // Consent Sheet
-    'consent.badge': 'GDPR & ISO/IEC 27001',
-    'consent.title': 'Data Processing and CAD Governance',
-    'consent.subtitle':
-      'Regulatory compliance for parametric model processing and engineering privacy.',
-    'consent.local_title': 'Local CAD Execution',
-    'consent.local_desc':
-      "Parametric CAD models and engineering scripts execute exclusively on the user's local linked devices.",
-    'consent.retention_title': 'STL Mesh Retention',
-    'consent.retention_desc':
-      'Only triangulated 3D preview meshes (STL) are temporarily cached on the server to enable browser viewing.',
-    'consent.forgotten_title': 'Right to Be Forgotten',
-    'consent.forgotten_desc':
-      'Users retain the unconditional right to permanent deletion to purge all account data and linked machines at any time.',
-    'consent.checkbox':
-      'I have read and accept the Terms of Service and Privacy & Data Processing Policy.',
-    'consent.accept_btn': 'Accept and Continue',
-    'consent.status_active': 'Active Data Processing Consent Verified',
-    'consent.close_btn': 'Close',
+  // Consent Sheet
+  'consent.badge': 'GDPR & ISO/IEC 27001',
+  'consent.title': 'Data Processing and CAD Governance',
+  'consent.subtitle':
+    'Regulatory compliance for parametric model processing and engineering privacy.',
+  'consent.local_title': 'Local CAD Execution',
+  'consent.local_desc':
+    "Parametric CAD models and engineering scripts execute exclusively on the user's local linked devices.",
+  'consent.retention_title': 'STL Mesh Retention',
+  'consent.retention_desc':
+    'Only triangulated 3D preview meshes (STL) are temporarily cached on the server to enable browser viewing.',
+  'consent.forgotten_title': 'Right to Be Forgotten',
+  'consent.forgotten_desc':
+    'Users retain the unconditional right to permanent deletion to purge all account data and linked machines at any time.',
+  'consent.checkbox':
+    'I have read and accept the Terms of Service and Privacy & Data Processing Policy.',
+  'consent.accept_btn': 'Accept and Continue',
+  'consent.status_active': 'Active Data Processing Consent Verified',
+  'consent.close_btn': 'Close',
 
-    // Home Page
-    'home.open_dashboard': 'Open your dashboard',
-    'home.sign_in': 'Sign in',
-    'home.download_connector': 'Download the connector ↗',
-    'home.manifesto_title':
-      'An assistant that reaches your CAD software — not the other way around.',
-    'home.manifesto_p':
-      'CAD Engine runs as a small agent on the same computer as FreeCAD or AutoCAD. Claude or ChatGPT talks to that agent through a fixed set of operations, never a shell and never a free-form script, so the model can create and edit real designs without ever holding a copy of your files.',
-    'home.surface_title': 'Execution surface',
-    'home.surface_desc':
-      'A closed allowlist of CAD operations. Nothing free-form reaches your machine.',
-    'home.runs_title': 'Where it runs',
-    'home.runs_desc': 'Your computer. Native .FCStd and .dwg files never leave it.',
-    'home.setup_title': 'Setup time',
-    'home.setup_desc': 'One pairing code, valid for 10 minutes.',
-    'home.flow_heading': 'From a bare install to a connected assistant',
-    'home.flow_step1_title': 'Install the connector',
-    'home.flow_step1_desc':
-      'Run the CAD Engine agent on the computer with FreeCAD, or AutoCAD 2026 Core Console (AutoCAD LT is detection-only).',
-    'home.flow_step2_title': 'Pair the machine',
-    'home.flow_step2_desc':
-      'Link it to your account with a one-time code that expires in 10 minutes.',
-    'home.flow_step3_title': 'Connect Claude or ChatGPT',
-    'home.flow_step3_desc':
-      "Add the CAD Engine connector in your assistant's settings and sign in.",
-    'home.cap_heading': 'What runs today',
-    'home.cap_legend_full': 'executes now',
-    'home.cap_legend_partial': 'executes on some installs',
-    'home.cap_legend_none': 'detected, not executed',
-    'home.cap_freecad_title': 'FreeCAD',
-    'home.cap_freecad_note': 'Full execution on any host with a working FreeCADCmd.',
-    'home.cap_freecad_create': 'Create — primitives, booleans, extrusions',
-    'home.cap_freecad_modify': 'Modify — transforms on named designs',
-    'home.cap_freecad_read': 'Read — scene contents and dimensions',
-    'home.cap_freecad_export': 'Export — STEP, STL, and DXF',
-    'home.cap_autocad_title': 'AutoCAD',
-    'home.cap_autocad_note':
-      'Full 13-operation headless execution with AutoCAD 2026 Core Console on Windows; AutoCAD LT is detected only.',
-    'home.cap_autocad_create': 'Create — 3D primitives (box, cylinder, sphere, cone, extrude)',
-    'home.cap_autocad_modify': 'Modify — 3D booleans (cut, union, intersect) & transforms',
-    'home.cap_autocad_verify_export':
-      'Verify & Export — native DWG/DXF, MASSPROP volumetric checks & binary STL preview via STLOUT',
-    'home.cap_autocad_lt':
-      'AutoCAD LT — detected only; execution disabled (lacks accoreconsole.exe & 3D/STLOUT)',
-    'home.trust_heading': 'What stays yours',
-    'home.trust_item1':
-      'Every operation runs from a fixed allowlist — nothing free-form ever reaches the machine.',
-    'home.trust_item2_prefix': 'Native files (',
-    'home.trust_item2_mid': ') never leave the computer that owns them.',
-    'home.trust_item3':
-      'Only a generated STL preview mesh uploads, and only so the dashboard can render it.',
-    'home.trust_diag_history': 'Job & device history',
-    'home.trust_diag_mesh': 'STL preview mesh',
-    'home.trust_diag_render': 'Dashboard render',
-    'home.trust_caption':
-      'Native CAD files and job history stop at the boundary. Only a size-capped STL preview mesh crosses it, so the dashboard has something to render.',
-    'home.closing_heading': 'Connect once. Keep everything local.',
-    'home.closing_open_dashboard': 'Open your dashboard',
-    'home.closing_sign_in': 'Sign in',
-    'home.closing_download': 'Download the connector ↗',
+  // Home Page
+  'home.open_dashboard': 'Open your dashboard',
+  'home.sign_in': 'Sign in',
+  'home.download_connector': 'Download the connector ↗',
+  'home.manifesto_title': 'An assistant that reaches your CAD software — not the other way around.',
+  'home.manifesto_p':
+    'CAD Engine runs as a small agent on the same computer as FreeCAD or AutoCAD. Claude or ChatGPT talks to that agent through a fixed set of operations, never a shell and never a free-form script, so the model can create and edit real designs without ever holding a copy of your files.',
+  'home.surface_title': 'Execution surface',
+  'home.surface_desc':
+    'A closed allowlist of CAD operations. Nothing free-form reaches your machine.',
+  'home.runs_title': 'Where it runs',
+  'home.runs_desc': 'Your computer. Native .FCStd and .dwg files never leave it.',
+  'home.setup_title': 'Setup time',
+  'home.setup_desc': 'One pairing code, valid for 10 minutes.',
+  'home.flow_heading': 'From a bare install to a connected assistant',
+  'home.flow_step1_title': 'Install the connector',
+  'home.flow_step1_desc':
+    'Run the CAD Engine agent on the computer with FreeCAD, or AutoCAD 2026 Core Console (AutoCAD LT is detection-only).',
+  'home.flow_step2_title': 'Pair the machine',
+  'home.flow_step2_desc':
+    'Link it to your account with a one-time code that expires in 10 minutes.',
+  'home.flow_step3_title': 'Connect Claude or ChatGPT',
+  'home.flow_step3_desc': "Add the CAD Engine connector in your assistant's settings and sign in.",
+  'home.cap_heading': 'What runs today',
+  'home.cap_legend_full': 'executes now',
+  'home.cap_legend_partial': 'executes on some installs',
+  'home.cap_legend_none': 'detected, not executed',
+  'home.cap_freecad_title': 'FreeCAD',
+  'home.cap_freecad_note': 'Full execution on any host with a working FreeCADCmd.',
+  'home.cap_freecad_create': 'Create — primitives, booleans, extrusions',
+  'home.cap_freecad_modify': 'Modify — transforms on named designs',
+  'home.cap_freecad_read': 'Read — scene contents and dimensions',
+  'home.cap_freecad_export': 'Export — STEP, STL, and DXF',
+  'home.cap_autocad_title': 'AutoCAD',
+  'home.cap_autocad_note':
+    'Full 13-operation headless execution with AutoCAD 2026 Core Console on Windows; AutoCAD LT is detected only.',
+  'home.cap_autocad_create': 'Create — 3D primitives (box, cylinder, sphere, cone, extrude)',
+  'home.cap_autocad_modify': 'Modify — 3D booleans (cut, union, intersect) & transforms',
+  'home.cap_autocad_verify_export':
+    'Verify & Export — native DWG/DXF, MASSPROP volumetric checks & binary STL preview via STLOUT',
+  'home.cap_autocad_lt':
+    'AutoCAD LT — detected only; execution disabled (lacks accoreconsole.exe & 3D/STLOUT)',
+  'home.trust_heading': 'What stays yours',
+  'home.trust_item1':
+    'Every operation runs from a fixed allowlist — nothing free-form ever reaches the machine.',
+  'home.trust_item2_prefix': 'Native files (',
+  'home.trust_item2_mid': ') never leave the computer that owns them.',
+  'home.trust_item3':
+    'Only a generated STL preview mesh uploads, and only so the dashboard can render it.',
+  'home.trust_diag_history': 'Job & device history',
+  'home.trust_diag_mesh': 'STL preview mesh',
+  'home.trust_diag_render': 'Dashboard render',
+  'home.trust_caption':
+    'Native CAD files and job history stop at the boundary. Only a size-capped STL preview mesh crosses it, so the dashboard has something to render.',
+  'home.closing_heading': 'Connect once. Keep everything local.',
+  'home.closing_open_dashboard': 'Open your dashboard',
+  'home.closing_sign_in': 'Sign in',
+  'home.closing_download': 'Download the connector ↗',
 
-    // Pair Page
-    'pair.eyebrow': 'LINK A COMPUTER',
-    'pair.title': 'Pair your device',
-    'pair.desc':
-      'Only enter a code from an agent you installed on a computer you control. Codes expire after 10 minutes.',
-    'pair.code_label': '12-character pairing code',
-    'pair.code_placeholder': 'A1B2C3D4E5F6',
-    'pair.confirm_btn': 'Confirm & link device',
+  // Pair Page
+  'pair.eyebrow': 'LINK A COMPUTER',
+  'pair.title': 'Pair your device',
+  'pair.desc':
+    'Only enter a code from an agent you installed on a computer you control. Codes expire after 10 minutes.',
+  'pair.code_label': '12-character pairing code',
+  'pair.code_placeholder': 'A1B2C3D4E5F6',
+  'pair.confirm_btn': 'Confirm & link device',
 
-    // Devices Page
-    'devices.title': 'Linked computers',
-    'devices.subtitle':
-      'Computers running the CAD Engine agent, and the CAD installations detected on each.',
-    'devices.refresh': '↻ Refresh status',
-    'devices.loading': 'Loading devices…',
-    'devices.empty': 'No linked computers yet',
-    'devices.th_name': 'Name',
-    'devices.th_status': 'Status',
-    'devices.th_last_seen': 'Last seen',
-    'devices.th_cads': 'CAD installations',
-    'devices.th_actions': 'Actions',
-    'devices.status_online': 'Online',
-    'devices.status_offline': 'Offline',
-    'devices.status_revoked': 'Revoked',
-    'devices.executable': 'Executable',
-    'devices.detection_only': 'Detection only',
-    'devices.allowed_folders': 'Allowed folders',
-    'devices.revoke_btn': 'Revoke access',
-    'devices.revoke_confirm': 'Revoke this device?',
-    'devices.confirm_revoke_btn': 'Confirm revoke',
+  // Devices Page
+  'devices.title': 'Linked computers',
+  'devices.subtitle':
+    'Computers running the CAD Engine agent, and the CAD installations detected on each.',
+  'devices.refresh': '↻ Refresh status',
+  'devices.loading': 'Loading devices…',
+  'devices.empty': 'No linked computers yet',
+  'devices.th_name': 'Name',
+  'devices.th_status': 'Status',
+  'devices.th_last_seen': 'Last seen',
+  'devices.th_cads': 'CAD installations',
+  'devices.th_actions': 'Actions',
+  'devices.status_online': 'Online',
+  'devices.status_offline': 'Offline',
+  'devices.status_revoked': 'Revoked',
+  'devices.executable': 'Executable',
+  'devices.detection_only': 'Detection only',
+  'devices.allowed_folders': 'Allowed folders',
+  'devices.revoke_btn': 'Revoke access',
+  'devices.revoke_confirm': 'Revoke this device?',
+  'devices.confirm_revoke_btn': 'Confirm revoke',
 
-    // Designs Page
-    'designs.title': 'Designs',
-    'designs.subtitle': '3D CAD models generated and managed by CAD Engine.',
-    'designs.empty': 'No designs created yet.',
-    'designs.loading': 'Loading designs…',
-    'designs.preview_pending': 'Preview pending',
-    'designs.not_found': 'Document not found.',
+  // Designs Page
+  'designs.title': 'Designs',
+  'designs.subtitle': '3D CAD models generated and managed by CAD Engine.',
+  'designs.empty': 'No designs created yet.',
+  'designs.loading': 'Loading designs…',
+  'designs.preview_pending': 'Preview pending',
+  'designs.not_found': 'Document not found.',
 
-    // Jobs Page
-    'jobs.title': 'Jobs',
-    'jobs.subtitle': 'Execution log and queue of parametric CAD modeling jobs.',
-    'jobs.loading': 'Loading jobs',
-    'jobs.empty': 'No jobs yet',
-    'jobs.error_connect': 'Could not connect',
+  // Jobs Page
+  'jobs.title': 'Jobs',
+  'jobs.subtitle': 'Execution log and queue of parametric CAD modeling jobs.',
+  'jobs.loading': 'Loading jobs',
+  'jobs.empty': 'No jobs yet',
+  'jobs.error_connect': 'Could not connect',
 
-    // Connect Page
-    'connect.eyebrow': 'CONNECT YOUR MCP CLIENT',
-    'connect.title': 'Almost there.',
-    'connect.subtitle':
-      "Paste this deployment's MCP resource URL into Claude or ChatGPT to finish connecting.",
-    'connect.resource_url_title': 'MCP resource URL',
-    'connect.copy_url': 'Copy URL',
-    'connect.copied': 'Copied!',
-    'connect.copy_snippet': 'Copy snippet',
-    'connect.snippet_copied': 'Copied!',
-    'connect.claude_title': 'Connect Claude',
-    'connect.claude_step1_prefix': 'Open Claude and go to ',
-    'connect.claude_step1_strong': 'Settings → Connectors',
-    'connect.claude_step2_prefix': 'Choose ',
-    'connect.claude_step2_strong': 'Add custom connector',
-    'connect.claude_step3': 'Paste the MCP resource URL above.',
-    'connect.claude_step4': 'Sign in with your CAD Engine account when prompted.',
-    'connect.chatgpt_title': 'Connect ChatGPT',
-    'connect.chatgpt_step1_prefix': 'Open ChatGPT and go to ',
-    'connect.chatgpt_step1_strong': 'Settings → Connectors',
-    'connect.chatgpt_step2_prefix': 'Turn on ',
-    'connect.chatgpt_step2_strong': 'Developer mode',
-    'connect.chatgpt_step3_prefix': 'Choose ',
-    'connect.chatgpt_step3_strong': 'Add',
-    'connect.chatgpt_step3_suffix': ' and paste the MCP resource URL above.',
-    'connect.device_title': 'Device status',
-    'connect.device_error': 'Could not load device status.',
-    'connect.device_online': 'Online',
-    'connect.device_offline': 'Offline',
-    'connect.device_waiting': 'Waiting for this computer to come online…',
-    'connect.device_looking_up': 'Looking up this device…',
-    'connect.device_loading': 'Loading device status…',
-    'connect.device_not_found_lead': 'This device was not found. Check ',
-    'connect.device_linked_link': 'your linked computers',
-    'connect.device_empty_lead': 'No linked computers yet. ',
-    'connect.device_pair_link': 'Pair one first',
-    'connect.keep_alive_title': 'Keep the agent running',
-    'connect.keep_alive_desc':
-      'Configure the agent to survive user logouts and system reboots on your CAD workstation.',
-    'connect.linux_badge': 'Linux',
-    'connect.linux_title': 'systemd service',
-    'connect.linux_desc':
-      'Create a service under /etc/systemd/system/cadengine.service (replace youruser with your paired account):',
-    'connect.linux_desc_prefix': 'Create a service under ',
-    'connect.linux_desc_mid': ' (replace ',
-    'connect.linux_desc_suffix': ' with your paired account):',
-    'connect.linux_copy_aria': 'Copy Linux systemd snippet',
-    'connect.macos_badge': 'macOS',
-    'connect.macos_title': 'launchd LaunchAgent',
-    'connect.macos_desc':
-      'Create ~/Library/LaunchAgents/com.cadengine.agent.plist to run within your user session:',
-    'connect.macos_desc_prefix': 'Create ',
-    'connect.macos_desc_suffix': ' to run within your user session:',
-    'connect.macos_copy_aria': 'Copy macOS launchd snippet',
-    'connect.macos_hint': 'Load immediately:',
-    'connect.windows_badge': 'Windows',
-    'connect.windows_title': 'Task Scheduler (PowerShell)',
-    'connect.windows_desc':
-      'Run in an Administrator PowerShell (replace YOURUSER with the account that paired):',
-    'connect.windows_desc_prefix': 'Run in an ',
-    'connect.windows_desc_strong': 'Administrator PowerShell',
-    'connect.windows_desc_mid': ' (replace ',
-    'connect.windows_desc_suffix': ' with the account that paired):',
-    'connect.windows_copy_aria': 'Copy Windows PowerShell snippet',
-    'connect.try_title': 'Try it — Mechanical & Parametric CAD',
-    'connect.try_desc':
-      'Once connected, ask your assistant to run list_devices, or ask it to model mechanical components: "Create a mounting bracket with 4 counterbore holes" or "Model an extruded enclosure profile".',
-    'connect.try_desc_prefix': 'Once connected, ask your assistant to run ',
-    'connect.try_desc_mid': ', or ask it to model mechanical components: ',
-    'connect.try_prompt1': '"Create a mounting bracket with 4 counterbore holes"',
-    'connect.try_desc_or': ' or ',
-    'connect.try_prompt2': '"Model an extruded enclosure profile"',
-    'connect.try_hint':
-      'Note: CAD Engine specializes in precision parametric and mechanical CAD modeling (primitives, transforms, booleans, and extrusions), along with subdivision polygonal modeling via Blender 4.x.',
-    'connect.auto_service_badge': 'Recommended',
-    'connect.auto_service_title': 'Automated One-Step Setup',
-    'connect.auto_service_desc':
-      'Run the command below in your terminal. The agent automatically detects your operating system, configures the native service manager (Windows Task Scheduler, macOS launchd, or Linux systemd), and runs in the background without needing root or administrative passwords:',
-    'connect.auto_service_copy_aria': 'Copy automated service install command',
-    'connect.manual_services_heading': 'Manual Daemon Configuration (Advanced / Headless)',
-    'connect.manual_services_desc':
-      'If you prefer system-wide installation or operate a multi-user headless server, use the platform-specific scripts below:',
-    'connect.cli_title': 'CAD Engine CLI Command Reference',
-    'connect.cli_subtitle':
-      'Built-in commands for pairing, diagnostics, testing, and daemon management:',
-    'connect.cli_th_command': 'Command',
-    'connect.cli_th_description': 'Description',
-    'connect.cli_cmd_pair':
-      'Pair workstation with your CAD Engine account using a 12-character one-time code.',
-    'connect.cli_cmd_service':
-      'Automate background daemon lifecycle (install, start, stop, status, uninstall) natively.',
-    'connect.cli_cmd_status':
-      'Inspect host, server connection latency, stored authentication keys, and discovered CAD engines.',
-    'connect.cli_cmd_doctor':
-      'Run end-to-end environment validation with optional auto-remediation (--fix) for headless FreeCAD.',
-    'connect.cli_cmd_test':
-      'Run local offline smoke tests against FreeCAD, AutoCAD, or Blender to verify geometric output.',
-    'connect.cli_cmd_gui':
-      'Launch the cross-platform onboarding wizard and system tray background controller.',
-    'connect.cli_cmd_logs':
-      'Inspect or follow (-f) local agent rotating execution logs in real time.',
-    'connect.cli_cmd_unpair':
-      'Revoke workstation authorization on the cloud server and wipe local stored credentials.',
-    'connect.cli_cmd_version':
-      'Display version tag and optionally query GitHub (--check) for published updates.',
+  // Connect Page
+  'connect.eyebrow': 'CONNECT YOUR MCP CLIENT',
+  'connect.title': 'Almost there.',
+  'connect.subtitle':
+    "Paste this deployment's MCP resource URL into Claude or ChatGPT to finish connecting.",
+  'connect.api_key_step_badge': 'Step 0 — Authentication',
+  'connect.api_key_guide_title': 'API Key Setup & Scope Requirements',
+  'connect.api_key_guide_lead':
+    'External AI clients (Google Gemini, Cursor, Windsurf, Claude Desktop) authenticate to the CAD Engine MCP server using personal API keys:',
+  'connect.api_key_step1_prefix': 'Generate a dedicated API key under ',
+  'connect.api_key_step1_link': 'API Key Management',
+  'connect.api_key_step2_prefix': 'Ensure your key includes both ',
+  'connect.api_key_step2_and': 'and',
+  'connect.api_key_step2_suffix': 'scopes so AI assistants can inspect and generate 3D models.',
+  'connect.api_key_step3_text':
+    'Pass your key in the HTTP Authorization header for all MCP requests:',
+  'connect.gemini_badge': 'Google Gemini',
+  'connect.gemini_title': 'Connect Google Gemini (API & Function Calling)',
+  'connect.gemini_subtitle':
+    'Integrate CAD Engine MCP tools directly into Google GenAI Python applications (Gemini 2.5 Flash / 1.5 Pro):',
+  'connect.gemini_copy_aria': 'Copy Google Gemini Python integration snippet',
+  'connect.generic_mcp_badge': 'Universal MCP',
+  'connect.generic_mcp_title': 'Generic MCP Client Configuration',
+  'connect.generic_mcp_subtitle':
+    'Standard Model Context Protocol client configuration for Cursor, Windsurf, Claude Desktop, Antigravity, and other compatible IDEs and clients:',
+  'connect.generic_mcp_copy_aria': 'Copy generic MCP configuration snippet',
+  'connect.mcp_client_col': 'Client / IDE',
+  'connect.mcp_config_path_col': 'Configuration File Path',
+  'connect.resource_url_title': 'MCP resource URL',
+  'connect.copy_url': 'Copy URL',
+  'connect.copied': 'Copied!',
+  'connect.copy_snippet': 'Copy snippet',
+  'connect.snippet_copied': 'Copied!',
+  'connect.claude_title': 'Connect Claude',
+  'connect.claude_step1_prefix': 'Open Claude and go to ',
+  'connect.claude_step1_strong': 'Settings → Connectors',
+  'connect.claude_step2_prefix': 'Choose ',
+  'connect.claude_step2_strong': 'Add custom connector',
+  'connect.claude_step3': 'Paste the MCP resource URL above.',
+  'connect.claude_step4': 'Sign in with your CAD Engine account when prompted.',
+  'connect.chatgpt_title': 'Connect ChatGPT',
+  'connect.chatgpt_step1_prefix': 'Open ChatGPT and go to ',
+  'connect.chatgpt_step1_strong': 'Settings → Connectors',
+  'connect.chatgpt_step2_prefix': 'Turn on ',
+  'connect.chatgpt_step2_strong': 'Developer mode',
+  'connect.chatgpt_step3_prefix': 'Choose ',
+  'connect.chatgpt_step3_strong': 'Add',
+  'connect.chatgpt_step3_suffix': ' and paste the MCP resource URL above.',
+  'connect.device_title': 'Device status',
+  'connect.device_error': 'Could not load device status.',
+  'connect.device_online': 'Online',
+  'connect.device_offline': 'Offline',
+  'connect.device_waiting': 'Waiting for this computer to come online…',
+  'connect.device_looking_up': 'Looking up this device…',
+  'connect.device_loading': 'Loading device status…',
+  'connect.device_not_found_lead': 'This device was not found. Check ',
+  'connect.device_linked_link': 'your linked computers',
+  'connect.device_empty_lead': 'No linked computers yet. ',
+  'connect.device_pair_link': 'Pair one first',
+  'connect.keep_alive_title': 'Keep the agent running',
+  'connect.keep_alive_desc':
+    'Configure the agent to survive user logouts and system reboots on your CAD workstation.',
+  'connect.linux_badge': 'Linux',
+  'connect.linux_title': 'systemd service',
+  'connect.linux_desc':
+    'Create a service under /etc/systemd/system/cadengine.service (replace youruser with your paired account):',
+  'connect.linux_desc_prefix': 'Create a service under ',
+  'connect.linux_desc_mid': ' (replace ',
+  'connect.linux_desc_suffix': ' with your paired account):',
+  'connect.linux_copy_aria': 'Copy Linux systemd snippet',
+  'connect.macos_badge': 'macOS',
+  'connect.macos_title': 'launchd LaunchAgent',
+  'connect.macos_desc':
+    'Create ~/Library/LaunchAgents/com.cadengine.agent.plist to run within your user session:',
+  'connect.macos_desc_prefix': 'Create ',
+  'connect.macos_desc_suffix': ' to run within your user session:',
+  'connect.macos_copy_aria': 'Copy macOS launchd snippet',
+  'connect.macos_hint': 'Load immediately:',
+  'connect.windows_badge': 'Windows',
+  'connect.windows_title': 'Task Scheduler (PowerShell)',
+  'connect.windows_desc':
+    'Run in an Administrator PowerShell (replace YOURUSER with the account that paired):',
+  'connect.windows_desc_prefix': 'Run in an ',
+  'connect.windows_desc_strong': 'Administrator PowerShell',
+  'connect.windows_desc_mid': ' (replace ',
+  'connect.windows_desc_suffix': ' with the account that paired):',
+  'connect.windows_copy_aria': 'Copy Windows PowerShell snippet',
+  'connect.try_title': 'Try it — Mechanical & Parametric CAD',
+  'connect.try_desc':
+    'Once connected, ask your assistant to run list_devices, or ask it to model mechanical components: "Create a mounting bracket with 4 counterbore holes" or "Model an extruded enclosure profile".',
+  'connect.try_desc_prefix': 'Once connected, ask your assistant to run ',
+  'connect.try_desc_mid': ', or ask it to model mechanical components: ',
+  'connect.try_prompt1': '"Create a mounting bracket with 4 counterbore holes"',
+  'connect.try_desc_or': ' or ',
+  'connect.try_prompt2': '"Model an extruded enclosure profile"',
+  'connect.try_hint':
+    'Note: CAD Engine specializes in precision parametric and mechanical CAD modeling (primitives, transforms, booleans, and extrusions), along with subdivision polygonal modeling via Blender 4.x.',
+  'connect.auto_service_badge': 'Recommended',
+  'connect.auto_service_title': 'Automated One-Step Setup',
+  'connect.auto_service_desc':
+    'Run the command below in your terminal. The agent automatically detects your operating system, configures the native service manager (Windows Task Scheduler, macOS launchd, or Linux systemd), and runs in the background without needing root or administrative passwords:',
+  'connect.auto_service_copy_aria': 'Copy automated service install command',
+  'connect.manual_services_heading': 'Manual Daemon Configuration (Advanced / Headless)',
+  'connect.manual_services_desc':
+    'If you prefer system-wide installation or operate a multi-user headless server, use the platform-specific scripts below:',
+  'connect.cli_title': 'CAD Engine CLI Command Reference',
+  'connect.cli_subtitle':
+    'Built-in commands for pairing, diagnostics, testing, and daemon management:',
+  'connect.cli_th_command': 'Command',
+  'connect.cli_th_description': 'Description',
+  'connect.cli_cmd_pair':
+    'Pair workstation with your CAD Engine account using a 12-character one-time code.',
+  'connect.cli_cmd_service':
+    'Automate background daemon lifecycle (install, start, stop, status, uninstall) natively.',
+  'connect.cli_cmd_status':
+    'Inspect host, server connection latency, stored authentication keys, and discovered CAD engines.',
+  'connect.cli_cmd_doctor':
+    'Run end-to-end environment validation with optional auto-remediation (--fix) for headless FreeCAD.',
+  'connect.cli_cmd_test':
+    'Run local offline smoke tests against FreeCAD, AutoCAD, or Blender to verify geometric output.',
+  'connect.cli_cmd_gui':
+    'Launch the cross-platform onboarding wizard and system tray background controller.',
+  'connect.cli_cmd_logs':
+    'Inspect or follow (-f) local agent rotating execution logs in real time.',
+  'connect.cli_cmd_unpair':
+    'Revoke workstation authorization on the cloud server and wipe local stored credentials.',
+  'connect.cli_cmd_version':
+    'Display version tag and optionally query GitHub (--check) for published updates.',
 
-    // About Page
-    'about.title': 'About',
-    'about.subtitle': 'Architecture, verification, and governance status.',
-    'about.status': 'experimental alpha',
-    'about.status_title': 'Status',
-    'about.status_desc':
-      'CAD Engine is an experimental alpha, not a hosted service. Installers are unsigned and macOS builds are not notarized; you deploy and operate your own backend.',
-    'about.architecture_title': 'System Architecture',
-    'about.arch_title': 'Tri-Engine Architecture',
-    'about.arch_desc':
-      'CAD Engine unifies three specialized engineering engines under a single sandboxed execution surface, dispatching operations to the optimal kernel based on geometric requirements:',
-    'about.arch_freecad_title': 'FreeCAD (Parametric CSG & B-Rep)',
-    'about.arch_freecad_desc':
-      'Constructive Solid Geometry (CSG), boundary representation (B-Rep), parametric sketch constraints, feature tree, and STEP/IGES engineering export.',
-    'about.arch_autocad_title': 'AutoCAD (Drafting & DWG Compatibility)',
-    'about.arch_autocad_desc':
-      'Headless execution via Core Console (accoreconsole.exe), native DWG/DXF artifact generation, 3D ACIS solid primitives, transforms, boolean operations, and MASSPROP volumetric verification.',
-    'about.arch_blender_title': 'Blender 4.x (3D Polygonal & Organic Modeling)',
-    'about.arch_blender_desc':
-      'Headless Python API execution (blender -b), subdivision surfaces (Subsurf), procedural displacement modifiers, quad topology, and binary glTF/OBJ/STL asset export.',
-    'about.compat_title': 'Compatibility',
-    'about.compat_th_cad': 'CAD / platform',
-    'about.compat_th_behavior': 'Alpha behavior',
-    'about.compat_freecad_cmd': 'FreeCAD, working FreeCADCmd / freecadcmd',
-    'about.compat_freecad_cmd_desc':
-      'Headless create, modify, read, and export; an STL preview mesh uploads for the dashboard.',
-    'about.compat_freecad_gui': 'FreeCAD GUI-only, AppImage, Flatpak or Snap',
-    'about.compat_freecad_gui_desc': 'May need a manual path or a separate command-line install.',
-    'about.compat_autocad_core': 'AutoCAD 2026 Core Console (accoreconsole.exe), Windows',
-    'about.compat_autocad_core_desc':
-      'Full 13-operation headless execution (3D primitives, booleans, transforms, MASSPROP volumetric validation) producing native DWG/DXF artifacts and binary STL preview via headless STLOUT. Enabled with --enable-autocad.',
-    'about.compat_autocad_lt': 'AutoCAD LT, or AutoCAD without accoreconsole.exe',
-    'about.compat_autocad_lt_desc':
-      'Installation detection only; execution disabled (AutoCAD LT lacks Core Console, 3D solid modeling, and STLOUT support).',
-    'about.compat_autocad_linux': 'AutoCAD on Linux',
-    'about.compat_autocad_linux_desc': 'Not a supported target.',
-    'about.compat_blender': 'Blender 4.x (headless background execution, Windows / macOS / Linux)',
-    'about.compat_blender_desc':
-      'Headless 3D polygonal modeling, subdivision surfaces, procedural displacement, quad topology, and binary glTF/OBJ/STL preview export. Enabled with --enable-blender.',
-    'about.security_title': 'Security and limitations',
-    'about.security_oidc':
-      'Identity comes from a validated OIDC token; a request cannot choose its own owner.',
-    'about.security_pairing': 'Device pairing codes are one-use and expire in 10 minutes.',
-    'about.security_revocation':
-      'Revoking a device blocks new requests and cancels queued jobs, but cannot stop one already running locally.',
-    'about.security_cad_files':
-      'Native CAD files stay on the linked computer. The STL preview mesh is the exception: capped at 25 MiB per file, with a 500 MiB per-device quota.',
-    'about.security_store':
-      'The store supports one backend instance; this alpha is not built to scale horizontally.',
-    'about.security_readme': 'Read the full README ↗',
-    'about.security_or': ' or ',
-    'about.security_policy': 'SECURITY.md ↗',
-    'about.security_github': 'on GitHub.',
-    'about.author_title': 'Author & Engineering Lead',
-    'about.author_name': 'Danny Armijos',
-    'about.author_role': 'Software Architect & CAD Systems Engineer',
-    'about.author_bio':
-      'Creator and lead developer of CAD Engine, bridging frontier AI models with mechanical CAD engines and 3D modeling environments.',
-    'about.author_linkedin_btn': 'LinkedIn Profile ↗',
-    'about.author_website_btn': 'Personal Website ↗',
-    'about.gov_title': 'Account Governance / Right to Erasure',
-    'about.gov_desc':
-      'Exercise your Right to Erasure ("Derecho al olvido" under GDPR & CCPA). Deleting your account permanently purges all CAD documents, 3D preview meshes, linked devices, API keys, and job history.',
-    'about.gov_delete_btn': 'Delete account',
-    'about.gov_dialog_badge': 'DANGER / IRREVERSIBLE',
-    'about.gov_dialog_title': 'Permanently delete account?',
-    'about.gov_dialog_lead': 'This action is destructive and irreversible. Once confirmed:',
-    'about.gov_dialog_item1': 'All your CAD files and documents will be deleted from the cloud.',
-    'about.gov_dialog_item2': 'All 3D preview meshes (.stl) will be physically purged.',
-    'about.gov_dialog_item3': 'All your linked machines and devices will be revoked.',
-    'about.gov_dialog_item4': 'All your API keys and job history will be destroyed.',
-    'about.gov_dialog_item5': 'Your session will be closed and your identity deleted in Keycloak.',
-    'about.gov_dialog_instruction':
-      'To confirm permanent deletion, type exactly ELIMINAR in the field below:',
-    'about.gov_dialog_cancel': 'Cancel',
-    'about.gov_dialog_confirm': 'Permanently delete',
-    'about.gov_dialog_deleting': 'Deleting...',
-    'about.gov_error_generic': 'Error deleting account.',
-  },
+  // About Page
+  'about.title': 'About',
+  'about.subtitle': 'Architecture, verification, and governance status.',
+  'about.status': 'experimental alpha',
+  'about.status_title': 'Status',
+  'about.status_desc':
+    'CAD Engine is an experimental alpha, not a hosted service. Installers are unsigned and macOS builds are not notarized; you deploy and operate your own backend.',
+  'about.architecture_title': 'System Architecture',
+  'about.arch_title': 'Tri-Engine Architecture',
+  'about.arch_desc':
+    'CAD Engine unifies three specialized engineering engines under a single sandboxed execution surface, dispatching operations to the optimal kernel based on geometric requirements:',
+  'about.arch_freecad_title': 'FreeCAD (Parametric CSG & B-Rep)',
+  'about.arch_freecad_desc':
+    'Constructive Solid Geometry (CSG), boundary representation (B-Rep), parametric sketch constraints, feature tree, and STEP/IGES engineering export.',
+  'about.arch_autocad_title': 'AutoCAD (Drafting & DWG Compatibility)',
+  'about.arch_autocad_desc':
+    'Headless execution via Core Console (accoreconsole.exe), native DWG/DXF artifact generation, 3D ACIS solid primitives, transforms, boolean operations, and MASSPROP volumetric verification.',
+  'about.arch_blender_title': 'Blender 4.x (3D Polygonal & Organic Modeling)',
+  'about.arch_blender_desc':
+    'Headless Python API execution (blender -b), subdivision surfaces (Subsurf), procedural displacement modifiers, quad topology, and binary glTF/OBJ/STL asset export.',
+  'about.compat_title': 'Compatibility',
+  'about.compat_th_cad': 'CAD / platform',
+  'about.compat_th_behavior': 'Alpha behavior',
+  'about.compat_freecad_cmd': 'FreeCAD, working FreeCADCmd / freecadcmd',
+  'about.compat_freecad_cmd_desc':
+    'Headless create, modify, read, and export; an STL preview mesh uploads for the dashboard.',
+  'about.compat_freecad_gui': 'FreeCAD GUI-only, AppImage, Flatpak or Snap',
+  'about.compat_freecad_gui_desc': 'May need a manual path or a separate command-line install.',
+  'about.compat_autocad_core': 'AutoCAD 2026 Core Console (accoreconsole.exe), Windows',
+  'about.compat_autocad_core_desc':
+    'Full 13-operation headless execution (3D primitives, booleans, transforms, MASSPROP volumetric validation) producing native DWG/DXF artifacts and binary STL preview via headless STLOUT. Enabled with --enable-autocad.',
+  'about.compat_autocad_lt': 'AutoCAD LT, or AutoCAD without accoreconsole.exe',
+  'about.compat_autocad_lt_desc':
+    'Installation detection only; execution disabled (AutoCAD LT lacks Core Console, 3D solid modeling, and STLOUT support).',
+  'about.compat_autocad_linux': 'AutoCAD on Linux',
+  'about.compat_autocad_linux_desc': 'Not a supported target.',
+  'about.compat_blender': 'Blender 4.x (headless background execution, Windows / macOS / Linux)',
+  'about.compat_blender_desc':
+    'Headless 3D polygonal modeling, subdivision surfaces, procedural displacement, quad topology, and binary glTF/OBJ/STL preview export. Enabled with --enable-blender.',
+  'about.security_title': 'Security and limitations',
+  'about.security_oidc':
+    'Identity comes from a validated OIDC token; a request cannot choose its own owner.',
+  'about.security_pairing': 'Device pairing codes are one-use and expire in 10 minutes.',
+  'about.security_revocation':
+    'Revoking a device blocks new requests and cancels queued jobs, but cannot stop one already running locally.',
+  'about.security_cad_files':
+    'Native CAD files stay on the linked computer. The STL preview mesh is the exception: capped at 25 MiB per file, with a 500 MiB per-device quota.',
+  'about.security_store':
+    'The store supports one backend instance; this alpha is not built to scale horizontally.',
+  'about.security_readme': 'Read the full README ↗',
+  'about.security_or': ' or ',
+  'about.security_policy': 'SECURITY.md ↗',
+  'about.security_github': 'on GitHub.',
+  'about.author_title': 'Author & Engineering Lead',
+  'about.author_name': 'Danny Armijos',
+  'about.author_role': 'Software Architect & CAD Systems Engineer',
+  'about.author_bio':
+    'Creator and lead developer of CAD Engine, bridging frontier AI models with mechanical CAD engines and 3D modeling environments.',
+  'about.author_linkedin_btn': 'LinkedIn Profile ↗',
+  'about.author_website_btn': 'Personal Website ↗',
+  'about.gov_title': 'Account Governance / Right to Erasure',
+  'about.gov_desc':
+    'Exercise your Right to Erasure ("Derecho al olvido" under GDPR & CCPA). Deleting your account permanently purges all CAD documents, 3D preview meshes, linked devices, API keys, and job history.',
+  'about.gov_delete_btn': 'Delete account',
+  'about.gov_dialog_badge': 'DANGER / IRREVERSIBLE',
+  'about.gov_dialog_title': 'Permanently delete account?',
+  'about.gov_dialog_lead': 'This action is destructive and irreversible. Once confirmed:',
+  'about.gov_dialog_item1': 'All your CAD files and documents will be deleted from the cloud.',
+  'about.gov_dialog_item2': 'All 3D preview meshes (.stl) will be physically purged.',
+  'about.gov_dialog_item3': 'All your linked machines and devices will be revoked.',
+  'about.gov_dialog_item4': 'All your API keys and job history will be destroyed.',
+  'about.gov_dialog_item5': 'Your session will be closed and your identity deleted in Keycloak.',
+  'about.gov_dialog_instruction':
+    'To confirm permanent deletion, type exactly ELIMINAR in the field below:',
+  'about.gov_dialog_cancel': 'Cancel',
+  'about.gov_dialog_confirm': 'Permanently delete',
+  'about.gov_dialog_deleting': 'Deleting...',
+  'about.gov_error_generic': 'Error deleting account.',
+};
+
+export type TranslationKey = keyof typeof EN_TRANSLATIONS;
+export type TranslationDictionary = Record<TranslationKey, string>;
+
+export const TRANSLATIONS: Record<SupportedLanguage, TranslationDictionary> = {
+  en: EN_TRANSLATIONS,
   es: {
     // Navigation and Shell
     'nav.skip_to_content': 'Saltar al contenido',
@@ -495,6 +521,30 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     'connect.title': 'Casi listo.',
     'connect.subtitle':
       'Pegue la URL de recursos MCP de este despliegue en Claude o ChatGPT para finalizar la conexión.',
+    'connect.api_key_step_badge': 'Paso 0 — Autenticación',
+    'connect.api_key_guide_title': 'Configuración de Clave de API y Requisitos de Ámbitos',
+    'connect.api_key_guide_lead':
+      'Los clientes de IA externos (Google Gemini, Cursor, Windsurf, Claude Desktop) se autentican en el servidor MCP de CAD Engine mediante claves de API personales:',
+    'connect.api_key_step1_prefix': 'Genere una clave de API dedicada en ',
+    'connect.api_key_step1_link': 'Gestión de Claves de API',
+    'connect.api_key_step2_prefix': 'Asegúrese de que su clave incluya los ámbitos ',
+    'connect.api_key_step2_and': 'y',
+    'connect.api_key_step2_suffix':
+      'para que los asistentes de IA puedan inspeccionar y generar modelos 3D.',
+    'connect.api_key_step3_text':
+      'Transmita su clave en el encabezado HTTP Authorization para todas las solicitudes MCP:',
+    'connect.gemini_badge': 'Google Gemini',
+    'connect.gemini_title': 'Conectar Google Gemini (API y Llamadas a Funciones)',
+    'connect.gemini_subtitle':
+      'Integre las herramientas MCP de CAD Engine directamente en aplicaciones Python de Google GenAI (Gemini 2.5 Flash / 1.5 Pro):',
+    'connect.gemini_copy_aria': 'Copiar fragmento de integración Python para Google Gemini',
+    'connect.generic_mcp_badge': 'MCP Universal',
+    'connect.generic_mcp_title': 'Configuración de Cliente MCP Genérico',
+    'connect.generic_mcp_subtitle':
+      'Configuración estándar del Protocolo de Contexto de Modelo (MCP) para Cursor, Windsurf, Claude Desktop, Antigravity y otros IDEs y clientes compatibles:',
+    'connect.generic_mcp_copy_aria': 'Copiar fragmento de configuración MCP genérico',
+    'connect.mcp_client_col': 'Cliente / IDE',
+    'connect.mcp_config_path_col': 'Ruta del Archivo de Configuración',
     'connect.resource_url_title': 'URL de recurso MCP',
     'connect.copy_url': 'Copiar URL',
     'connect.copied': '¡Copiado!',

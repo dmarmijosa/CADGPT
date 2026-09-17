@@ -31,6 +31,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn_open_pairing": "Open Pairing Page",
         "btn_download_freecad": "Download FreeCAD",
         "btn_download_blender": "Download Blender",
+        "btn_install_blender": "Install Blender",
+        "btn_recheck_blender": "Re-check",
         "btn_browse": "Browse...",
         "step1_title": "Welcome to CAD Engine",
         "step1_subtitle": "Select your preferred language to begin setup.",
@@ -66,6 +68,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "step3_not_detected": "Blender was not automatically detected on this system.",
         "step3_enable_option": "Enable Blender (3D Organic Modeling)",
         "step3_opt_out_option": "Continue without Blender",
+        "step3_install_blender": "Install Blender",
+        "step3_install_cmd_label": "Recommended installation command for your operating system:",
         "step3_note": (
             "Blender is optional. You can proceed without it or configure a custom executable binary."
         ),
@@ -74,6 +78,10 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "step4_subtitle": "Pair this workstation with your CAD Engine account.",
         "step4_server_url_label": "Server URL:",
         "step4_pairing_code_label": "Your Pairing Code:",
+        "step4_workspace_label": "Local CAD Workspace Directory:",
+        "step4_workspace_hint": (
+            "All native drawings (.FCStd, .dwg, .blend) and exported meshes remain strictly local on this machine."
+        ),
         "step4_waiting": "Waiting for approval in web dashboard...",
         "step4_success": "Pairing successful! Workstation registered.",
         "step4_keyring_saved": "Credentials saved securely to OS keyring.",
@@ -89,6 +97,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "hud_server_url": "Server URL: {url}",
         "hud_hostname": "Workstation Hostname: {hostname}",
         "hud_device_id": "Device ID: {device_id}",
+        "hud_workspace_dir": "Workspace Directory: {path}",
         "hud_active_engines": "Active Engines: {engines}",
         "hud_latency": "Heartbeat Latency: {latency} ms",
         "hud_status": "Status: {status}",
@@ -114,6 +123,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "btn_open_pairing": "Abrir Página de Vinculación",
         "btn_download_freecad": "Descargar FreeCAD",
         "btn_download_blender": "Descargar Blender",
+        "btn_install_blender": "Instalar Blender",
+        "btn_recheck_blender": "Volver a comprobar",
         "btn_browse": "Examinar...",
         "step1_title": "Bienvenido a CAD Engine",
         "step1_subtitle": "Seleccione su idioma preferido para comenzar la configuración.",
@@ -149,6 +160,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "step3_not_detected": "Blender no fue detectado automáticamente en este sistema.",
         "step3_enable_option": "Activar Blender (Modelado Orgánico 3D)",
         "step3_opt_out_option": "Continuar sin Blender",
+        "step3_install_blender": "Instalar Blender",
+        "step3_install_cmd_label": "Comando de instalación recomendado para su sistema operativo:",
         "step3_note": (
             "Blender es opcional. Puede continuar sin él o configurar un binario ejecutable personalizado."
         ),
@@ -157,6 +170,10 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "step4_subtitle": "Vincule esta estación de trabajo con su cuenta de CAD Engine.",
         "step4_server_url_label": "URL del Servidor:",
         "step4_pairing_code_label": "Su Código de Vinculación:",
+        "step4_workspace_label": "Directorio Local del Espacio de Trabajo CAD:",
+        "step4_workspace_hint": (
+            "Todos los diseños nativos (.FCStd, .dwg, .blend) y mallas exportadas permanecen estrictamente locales en este equipo."
+        ),
         "step4_waiting": "Esperando aprobación en el panel web...",
         "step4_success": "¡Vinculación exitosa! Estación de trabajo registrada.",
         "step4_keyring_saved": "Credenciales guardadas de forma segura en el llavero del sistema operativo.",
@@ -172,6 +189,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "hud_server_url": "URL del Servidor: {url}",
         "hud_hostname": "Nombre del Equipo: {hostname}",
         "hud_device_id": "ID de Dispositivo: {device_id}",
+        "hud_workspace_dir": "Directorio del Espacio de Trabajo: {path}",
         "hud_active_engines": "Motores Activos: {engines}",
         "hud_latency": "Latencia de Latido: {latency} ms",
         "hud_status": "Estado: {status}",

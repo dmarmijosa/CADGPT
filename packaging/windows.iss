@@ -21,6 +21,11 @@ Source: "..\dist\cadengine\*"; DestDir: "{app}"; Flags: ignoreversion recursesub
 Name: "{group}\CAD Engine"; Filename: "{app}\cadengine.exe"
 Name: "{autodesktop}\CAD Engine"; Filename: "{app}\cadengine.exe"
 
+[Dirs]
+; User CAD workspace directories — preserved across uninstalls
+Name: "{localappdata}\CADGPT"; Flags: uninsneveruninstall
+Name: "{localappdata}\CADGPT\jobs"; Flags: uninsneveruninstall
+
 [Registry]
 Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; \
     ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; \
@@ -47,4 +52,97 @@ begin
   end;
   { Look for the path with leading and trailing semicolons }
   Result := Pos(';' + UpperCase(Param) + ';', ';' + UpperCase(OrigPath) + ';') = 0;
+end;
+
+function IsFreeCADInstalled: Boolean;
+var
+  Dummy: string;
+begin
+  Result := False;
+  { Check registry for FreeCAD installer entry }
+  if RegQueryStringValue(HKEY_LOCAL_MACHINE,
+    'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\FreeCAD',
+    'InstallLocation', Dummy) then
+  begin
+    Result := True;
+    exit;
+  end;
+  if RegQueryStringValue(HKEY_LOCAL_MACHINE,
+    'SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\FreeCAD',
+    'InstallLocation', Dummy) then
+  begin
+    Result := True;
+    exit;
+  end;
+  { Check common filesystem paths }
+  if DirExists(ExpandConstant('{autopf}\FreeCAD')) or
+     DirExists(ExpandConstant('{autopf}\FreeCAD 1.0')) or
+     DirExists(ExpandConstant('{autopf}\FreeCAD 1.1')) then
+  begin
+    Result := True;
+  end;
+end;
+
+function IsAutoCADInstalled: Boolean;
+var
+  Dummy: string;
+begin
+  Result := False;
+  { Check registry for AutoCAD entries }
+  if RegQueryStringValue(HKEY_LOCAL_MACHINE,
+    'SOFTWARE\Autodesk\AutoCAD', 'CurVer', Dummy) then
+  begin
+    Result := True;
+    exit;
+  end;
+  { Check common AutoCAD install paths }
+  if DirExists(ExpandConstant('{autopf}\Autodesk\AutoCAD')) or
+     DirExists(ExpandConstant('{autopf}\Autodesk\AutoCAD 2026')) or
+     DirExists(ExpandConstant('{autopf}\Autodesk\AutoCAD 2025')) then
+  begin
+    Result := True;
+  end;
+end;
+
+function UpdateReadyMemo(Space, NewLine, MemoUserInfoInfo, MemoDirInfo,
+  MemoTypeInfo, MemoComponentsInfo, MemoGroupInfo, MemoTasksInfo: string): string;
+begin
+  Result :=
+    'Application Directory:' + NewLine +
+    Space + ExpandConstant('{autopf}\CAD Engine') + NewLine + NewLine +
+    'Local Workspace Directory (preserved on uninstall):' + NewLine +
+    Space + ExpandConstant('{localappdata}\CADGPT\jobs') + NewLine +
+    Space + 'All native drawings (.FCStd, .dwg, .blend) remain strictly local.' + NewLine + NewLine;
+
+  if MemoDirInfo <> '' then
+    Result := Result + MemoDirInfo + NewLine + NewLine;
+  if MemoGroupInfo <> '' then
+    Result := Result + MemoGroupInfo + NewLine + NewLine;
+  if MemoTasksInfo <> '' then
+    Result := Result + MemoTasksInfo + NewLine + NewLine;
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ResultCode: Integer;
+begin
+  if CurStep = ssPostInstall then
+  begin
+    if (not IsFreeCADInstalled) and (not IsAutoCADInstalled) then
+    begin
+      if MsgBox(
+        'No supported CAD kernel (FreeCAD or AutoCAD) was detected.' + #13#10 + #13#10 +
+        'CAD Engine requires at least one parametric CAD application.' + #13#10 +
+        'Would you like to install FreeCAD automatically via winget?',
+        mbConfirmation, MB_YESNO) = IDYES then
+      begin
+        Exec('winget.exe', 'install FreeCAD.FreeCAD --accept-package-agreements --accept-source-agreements',
+          '', SW_SHOW, ewWaitUntilTerminated, ResultCode);
+      end else
+      begin
+        { Open the FreeCAD download page in the default browser }
+        ShellExec('open', 'https://www.freecad.org/downloads.php', '', '', SW_SHOW, ewNoWait, ResultCode);
+      end;
+    end;
+  end;
 end;

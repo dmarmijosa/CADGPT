@@ -1,5 +1,11 @@
 import { Injectable, signal } from '@angular/core';
-import { SupportedLanguage, TRANSLATIONS } from './translations';
+import { z } from 'zod';
+import { SupportedLanguage, TRANSLATIONS, TranslationKey } from './translations';
+
+const translationParamsSchema = z.record(
+  z.string().regex(/^[a-zA-Z0-9_]+$/),
+  z.union([z.string(), z.number()]),
+);
 
 @Injectable({
   providedIn: 'root',
@@ -56,19 +62,34 @@ export class TranslationService {
     }
   }
 
+  translate(key: TranslationKey, params?: Record<string, string | number>): string;
+  translate(key: string, params?: Record<string, string | number>): string;
   translate(key: string, params?: Record<string, string | number>): string {
     const lang = this.currentLang();
     const dict = TRANSLATIONS[lang] ?? TRANSLATIONS['en'];
-    let template = dict[key] ?? TRANSLATIONS['en'][key] ?? key;
+    let template: string | undefined;
 
-    if (params) {
-      for (const [k, v] of Object.entries(params)) {
-        template = template.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
+    if (key in dict) {
+      template = dict[key as TranslationKey];
+    } else if (key in TRANSLATIONS['en']) {
+      template = TRANSLATIONS['en'][key as TranslationKey];
+    } else {
+      template = key;
+    }
+
+    if (params && template) {
+      const parsed = translationParamsSchema.safeParse(params);
+      if (parsed.success) {
+        for (const [k, v] of Object.entries(parsed.data)) {
+          template = template.replaceAll(`{${k}}`, String(v));
+        }
       }
     }
-    return template;
+    return template ?? key;
   }
 
+  t(key: TranslationKey, params?: Record<string, string | number>): string;
+  t(key: string, params?: Record<string, string | number>): string;
   t(key: string, params?: Record<string, string | number>): string {
     return this.translate(key, params);
   }

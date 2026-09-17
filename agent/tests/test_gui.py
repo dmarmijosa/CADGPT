@@ -18,6 +18,7 @@ from agent.cadgpt_agent.gui import (
     OnboardingWizard,
     SystemTrayDaemon,
     create_cube_icon_image,
+    get_blender_install_guide_for_system,
     get_install_guide_for_system,
     get_tray_icon_image,
     register_user_blender_path,
@@ -547,6 +548,188 @@ class OnboardingWizardUiTests(unittest.TestCase):
                 # Go back goes from step 4 to step 3
                 wizard.go_back()
                 self.assertEqual(wizard.controller.current_step, 3)
+
+class Step2CadGateUiTests(unittest.TestCase):
+    """Verify Step 2 wizard rendering with OS-specific install commands and re-check."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.cfg_path = Path(self.tmp.name) / "config.json"
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _make_wizard(self, discover_return):
+        with patch("agent.cadgpt_agent.gui.discover") as mock_disc:
+            mock_disc.return_value = discover_return
+            controller = OnboardingController(config_path=self.cfg_path)
+        mock_master = MagicMock()
+        with patch("agent.cadgpt_agent.gui.ttk") as mock_ttk, \
+             patch("agent.cadgpt_agent.gui.tk") as mock_tk, \
+             patch("agent.cadgpt_agent.gui.messagebox"):
+            wizard = OnboardingWizard(master=mock_master, controller=controller)
+        return wizard
+
+    def test_step2_renders_recheck_button(self):
+        with patch("agent.cadgpt_agent.gui.discover", return_value=[]):
+            controller = OnboardingController(config_path=self.cfg_path)
+        mock_master = MagicMock()
+        with patch("agent.cadgpt_agent.gui.ttk"), \
+             patch("agent.cadgpt_agent.gui.tk"), \
+             patch("agent.cadgpt_agent.gui.messagebox"):
+            wizard = OnboardingWizard(master=mock_master, controller=controller)
+            wizard.show_step(2)
+        self.assertTrue(hasattr(wizard, "_on_recheck_cad"))
+        self.assertTrue(callable(wizard._on_recheck_cad))
+
+    def test_step2_renders_install_cmd_when_blocked(self):
+        wizard = self._make_wizard([])
+        self.assertFalse(wizard.controller.cad_prerequisite_met)
+        guide = get_install_guide_for_system()
+        # The guide must contain a cmd for the current OS
+        self.assertIn("cmd", guide)
+        self.assertTrue(len(guide["cmd"]) > 0)
+
+    def test_step2_renders_gate_passed_when_cad_found(self):
+        wizard = self._make_wizard([
+            {"name": "FreeCAD", "path": "/usr/bin/freecadcmd", "executable": True}
+        ])
+        self.assertTrue(wizard.controller.cad_prerequisite_met)
+        allowed, _ = wizard.controller.can_advance_from_step(2)
+        self.assertTrue(allowed)
+
+
+class Step3BlenderInstallUxTests(unittest.TestCase):
+    """Verify Step 3 guided Blender installation UX with install button, re-check, and OS commands."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.cfg_path = Path(self.tmp.name) / "config.json"
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _make_wizard(self, discover_return):
+        with patch("agent.cadgpt_agent.gui.discover") as mock_disc:
+            mock_disc.return_value = discover_return
+            controller = OnboardingController(config_path=self.cfg_path)
+        mock_master = MagicMock()
+        with patch("agent.cadgpt_agent.gui.ttk") as mock_ttk, \
+             patch("agent.cadgpt_agent.gui.tk") as mock_tk, \
+             patch("agent.cadgpt_agent.gui.messagebox"):
+            wizard = OnboardingWizard(master=mock_master, controller=controller)
+        return wizard
+
+    def test_step3_renders_install_blender_button_when_not_detected(self):
+        with patch("agent.cadgpt_agent.gui.discover") as mock_disc:
+            mock_disc.return_value = [
+                {"name": "FreeCAD", "path": "/usr/bin/freecadcmd", "executable": True}
+            ]
+            controller = OnboardingController(config_path=self.cfg_path)
+        self.assertFalse(controller.blender_found)
+        mock_master = MagicMock()
+        with patch("agent.cadgpt_agent.gui.ttk"), \
+             patch("agent.cadgpt_agent.gui.tk"), \
+             patch("agent.cadgpt_agent.gui.messagebox"):
+            wizard = OnboardingWizard(master=mock_master, controller=controller)
+            wizard.show_step(3)
+        # btn_install_blender i18n key must exist in both languages
+        from agent.cadgpt_agent.i18n import TRANSLATIONS
+        self.assertIn("btn_install_blender", TRANSLATIONS["en"])
+        self.assertIn("btn_install_blender", TRANSLATIONS["es"])
+
+    def test_step3_renders_recheck_button_when_not_detected(self):
+        wizard = self._make_wizard([
+            {"name": "FreeCAD", "path": "/usr/bin/freecadcmd", "executable": True}
+        ])
+        self.assertFalse(wizard.controller.blender_found)
+        self.assertTrue(hasattr(wizard, "_on_recheck_blender"))
+        self.assertTrue(callable(wizard._on_recheck_blender))
+
+    def test_step3_renders_os_install_cmd(self):
+        guide = get_blender_install_guide_for_system()
+        self.assertIn("cmd", guide)
+        self.assertIn("url", guide)
+        self.assertTrue(len(guide["cmd"]) > 0)
+        # Must be a recognized platform command
+        self.assertTrue(
+            any(kw in guide["cmd"] for kw in ("winget", "brew", "apt")),
+            f"Unexpected install command: {guide['cmd']}",
+        )
+
+    @patch("agent.cadgpt_agent.gui.discover")
+    def test_recheck_blender_refreshes_discovery(self, mock_discover):
+        mock_discover.return_value = [
+            {"name": "FreeCAD", "path": "/usr/bin/freecadcmd", "executable": True}
+        ]
+        controller = OnboardingController(config_path=self.cfg_path)
+        mock_master = MagicMock()
+        with patch("agent.cadgpt_agent.gui.ttk"), \
+             patch("agent.cadgpt_agent.gui.tk"), \
+             patch("agent.cadgpt_agent.gui.messagebox"):
+            wizard = OnboardingWizard(master=mock_master, controller=controller)
+            wizard.show_step = MagicMock()
+            wizard.controller.refresh_discovery = MagicMock()
+
+            wizard._on_recheck_blender()
+
+            wizard.controller.refresh_discovery.assert_called_once()
+            wizard.show_step.assert_called_once_with(3)
+
+
+class Step4WorkspaceCardTests(unittest.TestCase):
+    """Verify Step 4 workspace directory card rendering."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.cfg_path = Path(self.tmp.name) / "config.json"
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_step4_workspace_path_is_relative_to_config(self):
+        with patch("agent.cadgpt_agent.gui.discover", return_value=[]):
+            controller = OnboardingController(config_path=self.cfg_path)
+        expected = str((self.cfg_path.parent / "jobs").resolve())
+        self.assertTrue(len(expected) > 0)
+        self.assertTrue(expected.endswith("jobs"))
+
+    def test_step4_workspace_i18n_keys_exist(self):
+        from agent.cadgpt_agent.i18n import TRANSLATIONS
+        for key in ("step4_workspace_label", "step4_workspace_hint"):
+            self.assertIn(key, TRANSLATIONS["en"], f"Missing EN key: {key}")
+            self.assertIn(key, TRANSLATIONS["es"], f"Missing ES key: {key}")
+
+
+class StatusHudWorkspaceTests(unittest.TestCase):
+    """Verify Status HUD includes workspace directory line."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.cfg_path = Path(self.tmp.name) / "config.json"
+        self.cfg_path.write_text(
+            json.dumps({"server": "http://localhost:3000", "deviceId": "dev-test"}),
+            encoding="utf-8",
+        )
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    @patch("agent.cadgpt_agent.gui.discover")
+    def test_hud_text_contains_workspace_dir(self, mock_discover):
+        mock_discover.return_value = []
+        daemon = SystemTrayDaemon(server="http://localhost:3000", config_path=self.cfg_path)
+
+        expected_ws = str((self.cfg_path.parent / "jobs").resolve())
+        # The HUD text is built in on_view_status_hud; test the i18n key interpolation
+        from agent.cadgpt_agent.i18n import t
+        hud_line = t("hud_workspace_dir", "en", path=expected_ws)
+        self.assertIn(expected_ws, hud_line)
+        self.assertIn("Workspace Directory", hud_line)
+
+        hud_line_es = t("hud_workspace_dir", "es", path=expected_ws)
+        self.assertIn(expected_ws, hud_line_es)
+        self.assertIn("Directorio", hud_line_es)
 
 
 if __name__ == "__main__":

@@ -101,8 +101,16 @@ describe('TranslationService & TranslatePipe', () => {
 
   it('interpolates parameters in translation strings', () => {
     service.switchLanguage('en');
-    const res = service.translate('consent.badge', { foo: 'bar' });
-    expect(res).toBe('GDPR & ISO/IEC 27001');
+    const res = service.translate('Hello {name}, welcome to {product} v{version}!', {
+      name: 'User',
+      product: 'CAD Engine',
+      version: 1,
+    });
+    expect(res).toBe('Hello User, welcome to CAD Engine v1!');
+
+    // Rejects unsafe keys or ignores them
+    const safeRes = service.translate('Hello {name}!', { 'invalid-key-with-dashes': 'bad' });
+    expect(safeRes).toBe('Hello {name}!');
   });
 
   it('falls back to English when a translation is missing in the target language', () => {
