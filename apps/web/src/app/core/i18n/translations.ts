@@ -62,15 +62,50 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     'home.setup_title': 'Setup time',
     'home.setup_desc': 'One pairing code, valid for 10 minutes.',
     'home.flow_heading': 'From a bare install to a connected assistant',
-    'home.flow_step1_title': '1. Run the local connector',
+    'home.flow_step1_title': 'Install the connector',
     'home.flow_step1_desc':
-      'A single executable runs FreeCAD commands or drives AutoCAD without leaving your machine.',
-    'home.flow_step2_title': '2. Pair with one code',
+      'Run the CAD Engine agent on the computer with FreeCAD, or AutoCAD 2026 Core Console (AutoCAD LT is detection-only).',
+    'home.flow_step2_title': 'Pair the machine',
     'home.flow_step2_desc':
-      'Enter the 12-character code shown on your computer. No credentials leave your machine.',
-    'home.flow_step3_title': '3. Model from any chat',
+      'Link it to your account with a one-time code that expires in 10 minutes.',
+    'home.flow_step3_title': 'Connect Claude or ChatGPT',
     'home.flow_step3_desc':
-      'Ask Claude or ChatGPT to design parts, edit sketches, and export manufacturing-ready models.',
+      "Add the CAD Engine connector in your assistant's settings and sign in.",
+    'home.cap_heading': 'What runs today',
+    'home.cap_legend_full': 'executes now',
+    'home.cap_legend_partial': 'executes on some installs',
+    'home.cap_legend_none': 'detected, not executed',
+    'home.cap_freecad_title': 'FreeCAD',
+    'home.cap_freecad_note': 'Full execution on any host with a working FreeCADCmd.',
+    'home.cap_freecad_create': 'Create — primitives, booleans, extrusions',
+    'home.cap_freecad_modify': 'Modify — transforms on named designs',
+    'home.cap_freecad_read': 'Read — scene contents and dimensions',
+    'home.cap_freecad_export': 'Export — STEP, STL, and DXF',
+    'home.cap_autocad_title': 'AutoCAD',
+    'home.cap_autocad_note':
+      'Full 13-operation headless execution with AutoCAD 2026 Core Console on Windows; AutoCAD LT is detected only.',
+    'home.cap_autocad_create': 'Create — 3D primitives (box, cylinder, sphere, cone, extrude)',
+    'home.cap_autocad_modify': 'Modify — 3D booleans (cut, union, intersect) & transforms',
+    'home.cap_autocad_verify_export':
+      'Verify & Export — native DWG/DXF, MASSPROP volumetric checks & binary STL preview via STLOUT',
+    'home.cap_autocad_lt':
+      'AutoCAD LT — detected only; execution disabled (lacks accoreconsole.exe & 3D/STLOUT)',
+    'home.trust_heading': 'What stays yours',
+    'home.trust_item1':
+      'Every operation runs from a fixed allowlist — nothing free-form ever reaches the machine.',
+    'home.trust_item2_prefix': 'Native files (',
+    'home.trust_item2_mid': ') never leave the computer that owns them.',
+    'home.trust_item3':
+      'Only a generated STL preview mesh uploads, and only so the dashboard can render it.',
+    'home.trust_diag_history': 'Job & device history',
+    'home.trust_diag_mesh': 'STL preview mesh',
+    'home.trust_diag_render': 'Dashboard render',
+    'home.trust_caption':
+      'Native CAD files and job history stop at the boundary. Only a size-capped STL preview mesh crosses it, so the dashboard has something to render.',
+    'home.closing_heading': 'Connect once. Keep everything local.',
+    'home.closing_open_dashboard': 'Open your dashboard',
+    'home.closing_sign_in': 'Sign in',
+    'home.closing_download': 'Download the connector ↗',
 
     // Pair Page
     'pair.eyebrow': 'LINK A COMPUTER',
@@ -332,15 +367,51 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     'home.setup_title': 'Tiempo de configuración',
     'home.setup_desc': 'Un código de vinculación, válido por 10 minutos.',
     'home.flow_heading': 'Desde una instalación limpia hasta un asistente conectado',
-    'home.flow_step1_title': '1. Ejecute el conector local',
+    'home.flow_step1_title': 'Instale el conector',
     'home.flow_step1_desc':
-      'Un único ejecutable procesa comandos de FreeCAD o AutoCAD sin salir de su máquina.',
-    'home.flow_step2_title': '2. Vincule con un código',
+      'Ejecute el agente CAD Engine en el equipo con FreeCAD o AutoCAD 2026 Core Console (AutoCAD LT es solo detección).',
+    'home.flow_step2_title': 'Vincule el equipo',
     'home.flow_step2_desc':
-      'Ingrese el código de 12 caracteres mostrado en su computadora. Ninguna credencial abandona su equipo.',
-    'home.flow_step3_title': '3. Diseñe desde cualquier chat',
+      'Vincúlelo a su cuenta con un código de un solo uso que caduca a los 10 minutos.',
+    'home.flow_step3_title': 'Conecte Claude o ChatGPT',
     'home.flow_step3_desc':
-      'Pida a Claude o ChatGPT que cree piezas, edite bocetos y exporte modelos listos para fabricación.',
+      'Añada el conector CAD Engine en la configuración de su asistente e inicie sesión.',
+    'home.cap_heading': 'Qué se ejecuta hoy',
+    'home.cap_legend_full': 'se ejecuta ahora',
+    'home.cap_legend_partial': 'se ejecuta en algunas instalaciones',
+    'home.cap_legend_none': 'detectado, no ejecutado',
+    'home.cap_freecad_title': 'FreeCAD',
+    'home.cap_freecad_note': 'Ejecución completa en cualquier host con un FreeCADCmd operativo.',
+    'home.cap_freecad_create': 'Crear — primitivas, booleanas, extrusiones',
+    'home.cap_freecad_modify': 'Modificar — transformaciones en diseños con nombre',
+    'home.cap_freecad_read': 'Leer — contenidos de escena y dimensiones',
+    'home.cap_freecad_export': 'Exportar — STEP, STL y DXF',
+    'home.cap_autocad_title': 'AutoCAD',
+    'home.cap_autocad_note':
+      'Ejecución desatendida completa de 13 operaciones con AutoCAD 2026 Core Console en Windows; AutoCAD LT es solo detección.',
+    'home.cap_autocad_create': 'Crear — primitivas 3D (caja, cilindro, esfera, cono, extrusión)',
+    'home.cap_autocad_modify':
+      'Modificar — booleanas 3D (corte, unión, intersección) y transformaciones',
+    'home.cap_autocad_verify_export':
+      'Verificar y exportar — DWG/DXF nativo, comprobaciones volumétricas MASSPROP y vista previa STL binaria vía STLOUT',
+    'home.cap_autocad_lt':
+      'AutoCAD LT — solo detección; ejecución deshabilitada (carece de accoreconsole.exe y 3D/STLOUT)',
+    'home.trust_heading': 'Lo que permanece bajo su control',
+    'home.trust_item1':
+      'Cada operación se ejecuta desde una lista permitida cerrada — nada libre llega a la máquina.',
+    'home.trust_item2_prefix': 'Los archivos nativos (',
+    'home.trust_item2_mid': ') nunca salen de la computadora que los posee.',
+    'home.trust_item3':
+      'Solo se sube una malla de vista previa STL generada, únicamente para que el panel pueda renderizarla.',
+    'home.trust_diag_history': 'Historial de trabajos y equipos',
+    'home.trust_diag_mesh': 'Malla de vista previa STL',
+    'home.trust_diag_render': 'Renderizado del panel',
+    'home.trust_caption':
+      'Los archivos CAD nativos y el historial de trabajos se detienen en el límite. Solo una malla de previsualización STL con límite de tamaño lo cruza, para que el panel tenga qué renderizar.',
+    'home.closing_heading': 'Conecte una vez. Mantenga todo local.',
+    'home.closing_open_dashboard': 'Abrir panel de control',
+    'home.closing_sign_in': 'Iniciar sesión',
+    'home.closing_download': 'Descargar el conector ↗',
 
     // Pair Page
     'pair.eyebrow': 'VINCULAR UN EQUIPO',

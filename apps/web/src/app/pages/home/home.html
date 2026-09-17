@@ -31,7 +31,7 @@
 </section>
 
 <section class="flow" aria-labelledby="flow-heading" appRevealOnScroll>
-  <h2 id="flow-heading">From a bare install to a connected assistant</h2>
+  <h2 id="flow-heading">{{ 'home.flow_heading' | translate }}</h2>
   <div class="flow__diagram">
     <svg class="flow__wire" viewBox="0 0 600 2" preserveAspectRatio="none" aria-hidden="true">
       <line
@@ -60,10 +60,9 @@
             <path d="M8 21h8M12 17v4" />
           </svg>
         </span>
-        <strong>Install the connector</strong>
+        <strong>{{ 'home.flow_step1_title' | translate }}</strong>
         <p>
-          Run the CAD Engine agent on the computer with FreeCAD, or AutoCAD 2026 Core Console
-          (AutoCAD LT is detection-only).
+          {{ 'home.flow_step1_desc' | translate }}
         </p>
       </li>
       <li class="flow__node flow__node--offset">
@@ -81,8 +80,8 @@
             <path d="M17 10h4M17 14h4" />
           </svg>
         </span>
-        <strong>Pair the machine</strong>
-        <p>Link it to your account with a one-time code that expires in 10 minutes.</p>
+        <strong>{{ 'home.flow_step2_title' | translate }}</strong>
+        <p>{{ 'home.flow_step2_desc' | translate }}</p>
       </li>
       <li class="flow__node">
         <span class="flow__mark" aria-hidden="true">
@@ -99,62 +98,65 @@
             <path d="M9 12h6" />
           </svg>
         </span>
-        <strong>Connect Claude or ChatGPT</strong>
-        <p>Add the CAD Engine connector in your assistant's settings and sign in.</p>
+        <strong>{{ 'home.flow_step3_title' | translate }}</strong>
+        <p>{{ 'home.flow_step3_desc' | translate }}</p>
       </li>
     </ol>
   </div>
 </section>
 
 <section class="capability-sheet" aria-labelledby="capability-heading" appRevealOnScroll>
-  <h2 id="capability-heading">What runs today</h2>
+  <h2 id="capability-heading">{{ 'home.cap_heading' | translate }}</h2>
   <p class="capability-sheet__legend">
-    <span class="dot dot--full" aria-hidden="true"></span> executes now
-    <span class="dot dot--partial" aria-hidden="true"></span> executes on some installs
-    <span class="dot dot--none" aria-hidden="true"></span> detected, not executed
+    <span class="dot dot--full" aria-hidden="true"></span> {{ 'home.cap_legend_full' | translate }}
+    <span class="dot dot--partial" aria-hidden="true"></span>
+    {{ 'home.cap_legend_partial' | translate }}
+    <span class="dot dot--none" aria-hidden="true"></span> {{ 'home.cap_legend_none' | translate }}
   </p>
   <div class="capability-sheet__panels">
     <article class="capability-panel capability-panel--freecad">
-      <h3>FreeCAD</h3>
-      <p class="capability-panel__note">Full execution on any host with a working FreeCADCmd.</p>
+      <h3>{{ 'home.cap_freecad_title' | translate }}</h3>
+      <p class="capability-panel__note">{{ 'home.cap_freecad_note' | translate }}</p>
       <ul class="capability-list">
         <li>
-          <span class="dot dot--full" aria-hidden="true"></span> Create — primitives, booleans,
-          extrusions
+          <span class="dot dot--full" aria-hidden="true"></span>
+          {{ 'home.cap_freecad_create' | translate }}
         </li>
         <li>
-          <span class="dot dot--full" aria-hidden="true"></span> Modify — transforms on named
-          designs
+          <span class="dot dot--full" aria-hidden="true"></span>
+          {{ 'home.cap_freecad_modify' | translate }}
         </li>
         <li>
-          <span class="dot dot--full" aria-hidden="true"></span> Read — scene contents and
-          dimensions
+          <span class="dot dot--full" aria-hidden="true"></span>
+          {{ 'home.cap_freecad_read' | translate }}
         </li>
-        <li><span class="dot dot--full" aria-hidden="true"></span> Export — STEP, STL, and DXF</li>
+        <li>
+          <span class="dot dot--full" aria-hidden="true"></span>
+          {{ 'home.cap_freecad_export' | translate }}
+        </li>
       </ul>
     </article>
     <article class="capability-panel capability-panel--autocad">
-      <h3>AutoCAD</h3>
+      <h3>{{ 'home.cap_autocad_title' | translate }}</h3>
       <p class="capability-panel__note">
-        Full 13-operation headless execution with AutoCAD 2026 Core Console on Windows; AutoCAD LT
-        is detected only.
+        {{ 'home.cap_autocad_note' | translate }}
       </p>
       <ul class="capability-list">
         <li>
-          <span class="dot dot--full" aria-hidden="true"></span> Create — 3D primitives (box,
-          cylinder, sphere, cone, extrude)
+          <span class="dot dot--full" aria-hidden="true"></span>
+          {{ 'home.cap_autocad_create' | translate }}
         </li>
         <li>
-          <span class="dot dot--full" aria-hidden="true"></span> Modify — 3D booleans (cut, union,
-          intersect) &amp; transforms
+          <span class="dot dot--full" aria-hidden="true"></span>
+          {{ 'home.cap_autocad_modify' | translate }}
         </li>
         <li>
-          <span class="dot dot--full" aria-hidden="true"></span> Verify &amp; Export — native
-          DWG/DXF, MASSPROP volumetric checks &amp; binary STL preview via STLOUT
+          <span class="dot dot--full" aria-hidden="true"></span>
+          {{ 'home.cap_autocad_verify_export' | translate }}
         </li>
         <li>
-          <span class="dot dot--none" aria-hidden="true"></span> AutoCAD LT — detected only;
-          execution disabled (lacks accoreconsole.exe &amp; 3D/STLOUT)
+          <span class="dot dot--none" aria-hidden="true"></span>
+          {{ 'home.cap_autocad_lt' | translate }}
         </li>
       </ul>
     </article>
@@ -163,16 +165,16 @@
 
 <section class="trust" aria-labelledby="trust-heading" appRevealOnScroll>
   <div class="trust__copy">
-    <h2 id="trust-heading">What stays yours</h2>
+    <h2 id="trust-heading">{{ 'home.trust_heading' | translate }}</h2>
     <ul class="security-list">
       <li>
-        Every operation runs from a fixed allowlist — nothing free-form ever reaches the machine.
+        {{ 'home.trust_item1' | translate }}
       </li>
       <li>
-        Native files (<code>.FCStd</code>, <code>.dwg</code>) never leave the computer that owns
-        them.
+        {{ 'home.trust_item2_prefix' | translate }}<code>.FCStd</code>, <code>.dwg</code
+        >{{ 'home.trust_item2_mid' | translate }}
       </li>
-      <li>Only a generated STL preview mesh uploads, and only so the dashboard can render it.</li>
+      <li>{{ 'home.trust_item3' | translate }}</li>
     </ul>
   </div>
   <figure class="trust__diagram">
@@ -208,7 +210,7 @@
         stroke="var(--color-blue)"
       />
       <text x="72" y="84" text-anchor="middle" font-size="10" fill="var(--color-blue-strong)">
-        Job &amp; device history
+        {{ 'home.trust_diag_history' | translate }}
       </text>
       <rect
         x="18"
@@ -220,7 +222,7 @@
         stroke="var(--color-brass)"
       />
       <text x="72" y="128" text-anchor="middle" font-size="10" fill="var(--color-brass-strong)">
-        STL preview mesh
+        {{ 'home.trust_diag_mesh' | translate }}
       </text>
       <path
         d="M128 124 H172"
@@ -238,7 +240,7 @@
         stroke="var(--color-rule-strong)"
       />
       <text x="228" y="128" text-anchor="middle" font-size="10" fill="var(--color-ink-muted)">
-        Dashboard render
+        {{ 'home.trust_diag_render' | translate }}
       </text>
       <defs>
         <marker
@@ -255,20 +257,19 @@
       </defs>
     </svg>
     <figcaption>
-      Native CAD files and job history stop at the boundary. Only a size-capped STL preview mesh
-      crosses it, so the dashboard has something to render.
+      {{ 'home.trust_caption' | translate }}
     </figcaption>
   </figure>
 </section>
 
 <section class="closing" appRevealOnScroll>
-  <h2>Connect once. Keep everything local.</h2>
+  <h2>{{ 'home.closing_heading' | translate }}</h2>
   <div class="hero-actions">
     @if (auth.user()) {
-      <a class="cta" routerLink="/designs">Open your dashboard</a>
+      <a class="cta" routerLink="/designs">{{ 'home.closing_open_dashboard' | translate }}</a>
     } @else {
-      <button type="button" (click)="signIn()">Sign in</button>
+      <button type="button" (click)="signIn()">{{ 'home.closing_sign_in' | translate }}</button>
     }
-    <a class="quiet" [href]="releasesUrl">Download the connector ↗</a>
+    <a class="quiet" [href]="releasesUrl">{{ 'home.closing_download' | translate }}</a>
   </div>
 </section>
