@@ -154,6 +154,26 @@ export class Store {
     if (!columns.includes('type')) this.db.exec('ALTER TABLE jobs ADD COLUMN type TEXT');
     if (!columns.includes('document_id'))
       this.db.exec('ALTER TABLE jobs ADD COLUMN document_id TEXT');
+
+    const docRow = this.db
+      .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='documents'")
+      .get() as Row | undefined;
+    if (docRow?.sql && !docRow.sql.includes("'Blender'")) {
+      this.db.exec(`
+        PRAGMA foreign_keys=OFF;
+        CREATE TABLE documents_migrated (
+          id TEXT PRIMARY KEY, owner TEXT NOT NULL, device_id TEXT NOT NULL,
+          cad_kind TEXT NOT NULL CHECK (cad_kind IN ('FreeCAD','AutoCAD','Blender')),
+          name TEXT NOT NULL, native_path TEXT, created INTEGER NOT NULL,
+          updated INTEGER NOT NULL, latest_job_id TEXT
+        );
+        INSERT INTO documents_migrated SELECT * FROM documents;
+        DROP TABLE documents;
+        ALTER TABLE documents_migrated RENAME TO documents;
+        CREATE INDEX IF NOT EXISTS documents_owner ON documents(owner, updated DESC);
+        PRAGMA foreign_keys=ON;
+      `);
+    }
   }
   begin(name: string, cads: unknown) {
     this.db.prepare('DELETE FROM pairings WHERE expires < ?').run(this.now() - 60000);

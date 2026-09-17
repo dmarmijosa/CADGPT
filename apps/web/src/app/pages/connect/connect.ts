@@ -26,15 +26,15 @@ export class ConnectPage {
   readonly copiedSnippet = signal<string | null>(null);
 
   readonly linuxSnippet = computed(
-    () => `sudo tee /etc/systemd/system/cadgpt-agent.service >/dev/null <<'EOF'
+    () => `sudo tee /etc/systemd/system/cadengine.service >/dev/null <<'EOF'
 [Unit]
-Description=CAD Agent Designer bridge
+Description=CAD Engine Background Agent
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 User=youruser
-ExecStart=/usr/local/bin/cadgpt-agent --server ${this.serverOrigin}
+ExecStart=/usr/local/bin/cadengine --server ${this.serverOrigin}
 Restart=always
 RestartSec=5
 
@@ -42,7 +42,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 sudo systemctl daemon-reload
-sudo systemctl enable --now cadgpt-agent`,
+sudo systemctl enable --now cadengine`,
   );
 
   readonly macosSnippet = computed(
@@ -50,28 +50,28 @@ sudo systemctl enable --now cadgpt-agent`,
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>Label</key><string>com.cadgpt.agent</string>
+  <key>Label</key><string>com.cadengine.agent</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/Applications/CADGPT.app/Contents/MacOS/CADGPT</string>
+    <string>/Applications/CAD Engine.app/Contents/MacOS/cadengine</string>
     <string>--server</string>
     <string>${this.serverOrigin}</string>
   </array>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
-  <key>StandardOutPath</key><string>/tmp/cadgpt-agent.log</string>
-  <key>StandardErrorPath</key><string>/tmp/cadgpt-agent.log</string>
+  <key>StandardOutPath</key><string>/tmp/cadengine.log</string>
+  <key>StandardErrorPath</key><string>/tmp/cadengine.log</string>
 </dict>
 </plist>`,
   );
 
   readonly windowsSnippet = computed(
-    () => `$exe = "C:\\Program Files\\CAD Agent Designer\\CADGPT.exe"
+    () => `$exe = "C:\\Program Files\\CAD Engine\\cadengine.exe"
 $action  = New-ScheduledTaskAction -Execute $exe -Argument "--server ${this.serverOrigin}"
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User "YOURUSER"
 $settings = New-ScheduledTaskSettingsSet -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -StartWhenAvailable
-Register-ScheduledTask -TaskName "CAD Agent Designer" -Action $action -Trigger $trigger -Settings $settings -RunLevel Limited -User "YOURUSER"
-Start-ScheduledTask -TaskName "CAD Agent Designer"`,
+Register-ScheduledTask -TaskName "CAD Engine" -Action $action -Trigger $trigger -Settings $settings -RunLevel Limited -User "YOURUSER"
+Start-ScheduledTask -TaskName "CAD Engine"`,
   );
 
   /** The device this page was linked to, once `WorkspaceStore.devices` loads. */

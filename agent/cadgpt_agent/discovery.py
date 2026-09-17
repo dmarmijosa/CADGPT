@@ -144,6 +144,11 @@ def discover(manual=None, enable_autocad=False, blender_path=None):
                 paths.append(Path(winreg.QueryValue(key, None)))
         except (ImportError, OSError, AttributeError):
             pass
+        try:
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\blender.exe") as key:
+                paths.append(Path(winreg.QueryValue(key, None)))
+        except (ImportError, OSError, AttributeError):
+            pass
         for install in _autocad_registry_installs():
             paths.append(install["console"])
             console_editions[str(install["console"])] = install["edition"]
@@ -157,15 +162,17 @@ def discover(manual=None, enable_autocad=False, blender_path=None):
         for root in (Path("/Applications"), Path.home() / "Applications"):
             paths.extend(root.glob("FreeCAD*.app/Contents/Resources/bin/FreeCADCmd"))
             paths.extend(root.glob("FreeCAD*.app/Contents/MacOS/FreeCADCmd"))
+            paths.extend(root.glob("FreeCAD*.app/Contents/Resources/bin/freecadcmd"))
             paths.extend(root.glob("Autodesk/AutoCAD*/*.app"))
             paths.extend(root.glob("Autodesk/AutoCAD*.app"))
             paths.extend(root.glob("Blender.app/Contents/MacOS/Blender"))
             paths.extend(root.glob("Blender*/Blender.app/Contents/MacOS/Blender"))
     else:
-        for root in (Path("/usr/bin"), Path("/usr/local/bin")):
+        for root in (Path("/usr/bin"), Path("/usr/local/bin"), Path.home() / ".local/bin"):
             paths.extend(root.glob("*reecad*"))
             paths.extend(root.glob("blender"))
         paths.extend(Path("/opt").glob("FreeCAD*/bin/FreeCADCmd"))
+        paths.extend(Path.home().glob("blender*/blender"))
         paths.extend(Path("/snap/bin").glob("blender"))
         paths.extend(Path("/var/lib/flatpak/exports/bin").glob("*blender*"))
         paths.extend((Path.home() / ".local/share/flatpak/exports/bin").glob("*blender*"))

@@ -89,7 +89,7 @@
         <h3>systemd service</h3>
       </div>
       <p>
-        Create a service under <code>/etc/systemd/system/cadgpt-agent.service</code> (replace
+        Create a service under <code>/etc/systemd/system/cadengine.service</code> (replace
         <code>youruser</code> with your paired account):
       </p>
       <div class="snippet-box">
@@ -112,7 +112,7 @@
         <h3>launchd LaunchAgent</h3>
       </div>
       <p>
-        Create <code>~/Library/LaunchAgents/com.cadgpt.agent.plist</code> to run within your user
+        Create <code>~/Library/LaunchAgents/com.cadengine.agent.plist</code> to run within your user
         session:
       </p>
       <div class="snippet-box">
@@ -128,7 +128,7 @@
       </div>
       <small class="hint"
         >Load immediately:
-        <code>launchctl load ~/Library/LaunchAgents/com.cadgpt.agent.plist</code></small
+        <code>launchctl load ~/Library/LaunchAgents/com.cadengine.agent.plist</code></small
       >
     </article>
 

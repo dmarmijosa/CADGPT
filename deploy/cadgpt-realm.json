@@ -1,5 +1,7 @@
 {
   "realm": "cadgpt",
+  "displayName": "CAD Engine",
+  "displayNameHtml": "CAD Engine",
   "enabled": true,
   "loginTheme": "cadgpt",
   "registrationAllowed": true,
@@ -31,7 +33,7 @@
   "clients": [
     {
       "clientId": "cadgpt-web",
-      "name": "CADGPT Dashboard",
+      "name": "CAD Engine Dashboard",
       "enabled": true,
       "publicClient": true,
       "standardFlowEnabled": true,

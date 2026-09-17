@@ -107,7 +107,7 @@ body,
 }
 
 #kc-header-wrapper::after {
-  content: 'CAD AGENT DESIGNER';
+  content: '3D CAD & MESH WORKBENCH';
   display: block;
   font-size: 0.75rem;
   letter-spacing: 0.15em;

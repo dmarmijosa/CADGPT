@@ -90,14 +90,14 @@ describe('ConnectPage (spec mcp-client-onboarding)', () => {
     expect(macosSnippet).not.toEqual(windowsSnippet);
 
     // Specific OS commands and markers
-    expect(linuxSnippet).toContain('cadgpt-agent.service');
-    expect(linuxSnippet).toContain('systemctl enable --now cadgpt-agent');
+    expect(linuxSnippet).toContain('cadengine.service');
+    expect(linuxSnippet).toContain('systemctl enable --now cadengine');
 
-    expect(macosSnippet).toContain('com.cadgpt.agent');
+    expect(macosSnippet).toContain('com.cadengine.agent');
     expect(macosSnippet).toContain('KeepAlive');
 
     expect(windowsSnippet).toContain('Register-ScheduledTask');
-    expect(windowsSnippet).toContain('CAD Agent Designer');
+    expect(windowsSnippet).toContain('CAD Engine');
     expect(windowsSnippet).toContain('New-ScheduledTaskAction');
 
     // Copy buttons exist for each OS
