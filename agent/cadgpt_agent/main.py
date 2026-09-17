@@ -716,20 +716,32 @@ def cmd_test(args):
         )
         t0 = time.time()
         job_id = str(uuid.uuid4())
-        job = {
-            "id": job_id,
-            "cadId": cad["id"],
-            "type": "create_box",
-            "length": 10.0,
-            "width": 10.0,
-            "height": 10.0,
-            "confirmed": True,
-            "expires": time.time() * 1000 + 60000,
-        }
+        if cad["name"] == "Blender":
+            job = {
+                "id": job_id,
+                "cadId": cad["id"],
+                "type": "create_blender_mesh",
+                "primitive_type": "cube",
+                "size": 10.0,
+                "confirmed": True,
+                "expires": time.time() * 1000 + 60000,
+            }
+            native_ext = ".blend"
+        else:
+            job = {
+                "id": job_id,
+                "cadId": cad["id"],
+                "type": "create_box",
+                "length": 10.0,
+                "width": 10.0,
+                "height": 10.0,
+                "confirmed": True,
+                "expires": time.time() * 1000 + 60000,
+            }
+            native_ext = ".dwg" if cad["name"] == "AutoCAD" else ".FCStd"
         with tempfile.TemporaryDirectory() as d:
             try:
                 execute(job, [cad], d, timeout=30)
-                native_ext = ".dwg" if cad["name"] == "AutoCAD" else ".FCStd"
                 native_candidates = list(Path(d).glob(f"**/*{native_ext}"))
                 if not native_candidates:
                     raise RuntimeError(
@@ -1383,7 +1395,7 @@ def create_parser():
 
     # test
     p_test = subparsers.add_parser("test", help="Run local offline CAD smoke test")
-    p_test.add_argument("--cad", choices=["freecad", "autocad"], type=str.lower, help="Specific CAD engine to test")
+    p_test.add_argument("--cad", choices=["freecad", "autocad", "blender"], type=str.lower, help="Specific CAD/3D engine to test")
 
     # doctor
     p_doctor = subparsers.add_parser("doctor", parents=[parent_parser], help="Run end-to-end diagnostic roadmap")

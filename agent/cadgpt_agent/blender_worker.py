@@ -194,7 +194,7 @@ def create_blender_mesh(data: dict[str, Any], doc_dir: Path | None, job_dir: Pat
     """1. create_blender_mesh: creates quad-dominant base primitive with optional subdivision."""
     _check_confirmed(data)
     name = _object_name(data.get("name") or "Mesh", "name")
-    primitive_type = data.get("primitive_type")
+    primitive_type = data.get("primitive_type") or data.get("primitive")
     if primitive_type not in PRIMITIVE_TYPES:
         raise ValueError(f"Invalid primitive_type '{primitive_type}'; must be one of {PRIMITIVE_TYPES}")
 

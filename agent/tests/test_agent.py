@@ -674,6 +674,26 @@ class TestSubcommandTests(unittest.TestCase):
             self.assertEqual(ret, 0)
             self.assertIn("[PASS] FreeCAD smoke test succeeded", out.getvalue())
 
+    def test_smoke_test_blender_successful(self):
+        from cadgpt_agent.main import main
+        cad = {"id": "cad-blender", "name": "Blender", "path": "/bin/blender", "executable": True}
+        with patch("cadgpt_agent.main.discover", return_value=[cad]), \
+             patch("cadgpt_agent.main.execute") as mock_exec:
+            def fake_exec(job, cads, root, **kwargs):
+                self.assertEqual(job["type"], "create_blender_mesh")
+                self.assertEqual(job["primitive_type"], "cube")
+                jdir = Path(root) / "jobs" / job["id"]
+                jdir.mkdir(parents=True, exist_ok=True)
+                (jdir / "design.blend").write_bytes(b"BLENDER_V400")
+                (jdir / "preview.stl").write_bytes(b"A" * 100)
+                return "ok"
+            mock_exec.side_effect = fake_exec
+            out = io.StringIO()
+            with patch("sys.stdout", out):
+                ret = main(["test", "--cad", "blender"])
+            self.assertEqual(ret, 0)
+            self.assertIn("[PASS] Blender smoke test succeeded", out.getvalue())
+
     def test_smoke_test_failure_reports_diagnostics(self):
         from cadgpt_agent.main import main
         cad = {"id": "cad-1", "name": "FreeCAD", "path": "/bin/FreeCADCmd", "executable": True}

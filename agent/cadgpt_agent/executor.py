@@ -207,7 +207,7 @@ def execute(job, cads, root, allowed_roots=None, timeout=120):
         params = {k: v for k, v in job.items() if k not in envelope_keys}
         if contained_path is not None:
             params["native_path"] = str(contained_path)
-        request.write_text(json.dumps({"op": op, "document_id": job.get("documentId"), **params}), encoding="utf-8")
+        request.write_text(json.dumps({"op": op, "document_id": job.get("documentId"), "confirmed": job.get("confirmed", True), **params}), encoding="utf-8")
     base_env = {k: v for k, v in os.environ.items() if k not in ("PYTHONHOME", "PYTHONPATH", "LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH")}
     base_env["CADGPT_JOB_DIR"] = str(directory.resolve())
     if doc_dir is not None:

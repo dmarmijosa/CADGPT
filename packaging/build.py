@@ -61,6 +61,10 @@ def validate_packaging_assets():
     if not worker.is_file():
         raise FileNotFoundError(f"FreeCAD worker not found: {worker}")
 
+    blender_worker = ROOT / "agent" / "cadgpt_agent" / "blender_worker.py"
+    if not blender_worker.is_file():
+        raise FileNotFoundError(f"Blender worker not found: {blender_worker}")
+
     gui_file = ROOT / "agent" / "cadgpt_agent" / "gui.py"
     if not gui_file.is_file():
         raise FileNotFoundError(f"GUI module not found: {gui_file}")
@@ -118,6 +122,8 @@ def get_pyinstaller_command(dist_dir: Path) -> list[str]:
         "PIL",
         "--add-data",
         f"{ROOT / 'agent/cadgpt_agent/freecad_worker.py'}{sep}cadgpt_agent",
+        "--add-data",
+        f"{ROOT / 'agent/cadgpt_agent/blender_worker.py'}{sep}cadgpt_agent",
         "--add-data",
         f"{ROOT / 'agent/cadgpt_agent/vision.py'}{sep}cadgpt_agent",
         "--add-data",
