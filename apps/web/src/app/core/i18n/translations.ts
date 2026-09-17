@@ -227,6 +227,37 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     'connect.try_prompt2': '"Model an extruded enclosure profile"',
     'connect.try_hint':
       'Note: CAD Agent Designer specializes in precision parametric and mechanical CAD modeling (primitives, transforms, booleans, and extrusions), along with subdivision polygonal modeling via Blender 4.x.',
+    'connect.auto_service_badge': 'Recommended',
+    'connect.auto_service_title': 'Automated One-Step Setup',
+    'connect.auto_service_desc':
+      'Run the command below in your terminal. The agent automatically detects your operating system, configures the native service manager (Windows Task Scheduler, macOS launchd, or Linux systemd), and runs in the background without needing root or administrative passwords:',
+    'connect.auto_service_copy_aria': 'Copy automated service install command',
+    'connect.manual_services_heading': 'Manual Daemon Configuration (Advanced / Headless)',
+    'connect.manual_services_desc':
+      'If you prefer system-wide installation or operate a multi-user headless server, use the platform-specific scripts below:',
+    'connect.cli_title': 'CAD Engine CLI Command Reference',
+    'connect.cli_subtitle':
+      'Built-in commands for pairing, diagnostics, testing, and daemon management:',
+    'connect.cli_th_command': 'Command',
+    'connect.cli_th_description': 'Description',
+    'connect.cli_cmd_pair':
+      'Pair workstation with your CAD Engine account using a 12-character one-time code.',
+    'connect.cli_cmd_service':
+      'Automate background daemon lifecycle (install, start, stop, status, uninstall) natively.',
+    'connect.cli_cmd_status':
+      'Inspect host, server connection latency, stored authentication keys, and discovered CAD engines.',
+    'connect.cli_cmd_doctor':
+      'Run end-to-end environment validation with optional auto-remediation (--fix) for headless FreeCAD.',
+    'connect.cli_cmd_test':
+      'Run local offline smoke tests against FreeCAD, AutoCAD, or Blender to verify geometric output.',
+    'connect.cli_cmd_gui':
+      'Launch the cross-platform onboarding wizard and system tray background controller.',
+    'connect.cli_cmd_logs':
+      'Inspect or follow (-f) local agent rotating execution logs in real time.',
+    'connect.cli_cmd_unpair':
+      'Revoke workstation authorization on the cloud server and wipe local stored credentials.',
+    'connect.cli_cmd_version':
+      'Display version tag and optionally query GitHub (--check) for published updates.',
 
     // About Page
     'about.title': 'About',
@@ -534,6 +565,37 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     'connect.try_prompt2': '"Modele un perfil de gabinete extruido"',
     'connect.try_hint':
       'Nota: CAD Agent Designer se especializa en modelado CAD mecánico y paramétrico de precisión (primitivas, transformaciones, booleanas y extrusiones), junto con modelado poligonal por subdivisión con Blender 4.x.',
+    'connect.auto_service_badge': 'Recomendado',
+    'connect.auto_service_title': 'Configuración Automática en un Solo Paso',
+    'connect.auto_service_desc':
+      'Ejecute el siguiente comando en su terminal. El agente detecta automáticamente su sistema operativo, configura el administrador de servicios nativo (Programador de Tareas en Windows, launchd en macOS o systemd en Linux) y se ejecuta en segundo plano sin requerir permisos de root o administrador:',
+    'connect.auto_service_copy_aria': 'Copiar comando de instalación automática del servicio',
+    'connect.manual_services_heading': 'Configuración Manual del Demonio (Avanzado / Servidores)',
+    'connect.manual_services_desc':
+      'Si prefiere una instalación a nivel de todo el sistema o administra un servidor sin entorno gráfico, utilice los scripts específicos para cada plataforma a continuación:',
+    'connect.cli_title': 'Referencia de Comandos CLI de CAD Engine',
+    'connect.cli_subtitle':
+      'Comandos integrados para vinculación, diagnóstico, pruebas y gestión del demonio:',
+    'connect.cli_th_command': 'Comando',
+    'connect.cli_th_description': 'Descripción',
+    'connect.cli_cmd_pair':
+      'Vincula la estación de trabajo con su cuenta mediante un código de un solo uso de 12 caracteres.',
+    'connect.cli_cmd_service':
+      'Automatiza el ciclo de vida del demonio en segundo plano (install, start, stop, status, uninstall) de forma nativa.',
+    'connect.cli_cmd_status':
+      'Inspecciona el host, latencia de conexión al servidor, claves de autenticación almacenadas y motores CAD detectados.',
+    'connect.cli_cmd_doctor':
+      'Ejecuta validación integral del entorno con remediación automática (--fix) para FreeCAD headless.',
+    'connect.cli_cmd_test':
+      'Ejecuta pruebas de humo locales fuera de línea contra FreeCAD, AutoCAD o Blender para verificar salida geométrica.',
+    'connect.cli_cmd_gui':
+      'Inicia el asistente gráfico de bienvenida y el controlador de bandeja del sistema multiplataforma.',
+    'connect.cli_cmd_logs':
+      'Inspecciona o sigue en tiempo real (-f) los registros rotativos de ejecución del agente local.',
+    'connect.cli_cmd_unpair':
+      'Revoca la autorización del equipo en el servidor en la nube y purga las credenciales locales almacenadas.',
+    'connect.cli_cmd_version':
+      'Muestra la versión instalada y consulta opcionalmente en GitHub (--check) actualizaciones publicadas.',
 
     // About Page
     'about.title': 'Acerca de',

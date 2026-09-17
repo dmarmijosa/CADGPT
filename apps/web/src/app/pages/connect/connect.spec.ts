@@ -61,7 +61,7 @@ describe('ConnectPage (spec mcp-client-onboarding)', () => {
 
     expect(root.textContent).toMatch(/\/mcp\b/);
     expect(root.textContent).not.toContain('deviceSecret');
-    expect(root.textContent).not.toContain('credential');
+    expect(root.textContent).not.toContain('device_secret');
   });
 
   it('shows a "Try list_devices" callout with mechanical and parametric CAD expectations', () => {
@@ -155,10 +155,94 @@ describe('ConnectPage (spec mcp-client-onboarding)', () => {
       ),
     ).toBeTruthy();
 
+    // Automated service card in Spanish
+    const autoServiceCard = root.querySelector('[data-testid="auto-service-card"]');
+    expect(autoServiceCard?.querySelector('.status')?.textContent?.trim()).toBe('Recomendado');
+    expect(autoServiceCard?.querySelector('h3')?.textContent?.trim()).toBe(
+      'Configuración Automática en un Solo Paso',
+    );
+    expect(
+      autoServiceCard?.querySelector(
+        'button[aria-label="Copiar comando de instalación automática del servicio"]',
+      ),
+    ).toBeTruthy();
+    expect(root.textContent).toContain('Configuración Manual del Demonio (Avanzado / Servidores)');
+
+    // CLI reference in Spanish
+    const cliRef = root.querySelector('[data-testid="cli-reference"]');
+    expect(cliRef?.querySelector('h2')?.textContent?.trim()).toBe(
+      'Referencia de Comandos CLI de CAD Engine',
+    );
+    expect(cliRef?.querySelector('p')?.textContent?.trim()).toBe(
+      'Comandos integrados para vinculación, diagnóstico, pruebas y gestión del demonio:',
+    );
+    const cliTable = cliRef?.querySelector('.cli-table');
+    expect(cliTable?.querySelector('th:first-child')?.textContent?.trim()).toBe('Comando');
+    expect(cliTable?.querySelector('th:nth-child(2)')?.textContent?.trim()).toBe('Descripción');
+    const tableTextEs = cliTable?.textContent ?? '';
+    expect(tableTextEs).toContain(
+      'Vincula la estación de trabajo con su cuenta mediante un código de un solo uso de 12 caracteres.',
+    );
+    expect(tableTextEs).toContain(
+      'Ejecuta validación integral del entorno con remediación automática (--fix) para FreeCAD headless.',
+    );
+
     // Snippets remain intact and identical (shell commands not localized)
     const linuxSnippet = linuxBlock?.querySelector('pre code')?.textContent ?? '';
     expect(linuxSnippet).toContain('cadengine.service');
     expect(linuxSnippet).toContain('systemctl enable --now cadengine');
+  });
+
+  it('renders automated one-step service installation card and CLI command reference in English', () => {
+    const { root, fixture } = setup([onlineDevice]);
+
+    expect(fixture.componentInstance.serviceInstallCommand).toBe('cadengine service install');
+
+    const autoServiceCard = root.querySelector('[data-testid="auto-service-card"]');
+    expect(autoServiceCard).toBeTruthy();
+    expect(autoServiceCard?.querySelector('.status')?.textContent?.trim()).toBe('Recommended');
+    expect(autoServiceCard?.querySelector('h3')?.textContent?.trim()).toBe(
+      'Automated One-Step Setup',
+    );
+    expect(autoServiceCard?.querySelector('pre code')?.textContent?.trim()).toBe(
+      'cadengine service install',
+    );
+    expect(
+      autoServiceCard?.querySelector('button[aria-label="Copy automated service install command"]'),
+    ).toBeTruthy();
+
+    expect(root.textContent).toContain('Manual Daemon Configuration (Advanced / Headless)');
+
+    const cliRef = root.querySelector('[data-testid="cli-reference"]');
+    expect(cliRef).toBeTruthy();
+    expect(cliRef?.querySelector('h2')?.textContent?.trim()).toBe(
+      'CAD Engine CLI Command Reference',
+    );
+    expect(cliRef?.querySelector('p')?.textContent?.trim()).toBe(
+      'Built-in commands for pairing, diagnostics, testing, and daemon management:',
+    );
+
+    const cliTable = cliRef?.querySelector('.cli-table');
+    expect(cliTable?.querySelector('th:first-child')?.textContent?.trim()).toBe('Command');
+    expect(cliTable?.querySelector('th:nth-child(2)')?.textContent?.trim()).toBe('Description');
+
+    const tableText = cliTable?.textContent ?? '';
+    expect(tableText).toContain('cadengine pair');
+    expect(tableText).toContain('cadengine service [action]');
+    expect(tableText).toContain('cadengine status [--json]');
+    expect(tableText).toContain('cadengine doctor [--fix]');
+    expect(tableText).toContain('cadengine test [--cad ...]');
+    expect(tableText).toContain('cadengine gui [--tray-only]');
+    expect(tableText).toContain('cadengine logs [-f]');
+    expect(tableText).toContain('cadengine unpair [--force]');
+    expect(tableText).toContain('cadengine version [--check]');
+
+    expect(tableText).toContain(
+      'Pair workstation with your CAD Engine account using a 12-character one-time code.',
+    );
+    expect(tableText).toContain(
+      'Run end-to-end environment validation with optional auto-remediation (--fix) for headless FreeCAD.',
+    );
   });
 });
 

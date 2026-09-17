@@ -25,6 +25,7 @@ export class ConnectPage {
   readonly serverOrigin = location.origin;
   readonly copied = signal(false);
   readonly copiedSnippet = signal<string | null>(null);
+  readonly serviceInstallCommand = 'cadengine service install';
 
   readonly linuxSnippet = computed(
     () => `sudo tee /etc/systemd/system/cadengine.service >/dev/null <<'EOF'

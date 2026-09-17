@@ -109,6 +109,33 @@
     </div>
   </div>
 
+  <article class="auto-service-card" data-testid="auto-service-card">
+    <div class="os-guide-header">
+      <span class="status">{{ 'connect.auto_service_badge' | translate }}</span>
+      <h3>{{ 'connect.auto_service_title' | translate }}</h3>
+    </div>
+    <p>{{ 'connect.auto_service_desc' | translate }}</p>
+    <div class="snippet-box">
+      <pre><code>cadengine service install</code></pre>
+      <button
+        type="button"
+        class="quiet"
+        (click)="copySnippet(serviceInstallCommand, 'auto-service')"
+        [attr.aria-label]="'connect.auto_service_copy_aria' | translate"
+      >
+        {{
+          (copiedSnippet() === 'auto-service' ? 'connect.snippet_copied' : 'connect.copy_snippet')
+            | translate
+        }}
+      </button>
+    </div>
+  </article>
+
+  <div class="manual-services-lead">
+    <h4>{{ 'connect.manual_services_heading' | translate }}</h4>
+    <p class="hint">{{ 'connect.manual_services_desc' | translate }}</p>
+  </div>
+
   <div class="os-guides">
     <!-- Linux systemd -->
     <article class="os-guide" data-testid="keep-alive-linux">
@@ -196,6 +223,57 @@
       </div>
     </article>
   </div>
+</section>
+
+<section class="panel cli-reference-section" data-testid="cli-reference">
+  <h2>{{ 'connect.cli_title' | translate }}</h2>
+  <p>{{ 'connect.cli_subtitle' | translate }}</p>
+  <table class="data cli-table">
+    <thead>
+      <tr>
+        <th>{{ 'connect.cli_th_command' | translate }}</th>
+        <th>{{ 'connect.cli_th_description' | translate }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>cadengine pair</code></td>
+        <td>{{ 'connect.cli_cmd_pair' | translate }}</td>
+      </tr>
+      <tr>
+        <td><code>cadengine service [action]</code></td>
+        <td>{{ 'connect.cli_cmd_service' | translate }}</td>
+      </tr>
+      <tr>
+        <td><code>cadengine status [--json]</code></td>
+        <td>{{ 'connect.cli_cmd_status' | translate }}</td>
+      </tr>
+      <tr>
+        <td><code>cadengine doctor [--fix]</code></td>
+        <td>{{ 'connect.cli_cmd_doctor' | translate }}</td>
+      </tr>
+      <tr>
+        <td><code>cadengine test [--cad ...]</code></td>
+        <td>{{ 'connect.cli_cmd_test' | translate }}</td>
+      </tr>
+      <tr>
+        <td><code>cadengine gui [--tray-only]</code></td>
+        <td>{{ 'connect.cli_cmd_gui' | translate }}</td>
+      </tr>
+      <tr>
+        <td><code>cadengine logs [-f]</code></td>
+        <td>{{ 'connect.cli_cmd_logs' | translate }}</td>
+      </tr>
+      <tr>
+        <td><code>cadengine unpair [--force]</code></td>
+        <td>{{ 'connect.cli_cmd_unpair' | translate }}</td>
+      </tr>
+      <tr>
+        <td><code>cadengine version [--check]</code></td>
+        <td>{{ 'connect.cli_cmd_version' | translate }}</td>
+      </tr>
+    </tbody>
+  </table>
 </section>
 
 <section class="panel">
