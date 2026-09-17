@@ -10,14 +10,13 @@ Latest prerelease: **[v0.2.0-alpha.1 →](https://github.com/dmarmijosa/CADGPT/r
 
 | Computer | Download | Format |
 |---|---|---|
-| Windows x64 (MSI) | [`CADEngine-Setup-x64.msi`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.1/CADEngine-Setup-x64.msi) | WiX v4 elevated installer with PATH & scheduled task, Python included |
-| Windows x64 (EXE) | [`CADEngine-Setup-windows-x64.exe`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.1/CADEngine-Setup-windows-x64.exe) | Inno Setup machine-wide installer, Python included |
+| Windows x64 | [`CADEngine-Setup-windows-x64.exe`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.1/CADEngine-Setup-windows-x64.exe) | Inno Setup machine-wide installer, Python included |
 | MacBook / Mac with Apple Silicon | [`CADEngine-macos-arm64.dmg`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.1/CADEngine-macos-arm64.dmg) | Disk image containing CAD Engine app, Python included |
 | MacBook / Mac with Intel | [`CADEngine-macos-x64.dmg`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.1/CADEngine-macos-x64.dmg) | Disk image containing CAD Engine app, Python included |
 | Linux x64 | [`cadengine-linux-x64.tar.gz`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.1/cadengine-linux-x64.tar.gz) | Portable application archive, Python included |
 | All | [`SHA256SUMS.txt`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.1/SHA256SUMS.txt) | Integrity checksums |
 
-Verify a download against `SHA256SUMS.txt` before running it (the builds are unsigned). Newer releases, when published, appear at the releases page above. CAD Engine does **not** install AutoCAD or FreeCAD and does not modify your existing Python installation.
+Verify a download against `SHA256SUMS.txt` before running it (the builds are unsigned). Newer releases, when published, appear at the releases page above. CAD Engine does **not** install AutoCAD, FreeCAD, or Blender, and does not modify your existing Python installation.
 
 ## Install and link your computer
 
@@ -46,7 +45,7 @@ CAD Engine includes a native, lightweight (<2 MB) cross-platform Onboarding Wiza
 For headless servers, remote SSH sessions, or unattended workstations:
 
 #### Windows
-1. Download `CADEngine-Setup-x64.msi` or `CADEngine-Setup-windows-x64.exe` from Releases.
+1. Download `CADEngine-Setup-windows-x64.exe` from Releases.
 2. Run the installer (registers system PATH and scheduled task options).
 3. Connect interactively or via CLI: `cadengine --server https://your-cadgpt.example`.
 

@@ -52,16 +52,14 @@ jobs:
         run: xvfb-run -a python -m unittest discover -s agent/tests -v
       - if: matrix.platform != 'linux'
         run: python -m unittest discover -s agent/tests -v
-      # WiX v4 and Inno Setup for Windows
+      # Inno Setup for Windows
       - if: matrix.platform == 'windows'
         shell: pwsh
         run: |
-          dotnet tool install --global wix --version 4.0.5
-          wix extension add WixToolset.UI.wixext
           if (-not (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe")) {
             choco install innosetup --no-progress -y
           }
-      - run: python packaging/build.py
+      - run: python packaging/build.py --skip-wix
       - if: matrix.platform == 'linux'
         run: |
           tar -czf dist/cadengine-linux-x64.tar.gz -C dist cadengine
@@ -72,7 +70,6 @@ jobs:
         with:
           name: cadengine-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
-            dist/*.msi
             dist/*.exe
             dist/*.dmg
             dist/*.tar.gz
@@ -100,4 +97,5 @@ jobs:
             --verify-tag \
             --prerelease \
             --title "CAD Engine $TAG — unsigned alpha" \
-            --notes "CAD Engine $TAG: Unified CLI and daemons (schtasks, systemd, launchctl); WiX v4 elevated MSI installer with PATH integration; FreeCAD 1.1.3 (20 operations); AutoCAD 2026 Core Console (13 operations); Blender 4.x organic modeling engine (5 operations); 4-step onboarding wizard and system tray daemon; bilingual internationalization (English & Spanish); Google OAuth2 identity provider."
+            --notes "CAD Engine $TAG: Unified CLI and daemons (schtasks, systemd, launchctl); Inno Setup installer with PATH integration; FreeCAD 1.1.3 (20 operations); AutoCAD 2026 Core Console (13 operations); Blender 4.x organic modeling engine (5 operations); 4-step onboarding wizard and system tray daemon; bilingual internationalization (English & Spanish); Google OAuth2 identity provider."
+
