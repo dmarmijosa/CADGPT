@@ -6,55 +6,65 @@
 
 ## Download
 
-Latest prerelease: **[v0.1.0-alpha.2 →](https://github.com/dmarmijosa/CADGPT/releases/tag/v0.1.0-alpha.2)** (unsigned alpha). [All releases](https://github.com/dmarmijosa/CADGPT/releases).
+Latest prerelease: **[v0.2.0-alpha.1 →](https://github.com/dmarmijosa/CADGPT/releases/tag/v0.2.0-alpha.1)** (unsigned alpha). [All releases](https://github.com/dmarmijosa/CADGPT/releases).
 
 | Computer | Download | Format |
 |---|---|---|
-| Windows x64 | [`CADGPT-Setup-windows-x64.exe`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.1.0-alpha.2/CADGPT-Setup-windows-x64.exe) | Machine-wide installer (requires administrator), Python included |
-| MacBook / Mac with Apple Silicon | [`CADGPT-macos-arm64.dmg`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.1.0-alpha.2/CADGPT-macos-arm64.dmg) | Disk image containing the app, Python included |
-| MacBook / Mac with Intel | [`CADGPT-macos-x64.dmg`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.1.0-alpha.2/CADGPT-macos-x64.dmg) | Disk image containing the app, Python included |
-| Linux x64 | [`CADGPT-linux-x64.tar.gz`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.1.0-alpha.2/CADGPT-linux-x64.tar.gz) | Portable application archive, Python included |
-| All | [`SHA256SUMS.txt`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.1.0-alpha.2/SHA256SUMS.txt) | Integrity checksums |
+| Windows x64 (MSI) | [`CADEngine-Setup-x64.msi`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.1/CADEngine-Setup-x64.msi) | WiX v4 elevated installer with PATH & scheduled task, Python included |
+| Windows x64 (EXE) | [`CADEngine-Setup-windows-x64.exe`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.1/CADEngine-Setup-windows-x64.exe) | Inno Setup machine-wide installer, Python included |
+| MacBook / Mac with Apple Silicon | [`CADEngine-macos-arm64.dmg`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.1/CADEngine-macos-arm64.dmg) | Disk image containing CAD Engine app, Python included |
+| MacBook / Mac with Intel | [`CADEngine-macos-x64.dmg`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.1/CADEngine-macos-x64.dmg) | Disk image containing CAD Engine app, Python included |
+| Linux x64 | [`cadengine-linux-x64.tar.gz`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.1/cadengine-linux-x64.tar.gz) | Portable application archive, Python included |
+| All | [`SHA256SUMS.txt`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.1/SHA256SUMS.txt) | Integrity checksums |
 
 Verify a download against `SHA256SUMS.txt` before running it (the builds are unsigned). Newer releases, when published, appear at the releases page above. CAD Engine does **not** install AutoCAD or FreeCAD and does not modify your existing Python installation.
 
 ## Install and link your computer
 
-Have a compatible CAD installation and your administrator's **CAD Engine HTTPS server URL** ready.
+Have a compatible CAD installation (FreeCAD or AutoCAD) and your administrator's **CAD Engine HTTPS server URL** ready.
 
-### Windows
+### Desktop GUI & Onboarding Wizard (Recommended)
 
-1. Download the Windows installer from Releases and compare its SHA-256 with `SHA256SUMS.txt`: `Get-FileHash .\CADGPT-Setup-windows-x64.exe -Algorithm SHA256`.
-2. Run the installer. It requires administrator privileges (an elevation prompt appears) and installs to Program Files for all users on this computer.
-3. Leave **Connect this computer to CAD Agent Designer** checked at the end.
-4. Enter the server URL. The agent opens the registration/sign-in page.
-5. Register or sign in, then enter the pairing code printed in the agent window. Confirm only a code from your own computer.
-6. Keep the agent window open. Refresh the dashboard to see the online device. To run it unattended (start on boot, restart on crash), see [Keep the agent running](#keep-the-agent-running-survive-logout-and-reboot).
+CAD Engine includes a native, lightweight (<2 MB) cross-platform Onboarding Wizard and System Tray daemon:
 
-Unsigned alpha builds may trigger Windows security warnings. Do not disable system-wide protection. If your organization blocks unsigned applications, wait for a signed release or have your administrator review the source.
+1. **Launch the GUI**: Run the application or execute `cadengine gui` in terminal.
+2. **Step 1 — Language Selection**: Switch dynamically between **English** and **Español**. The interface updates in real time.
+3. **Step 2 — Parametric CAD Prerequisite Gate**: The wizard automatically probes for FreeCAD and AutoCAD.
+   - **Hard Gate**: If neither CAD engine is detected, progression is blocked. The wizard provides guided installation commands (`winget install FreeCAD.FreeCAD` on Windows, `brew install --cask freecad` on macOS, `sudo apt install freecad` on Linux) and an instant **Re-check** button.
+4. **Step 3 — Blender 3D Organic Modeling Tool**: Probes for Blender installations. If detected, it enables organic modeling tools. If not detected, you can specify your Blender path (stored safely without UAC administrator elevation) or choose **Continue without Blender**.
+5. **Step 4 — Pairing & Connection HUD**: Requests a 12-character ephemeral pairing code, provides a one-click button to open your web dashboard, polls for approval, and saves credentials securely to your OS keyring (`keyring`).
+6. **System Tray Daemon (`pystray`)**: Once paired, CAD Engine minimizes to the system tray with a 3D isometric cube icon (macOS Menu Bar Extra / Windows Notification Area):
+   - **Status Header**: Displays connection state and version (`v0.2.0-alpha.1`).
+   - **View Pairing Code**: Look up active code or device ID.
+   - **View Connection Status**: Real-time HUD showing Server URL, Device ID, Active Engines (FreeCAD, AutoCAD, Blender), and Ping Latency.
+   - **Open Web Dashboard**: Quick shortcut to the web application.
+   - **Unpair Device...**: Prompts for confirmation, revokes registration with the API, wipes local credentials, and resets state.
+   - **Exit / Quit**: Cleanly shuts down background workers and removes tray icon.
 
-### macOS
+### CLI & Headless Setup
 
-1. Choose **arm64** for Apple Silicon or **x64** for Intel. Check the checksum with `shasum -a 256 CADGPT-macos-arm64.dmg` (adjust filename).
-2. Open the disk image and copy `CADGPT.app` to Applications.
-3. Open CADGPT and enter your server URL. A browser page and a pairing-code dialog appear.
-4. Complete registration/sign-in and confirm the code in the dashboard, then dismiss the dialog.
-5. Keep CADGPT running. To stop this alpha's background agent, use Activity Monitor; no menu-bar control or login service is installed. To start it automatically at login, see [Keep the agent running](#keep-the-agent-running-survive-logout-and-reboot).
+For headless servers, remote SSH sessions, or unattended workstations:
 
-This alpha is **not notarized**. If Gatekeeper blocks it, use the source workflow or an administrator-reviewed build; do not disable Gatekeeper or remove quarantine globally.
+#### Windows
+1. Download `CADEngine-Setup-x64.msi` or `CADEngine-Setup-windows-x64.exe` from Releases.
+2. Run the installer (registers system PATH and scheduled task options).
+3. Connect interactively or via CLI: `cadengine --server https://your-cadgpt.example`.
 
-### Linux
+#### macOS
+1. Download `CADEngine-macos-arm64.dmg` or `CADEngine-macos-x64.dmg`.
+2. Open disk image, move `CAD Engine.app` to Applications.
+3. Launch from Applications or run via CLI: `/Applications/CADEngine.app/Contents/MacOS/cadengine --server https://your-cadgpt.example`.
 
-1. Verify `sha256sum CADGPT-linux-x64.tar.gz` against the release checksum file.
-2. Extract and start the portable agent:
+#### Linux
+1. Download and extract `cadengine-linux-x64.tar.gz`:
    ```bash
-   tar -xzf CADGPT-linux-x64.tar.gz
-   ./CADGPT/CADGPT --server https://your-cadgpt.example
+   tar -xzf cadengine-linux-x64.tar.gz
+   ./cadengine/cadengine --server https://your-cadgpt.example
    ```
-3. Sign in/register in the browser and confirm the pairing code.
-4. Keep the process running. Press Ctrl+C to disconnect. For an always-on server, install it as a systemd service instead — see [Keep the agent running](#keep-the-agent-running-survive-logout-and-reboot).
-
-For a headless computer add `--headless` and open the printed URL on another device. An OS keyring is preferred. If none is available, a trusted single-user Linux host can explicitly opt into `--allow-file-credentials`; this stores a private owner-readable credential file. This fallback is never automatic and is disabled on Windows.
+2. For headless servers without an active X11/Wayland display or keyring:
+   ```bash
+   ./cadengine/cadengine --server https://your-cadgpt.example --headless --allow-file-credentials
+   ```
 
 ### Choosing a CAD installation
 
@@ -84,32 +94,57 @@ For a headless server, install the portable build to a fixed location first:
 
 ```bash
 cd /tmp
-wget https://github.com/dmarmijosa/CADGPT/releases/download/v0.1.0-alpha.2/CADGPT-linux-x64.tar.gz
+wget https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.1/cadengine-linux-x64.tar.gz
 # Verify against the release SHA256SUMS.txt (replace the hash with the published one):
-echo "<sha256>  CADGPT-linux-x64.tar.gz" | sha256sum -c -
-sudo mkdir -p /opt/cadgpt-agent
-sudo tar -xzf CADGPT-linux-x64.tar.gz -C /opt/cadgpt-agent --strip-components=1
-sudo ln -sf /opt/cadgpt-agent/CADGPT /usr/local/bin/cadgpt-agent
+echo "<sha256>  cadengine-linux-x64.tar.gz" | sha256sum -c -
+sudo mkdir -p /opt/cadengine
+sudo tar -xzf cadengine-linux-x64.tar.gz -C /opt/cadengine --strip-components=1
+sudo ln -sf /opt/cadengine/cadengine /usr/local/bin/cadengine
+sudo ln -sf /opt/cadengine/cadengine /usr/local/bin/cadgpt-agent
 ```
 
-Pair once interactively so the credential is stored for your user:
+Pair once interactively so the credential is saved for your user:
 
 ```bash
-cadgpt-agent --server https://your-cadgpt.example --headless --allow-file-credentials
+cadengine --server https://your-cadgpt.example --headless --allow-file-credentials
 ```
 
-Then create the service (replace `youruser` with the user that just paired):
+#### Option A: User systemd service (Recommended)
+Runs in your unprivileged user space without sudo, accessing your user config seamlessly:
 
 ```bash
-sudo tee /etc/systemd/system/cadgpt-agent.service >/dev/null <<'EOF'
+mkdir -p ~/.config/systemd/user
+tee ~/.config/systemd/user/cadengine.service >/dev/null <<'EOF'
 [Unit]
-Description=CAD Agent Designer bridge
+Description=CAD Engine Background Agent
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/cadengine --allow-file-credentials
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target
+EOF
+systemctl --user daemon-reload
+systemctl --user enable --now cadengine
+systemctl --user status cadengine --no-pager
+```
+
+#### Option B: System-wide systemd service
+If running as a dedicated system account (replace `youruser` with the pairing user):
+
+```bash
+sudo tee /etc/systemd/system/cadengine.service >/dev/null <<'EOF'
+[Unit]
+Description=CAD Engine Background Agent
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 User=youruser
-ExecStart=/usr/local/bin/cadgpt-agent --server https://your-cadgpt.example --allow-file-credentials
+ExecStart=/usr/local/bin/cadengine --server https://your-cadgpt.example --allow-file-credentials
 Restart=always
 RestartSec=5
 
@@ -117,39 +152,33 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 sudo systemctl daemon-reload
-sudo systemctl enable --now cadgpt-agent
-sudo systemctl status cadgpt-agent --no-pager   # expect: active (running)
-journalctl -u cadgpt-agent -f                    # follow logs; expect "Connected."
+sudo systemctl enable --now cadengine
+sudo systemctl status cadengine --no-pager
+journalctl -u cadengine -f
 ```
 
-`Restart=always` recovers from crashes; `enable` starts it on every boot. `User=`
-**must** match the pairing user or the service will not find the stored credential
-and will try to pair again. Add `--enable-autocad` to the `ExecStart` line only on a
-Windows host with AutoCAD (not applicable to Linux). To stop or update:
-`sudo systemctl restart cadgpt-agent` / `sudo systemctl disable --now cadgpt-agent`.
+`Restart=always` recovers from crashes; `enable` starts it on every boot. `User=` **must** match the pairing user or the service will not find the stored credential. Add `--enable-autocad` to the `ExecStart` line only on a Windows host with AutoCAD. To manage: `systemctl restart cadengine` / `systemctl stop cadengine`.
 
 ### macOS — launchd (LaunchAgent)
 
-A LaunchAgent runs in your user session (so it can reach the login keychain) and
-starts again each time you log in. After copying `CADGPT.app` to Applications and
-pairing once, create `~/Library/LaunchAgents/com.cadgpt.agent.plist`:
+A LaunchAgent runs in your user session (so it can reach Keychain) and starts again each time you log in. After copying `CAD Engine.app` to Applications and pairing once, create `~/Library/LaunchAgents/com.cadengine.agent.plist`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>Label</key><string>com.cadgpt.agent</string>
+  <key>Label</key><string>com.cadengine.agent</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/Applications/CADGPT.app/Contents/MacOS/CADGPT</string>
+    <string>/Applications/CAD Engine.app/Contents/MacOS/cadengine</string>
     <string>--server</string>
     <string>https://your-cadgpt.example</string>
   </array>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
-  <key>StandardOutPath</key><string>/tmp/cadgpt-agent.log</string>
-  <key>StandardErrorPath</key><string>/tmp/cadgpt-agent.log</string>
+  <key>StandardOutPath</key><string>/tmp/cadengine.log</string>
+  <key>StandardErrorPath</key><string>/tmp/cadengine.log</string>
 </dict>
 </plist>
 ```
@@ -157,33 +186,29 @@ pairing once, create `~/Library/LaunchAgents/com.cadgpt.agent.plist`:
 Load it (starts immediately and on every login):
 
 ```bash
-launchctl load ~/Library/LaunchAgents/com.cadgpt.agent.plist
-launchctl list | grep cadgpt      # expect a PID in the first column
+launchctl load ~/Library/LaunchAgents/com.cadengine.agent.plist
+launchctl list | grep cadengine      # expect a PID in the first column
 ```
 
-`KeepAlive` restarts it on crash. To stop:
-`launchctl unload ~/Library/LaunchAgents/com.cadgpt.agent.plist`. A LaunchAgent
-starts at **login**, not at pre-login boot; for an unattended Mac, enable automatic
-login for that user, or wait for a future signed build with a proper login item.
+`KeepAlive` restarts it on crash. To stop: `launchctl unload ~/Library/LaunchAgents/com.cadengine.agent.plist`.
 
 ### Windows — Task Scheduler
 
-Run the installed agent at log on and keep it alive. In an **administrator**
-PowerShell (replace `YOURUSER` with the account that paired):
+Run the installed agent at log on and keep it alive. In an **administrator** PowerShell (replace `YOURUSER` with the account that paired):
 
 ```powershell
-$exe = "C:\Program Files\CAD Agent Designer\CADGPT.exe"
+$exe = "C:\Program Files\CAD Engine\cadengine.exe"
 $action  = New-ScheduledTaskAction -Execute $exe -Argument "--server https://your-cadgpt.example"
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User "YOURUSER"
 $settings = New-ScheduledTaskSettingsSet -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -StartWhenAvailable
-Register-ScheduledTask -TaskName "CAD Agent Designer" -Action $action -Trigger $trigger -Settings $settings -RunLevel Limited -User "YOURUSER"
-Start-ScheduledTask -TaskName "CAD Agent Designer"
+Register-ScheduledTask -TaskName "CAD Engine" -Action $action -Trigger $trigger -Settings $settings -RunLevel Limited -User "YOURUSER"
+Start-ScheduledTask -TaskName "CAD Engine"
 ```
 
 Run it at **log on of the paired user** (not as SYSTEM): the pairing credential is
 stored in that user's Windows Credential Manager, which SYSTEM cannot read. The task
 restarts the agent if it exits and starts it after each login. To remove:
-`Unregister-ScheduledTask -TaskName "CAD Agent Designer" -Confirm:$false`. Add
+`Unregister-ScheduledTask -TaskName "CAD Engine" -Confirm:$false`. Add
 `--enable-autocad` to `-Argument` if this host also drives AutoCAD.
 
 ## Try the first operation
@@ -195,34 +220,53 @@ restarts the agent if it exits and starts it after each login. To remove:
 
 Native CAD files (`design.FCStd`) remain on that computer. Only the STL preview mesh — never the native file — is uploaded to the dashboard for a 3D preview; see [Security and limitations](#security-and-limitations). The agent creates a fresh directory for every job and never modifies an open drawing.
 
-## Compatibility
+## Compatibility & Engines
 
-| CAD / platform | Alpha behavior |
-|---|---|
-| FreeCAD with working `FreeCADCmd` / `freecadcmd`, Windows/macOS/Linux | Headless create/modify/export operations on named designs; an STL preview mesh uploads for the dashboard viewer; installation-specific testing required |
-| FreeCAD GUI-only installation, AppImage, Flatpak or Snap | May need manual path or a separate command-line installation; no wrapper support promised |
-| AutoCAD 2026 Core Console (`accoreconsole.exe`), Windows | Opt-in via `--enable-autocad`; full 13-operation headless execution (3D primitives, booleans, transforms, MASSPROP volumetric validation) producing native DWG/DXF artifacts and binary STL preview via headless `STLOUT` |
-| AutoCAD LT, or AutoCAD without `accoreconsole.exe` | Installation discovery only (detection-only); LT does not ship Core Console and lacks 3D solid modeling and `STLOUT` capabilities, so execution is disabled regardless of the flag |
-| AutoCAD on Linux | Not a supported target |
+CAD Engine bridges external AI clients (ChatGPT, Claude) to local CAD and 3D modeling kernels through allowlisted MCP tools. **No AI models run inside the MCP server or the agent; all reasoning is driven by the client.**
 
-The agent's private Python runs networking and discovery. **FreeCAD uses its own Python and libraries**, avoiding a dependency on the user's system Python. No arbitrary Python or shell execution tool is exposed; the opt-in AutoCAD adapter loads only its own bundled, allowlisted `.lsp` file (never caller-supplied AutoLISP) through AutoCAD Core Console.
+| Engine / Platform | Capabilities & Operations | Supported Workflows |
+|---|---|---|
+| **FreeCAD** (Linux / macOS / Windows) | 20 operations (`create_box`, `create_cylinder`, `create_sphere`, `create_cone`, `extrude_rect`, `create_wedge`, `extrude_polygon`, `boolean_cut`, `boolean_union`, `boolean_intersect`, `fillet`, `chamfer`, `loft`, `translate_object`, `rotate_object`, `scale_object`, `read_scene`, `export_design`, `create_text_3d`, `analyze_image_to_cad`) | Headless mechanical CSG solids, parametric B-Rep modeling, 3D embossed/engraved typography (`Inter-Bold`), metric OpenCV computer vision contour tracing, and STEP/IGES/DXF/STL exports. |
+| **AutoCAD 2026 Core Console** (Windows) | 13 operations (`create_box`, `create_cylinder`, `create_sphere`, `create_cone`, `extrude_rect`, `boolean_cut`, `boolean_union`, `boolean_intersect`, `translate_object`, `rotate_object`, `scale_object`, `read_scene`, `export_design`) | 2D/3D architectural drafting, CSG solid modeling, MASSPROP volumetric verification, native DWG/DXF generation, and non-interactive binary STL preview meshes via headless `_STLOUT`. Opt-in via `--enable-autocad`. |
+| **Blender** (Linux / macOS / Windows) | 5 operations (`create_blender_mesh`, `extrude_subdivide_mesh`, `displace_sculpt_mesh`, `boolean_blender_mesh`, `export_blender_scene`) | Headless organic modeling, quad-dominant meshes (cube, cylinder, sphere, monkey), normal-directed extrusion with Catmull-Clark subdivision, procedural displacement (clouds, voronoi, wood, marble), mesh booleans, and binary STL/OBJ/glTF/blend exports. |
+| **AutoCAD LT** (Windows) | Detection-only (`executable=false`) | Discovered in registry for inventory, but execution is disabled because LT does not ship Core Console and lacks 3D solid modeling and `STLOUT`. |
+
+### Engine Guidance & Selection
+
+The MCP server provides dedicated guidance resources and a deterministic routing tool to guide AI clients to the proper engine without code guessing:
+- `cadgpt://guidance/modeling-engine-selection`: Comprehensive architectural boundaries between FreeCAD (mechanical engineering/tolerances), AutoCAD (architectural/DWG drafting), and Blender (organic meshes/sculpting).
+- `select_modeling_engine`: Informational MCP tool that evaluates domain (`mechanical`, `architectural`, `organic`, `artistic`, `hybrid`), precision (`high_tolerance`, `standard`, `visual_only`), and intended output (`cnc_milling`, `3d_printing`, `rendering`, `drawing_permit`, `animation`) to recommend the optimal toolchain and parameters.
+
+### Workspace Directory Governance
+
+Every CAD project managed by CAD Engine organizes its assets into a standardized 5-folder hierarchy:
+```text
+project-root/
+├── cad/         # Native source files (design.FCStd, design.dwg, design.blend)
+├── meshes/      # Tessellated surface geometry (preview.stl, preview.glb)
+├── exports/     # Manufacturing packages (model.step, layout.dxf, model.obj)
+├── renders/     # Presentation imagery (thumbnail.png, render.png)
+├── references/  # Input blueprints and vision sketches (sketch.png, spec.pdf)
+└── project.json # Atomic manifest tracking inventory, hashes, and verification
+```
+
+- `audit_project_structure`: Non-disruptive, read-only MCP tool that scans project structure, checks file checksums, identifies unorganized root files, and generates a relocation plan without modifying disk.
+- `reorganize_project_structure`: Executes structural reorganization under strict user authorization (`confirmed: true`), enforcing boundary containment (blocking directory traversal `..`) and updating `project.json` atomically.
+
+### Deep File Integrity & Anti-Corruption
+
+All geometry files are audited prior to agent upload, web ingestion, and client download:
+- **Binary STL**: Enforces exact byte formula $\text{FileSize} = 84 + (50 \times N)$, rejects ASCII `"solid "` headers, validates finite IEEE 754 float coordinates (rejecting `NaN`, $\pm\infty$), and checks for non-degenerate geometry within $[-100000, 100000]\text{ mm}$.
+- **Magic Byte Validation**: AutoCAD DWG (`AC10xx`), FreeCAD FCStd (`PK\x03\x04` with `Document.xml`), and Blender (`BLENDER`).
+- Any corrupted payload or truncated download is intercepted and rejected with a fail-fast status.
 
 ### AutoCAD (opt-in, experimental)
 
 AutoCAD execution is off by default. A detected full AutoCAD installation with `accoreconsole.exe` on Windows is only ever reported executable, and only ever dispatched a job, when you start the agent with `--enable-autocad`:
 
 ```bash
-cadgpt-agent --server https://your-cadgpt.example --enable-autocad
+cadengine --server https://your-cadgpt.example --enable-autocad
 ```
-
-When enabled on AutoCAD 2026 Core Console, the agent provides full 13-operation headless parity:
-- **3D Primitives**: `create_box`, `create_cylinder`, `create_sphere`, `create_cone`, `extrude_rect`
-- **3D Booleans**: `boolean_cut`, `boolean_union`, `boolean_intersect`
-- **Transforms**: `translate_object`, `rotate_object`, `scale_object`
-- **Volumetric Validation**: `read_scene` (AutoLISP entity enumeration) and `MASSPROP` volumetric verification
-- **Artifact Delivery & Preview**: Native DWG (`_SAVEAS 2018`), 16-decimal DXF (`_DXFOUT ... 16`), ACIS SAT (`_ACISOUT`), and non-interactive binary STL preview mesh via headless `_STLOUT`
-
-AutoCAD LT is designated strictly as detection-only (`executable=false`) because it does not ship `accoreconsole.exe` and lacks 3D solid modeling and `STLOUT` capabilities.
 
 **You are responsible for your own Autodesk license terms.** This flag drives AutoCAD Core Console (`accoreconsole.exe`) unattended, from a script CAD Engine renders and controls; CAD Engine does not interpret, warrant, or provide any Autodesk license, and does not claim this mode of use is permitted under every AutoCAD/AutoCAD LT license. Confirm your own EULA allows unattended, scripted invocation before enabling this flag. See `SECURITY.md` for the trust boundary this adapter operates under.
 
@@ -310,12 +354,15 @@ See [security notes](SECURITY.md) before any Internet deployment.
 
 ## Uninstall
 
-First revoke the device in the dashboard. Windows: uninstall **CAD Agent Designer Bridge** from installed apps. macOS: quit the process and remove `CADGPT.app`. Linux: stop the process and delete its extracted directory.
+First revoke the device in the dashboard. Windows: uninstall **CAD Engine** from installed apps. macOS: quit the process and remove `CAD Engine.app`. Linux: stop the process (`systemctl --user stop cadengine`) and delete its directory.
 
 Credentials and job files are retained intentionally to avoid deleting drawings. Remove the CADGPT keyring entry and, after backing up your jobs, its user-data directory: Windows `%LOCALAPPDATA%\CADGPT`, macOS `~/Library/Application Support/CADGPT`, Linux `~/.local/share/CADGPT`. Paths can vary with OS configuration.
 
 ## Build release assets
 
-`packaging/build.py` builds the agent on its native platform using PyInstaller. Windows adds Inno Setup, macOS adds a DMG, Linux adds a tar archive. GitHub Actions builds and tests all targets on version tags, uploads checksums, then creates a **draft prerelease** for human inspection. It never silently publishes production-ready installers.
+`packaging/build.py` builds the agent on its native platform using PyInstaller. Windows adds WiX Toolset (.msi) and Inno Setup (.exe), macOS adds a DMG, Linux adds a tar archive. GitHub Actions builds and tests all targets on version tags, uploads checksums, and publishes a **prerelease** (`prerelease: true`, `draft: false`) so agent installations can discover updates automatically.
 
-No project license has been selected yet. Dependency licenses remain their owners'.
+## License
+
+This project is licensed under the [Apache License, Version 2.0](LICENSE). See `LICENSE` for the full text, including explicit patent grants and contributor protections. Dependency licenses remain their respective owners'.
+
