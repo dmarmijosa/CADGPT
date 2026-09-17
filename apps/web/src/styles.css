@@ -1251,3 +1251,77 @@ table.data tbody tr:hover td {
   width: 25%;
   white-space: nowrap;
 }
+
+/* CAD & 3D Engines Guide */
+.engines-section .os-guides {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-5);
+}
+
+.engine-card-actions {
+  margin: var(--space-3) 0 var(--space-4);
+}
+
+.command-snippets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.command-snippet-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.command-snippet-row .snippet-box {
+  margin-top: var(--space-1);
+}
+
+.pkg-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-ink-muted);
+}
+
+/* Quick Commands Grid */
+.quick-commands-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.quick-command-card {
+  background: var(--color-surface-variant);
+  border: 1px solid var(--color-outline-hairline);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.quick-cmd-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-2);
+}
+
+.quick-cmd-header strong {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  color: var(--color-primary);
+}
+
+.quick-cmd-header .hint {
+  font-size: 0.82rem;
+  color: var(--color-ink-muted);
+}
+
+.quick-command-card .snippet-box {
+  margin-top: var(--space-2);
+}

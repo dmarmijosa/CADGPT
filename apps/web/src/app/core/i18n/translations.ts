@@ -279,6 +279,33 @@ const EN_TRANSLATIONS = {
   'connect.cli_cmd_version':
     'Display version tag and optionally query GitHub (--check) for published updates.',
 
+  // Engines Section
+  'connect.engines_title': 'CAD & 3D Modeling Engines',
+  'connect.engines_subtitle':
+    'CAD Engine orchestrates local CAD software on your machine. Ensure at least FreeCAD or Blender is installed before running modeling tasks:',
+  'connect.engine_freecad_badge': 'Parametric CAD',
+  'connect.engine_freecad_title': 'FreeCAD (Parametric & Mechanical B-Rep)',
+  'connect.engine_freecad_desc':
+    'Required for mechanical components, CSG solids, parametric sketches, and STEP/IGES engineering files.',
+  'connect.engine_freecad_install_btn': 'Install FreeCAD (Official Download ↗)',
+  'connect.engine_blender_badge': '3D Modeling & Mesh',
+  'connect.engine_blender_title': 'Blender 4.x (Polygonal & Organic 3D)',
+  'connect.engine_blender_desc':
+    'Required for polygonal 3D mesh modeling, procedural modifiers, organic design, and rendering.',
+  'connect.engine_blender_install_btn': 'Install Blender (Official Download ↗)',
+  'connect.engine_pkg_windows': 'Windows (winget):',
+  'connect.engine_pkg_macos': 'macOS (Homebrew):',
+  'connect.engine_pkg_linux': 'Linux (apt):',
+
+  // Quick Commands Section
+  'connect.quick_commands_title': 'CAD Engine Quick Commands',
+  'connect.quick_commands_subtitle':
+    'Essential terminal commands to launch the wizard, pair, check diagnostics, and inspect running engines:',
+  'connect.quick_cmd_gui_desc': 'Launch setup wizard & system tray controller',
+  'connect.quick_cmd_pair_desc': 'Link workstation using a 12-character pairing code',
+  'connect.quick_cmd_status_desc': 'Check connection, latency, and detected CAD engines',
+  'connect.quick_cmd_doctor_desc': 'Validate environment and repair headless dependencies',
+
   // About Page
   'about.title': 'About',
   'about.subtitle': 'Architecture, verification, and governance status.',
@@ -645,6 +672,33 @@ export const TRANSLATIONS: Record<SupportedLanguage, TranslationDictionary> = {
       'Revoca la autorización del equipo en el servidor en la nube y purga las credenciales locales almacenadas.',
     'connect.cli_cmd_version':
       'Muestra la versión instalada y consulta opcionalmente en GitHub (--check) actualizaciones publicadas.',
+
+    // Engines Section
+    'connect.engines_title': 'Motores CAD y Modelado 3D',
+    'connect.engines_subtitle':
+      'CAD Engine coordina el software CAD local en su máquina. Asegúrese de tener instalado al menos FreeCAD o Blender antes de ejecutar tareas de modelado:',
+    'connect.engine_freecad_badge': 'CAD Paramétrico',
+    'connect.engine_freecad_title': 'FreeCAD (Paramétrico y B-Rep Mecánico)',
+    'connect.engine_freecad_desc':
+      'Requerido para componentes mecánicos, sólidos CSG, croquis paramétricos y archivos de ingeniería STEP/IGES.',
+    'connect.engine_freecad_install_btn': 'Instalar FreeCAD (Descarga Oficial ↗)',
+    'connect.engine_blender_badge': 'Modelado 3D y Mallas',
+    'connect.engine_blender_title': 'Blender 4.x (Poligonal y 3D Orgánico)',
+    'connect.engine_blender_desc':
+      'Requerido para modelado de mallas 3D poligonales, modificadores procedurales, diseño orgánico y renderizado.',
+    'connect.engine_blender_install_btn': 'Instalar Blender (Descarga Oficial ↗)',
+    'connect.engine_pkg_windows': 'Windows (winget):',
+    'connect.engine_pkg_macos': 'macOS (Homebrew):',
+    'connect.engine_pkg_linux': 'Linux (apt):',
+
+    // Quick Commands Section
+    'connect.quick_commands_title': 'Comandos Rápidos de CAD Engine',
+    'connect.quick_commands_subtitle':
+      'Comandos esenciales de terminal para iniciar el asistente, vincular, verificar diagnósticos e inspeccionar motores en ejecución:',
+    'connect.quick_cmd_gui_desc': 'Iniciar asistente de configuración y controlador en bandeja',
+    'connect.quick_cmd_pair_desc': 'Vincular estación de trabajo mediante código de 12 caracteres',
+    'connect.quick_cmd_status_desc': 'Verificar conexión, latencia y motores CAD detectados',
+    'connect.quick_cmd_doctor_desc': 'Validar entorno y reparar dependencias headless',
 
     // About Page
     'about.title': 'Acerca de',

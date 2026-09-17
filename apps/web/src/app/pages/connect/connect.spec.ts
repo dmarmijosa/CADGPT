@@ -231,6 +231,41 @@ describe('ConnectPage (spec mcp-client-onboarding)', () => {
       'Ruta del Archivo de Configuración',
     );
 
+    // Engines section in Spanish
+    const enginesSecEs = root.querySelector('[data-testid="cad-engines-section"]');
+    expect(enginesSecEs).toBeTruthy();
+    expect(enginesSecEs?.querySelector('h2')?.textContent?.trim()).toBe(
+      'Motores CAD y Modelado 3D',
+    );
+    const freecadCardEs = root.querySelector('[data-testid="engine-freecad"]');
+    expect(freecadCardEs?.querySelector('.status')?.textContent?.trim()).toBe('CAD Paramétrico');
+    expect(freecadCardEs?.querySelector('h3')?.textContent?.trim()).toBe(
+      'FreeCAD (Paramétrico y B-Rep Mecánico)',
+    );
+    expect(
+      freecadCardEs?.querySelector('[data-testid="freecad-install-link"]')?.textContent?.trim(),
+    ).toBe('Instalar FreeCAD (Descarga Oficial ↗)');
+    const blenderCardEs = root.querySelector('[data-testid="engine-blender"]');
+    expect(blenderCardEs?.querySelector('.status')?.textContent?.trim()).toBe(
+      'Modelado 3D y Mallas',
+    );
+    expect(blenderCardEs?.querySelector('h3')?.textContent?.trim()).toBe(
+      'Blender 4.x (Poligonal y 3D Orgánico)',
+    );
+    expect(
+      blenderCardEs?.querySelector('[data-testid="blender-install-link"]')?.textContent?.trim(),
+    ).toBe('Instalar Blender (Descarga Oficial ↗)');
+
+    // Quick commands section in Spanish
+    const quickCmdsEs = root.querySelector('[data-testid="quick-commands-section"]');
+    expect(quickCmdsEs).toBeTruthy();
+    expect(quickCmdsEs?.querySelector('h2')?.textContent?.trim()).toBe(
+      'Comandos Rápidos de CAD Engine',
+    );
+    expect(quickCmdsEs?.textContent).toContain(
+      'Iniciar asistente de configuración y controlador en bandeja',
+    );
+
     // Snippets remain intact and identical (shell commands not localized)
     const linuxSnippet = linuxBlock?.querySelector('pre code')?.textContent ?? '';
     expect(linuxSnippet).toContain('cadengine.service');
@@ -404,6 +439,106 @@ describe('ConnectPage (spec mcp-client-onboarding)', () => {
     );
     expect(writeTextMock).toHaveBeenCalledWith(fixture.componentInstance.genericMcpSnippet());
     expect(fixture.componentInstance.copiedSnippet()).toBe('generic-mcp');
+
+    // Engine package snippets
+    await fixture.componentInstance.copySnippet(
+      fixture.componentInstance.freecadWinget,
+      'freecad-winget',
+    );
+    expect(writeTextMock).toHaveBeenCalledWith('winget install FreeCAD.FreeCAD');
+    expect(fixture.componentInstance.copiedSnippet()).toBe('freecad-winget');
+
+    await fixture.componentInstance.copySnippet(
+      fixture.componentInstance.blenderWinget,
+      'blender-winget',
+    );
+    expect(writeTextMock).toHaveBeenCalledWith('winget install BlenderFoundation.Blender');
+    expect(fixture.componentInstance.copiedSnippet()).toBe('blender-winget');
+
+    // Quick command snippet
+    await fixture.componentInstance.copySnippet(fixture.componentInstance.quickCmdGui, 'cmd-gui');
+    expect(writeTextMock).toHaveBeenCalledWith('cadengine gui');
+    expect(fixture.componentInstance.copiedSnippet()).toBe('cmd-gui');
+  });
+
+  it('renders CAD & 3D Modeling Engines section with official download links and package manager snippets', () => {
+    const { root, fixture } = setup([onlineDevice]);
+
+    const enginesSection = root.querySelector('[data-testid="cad-engines-section"]');
+    expect(enginesSection).toBeTruthy();
+    expect(enginesSection?.querySelector('h2')?.textContent?.trim()).toBe(
+      'CAD & 3D Modeling Engines',
+    );
+
+    // FreeCAD Card
+    const freecadCard = root.querySelector('[data-testid="engine-freecad"]');
+    expect(freecadCard).toBeTruthy();
+    expect(freecadCard?.querySelector('.status')?.textContent?.trim()).toBe('Parametric CAD');
+    expect(freecadCard?.querySelector('h3')?.textContent?.trim()).toBe(
+      'FreeCAD (Parametric & Mechanical B-Rep)',
+    );
+    const freecadLink = freecadCard?.querySelector(
+      '[data-testid="freecad-install-link"]',
+    ) as HTMLAnchorElement;
+    expect(freecadLink).toBeTruthy();
+    expect(freecadLink.href).toBe('https://www.freecad.org/downloads.php');
+    expect(freecadLink.target).toBe('_blank');
+    expect(freecadLink.textContent?.trim()).toBe('Install FreeCAD (Official Download ↗)');
+
+    const freecadText = freecadCard?.textContent ?? '';
+    expect(freecadText).toContain('winget install FreeCAD.FreeCAD');
+    expect(freecadText).toContain('brew install --cask freecad');
+    expect(freecadText).toContain('sudo apt install freecad');
+
+    // Blender Card
+    const blenderCard = root.querySelector('[data-testid="engine-blender"]');
+    expect(blenderCard).toBeTruthy();
+    expect(blenderCard?.querySelector('.status')?.textContent?.trim()).toBe('3D Modeling & Mesh');
+    expect(blenderCard?.querySelector('h3')?.textContent?.trim()).toBe(
+      'Blender 4.x (Polygonal & Organic 3D)',
+    );
+    const blenderLink = blenderCard?.querySelector(
+      '[data-testid="blender-install-link"]',
+    ) as HTMLAnchorElement;
+    expect(blenderLink).toBeTruthy();
+    expect(blenderLink.href).toBe('https://www.blender.org/download/');
+    expect(blenderLink.target).toBe('_blank');
+    expect(blenderLink.textContent?.trim()).toBe('Install Blender (Official Download ↗)');
+
+    const blenderText = blenderCard?.textContent ?? '';
+    expect(blenderText).toContain('winget install BlenderFoundation.Blender');
+    expect(blenderText).toContain('brew install --cask blender');
+    expect(blenderText).toContain('sudo apt install blender');
+  });
+
+  it('renders CAD Engine Quick Commands section with copyable CLI boxes', () => {
+    const { root, fixture } = setup([onlineDevice]);
+
+    const quickCommandsSection = root.querySelector('[data-testid="quick-commands-section"]');
+    expect(quickCommandsSection).toBeTruthy();
+    expect(quickCommandsSection?.querySelector('h2')?.textContent?.trim()).toBe(
+      'CAD Engine Quick Commands',
+    );
+
+    const guiCard = root.querySelector('[data-testid="quick-cmd-gui"]');
+    expect(guiCard).toBeTruthy();
+    expect(guiCard?.querySelector('strong')?.textContent?.trim()).toBe('cadengine gui');
+    expect(guiCard?.querySelector('pre code')?.textContent?.trim()).toBe('cadengine gui');
+
+    const pairCard = root.querySelector('[data-testid="quick-cmd-pair"]');
+    expect(pairCard).toBeTruthy();
+    expect(pairCard?.querySelector('strong')?.textContent?.trim()).toBe('cadengine pair');
+    expect(pairCard?.querySelector('pre code')?.textContent?.trim()).toBe('cadengine pair');
+
+    const statusCard = root.querySelector('[data-testid="quick-cmd-status"]');
+    expect(statusCard).toBeTruthy();
+    expect(statusCard?.querySelector('strong')?.textContent?.trim()).toBe('cadengine status');
+    expect(statusCard?.querySelector('pre code')?.textContent?.trim()).toBe('cadengine status');
+
+    const doctorCard = root.querySelector('[data-testid="quick-cmd-doctor"]');
+    expect(doctorCard).toBeTruthy();
+    expect(doctorCard?.querySelector('strong')?.textContent?.trim()).toBe('cadengine doctor');
+    expect(doctorCard?.querySelector('pre code')?.textContent?.trim()).toBe('cadengine doctor');
   });
 });
 

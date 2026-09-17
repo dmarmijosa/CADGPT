@@ -104,6 +104,37 @@ begin
   end;
 end;
 
+function IsBlenderInstalled: Boolean;
+var
+  Dummy: string;
+begin
+  Result := False;
+  { Check registry for Blender installer entry }
+  if RegQueryStringValue(HKEY_LOCAL_MACHINE,
+    'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Blender',
+    'InstallLocation', Dummy) then
+  begin
+    Result := True;
+    exit;
+  end;
+  if RegQueryStringValue(HKEY_LOCAL_MACHINE,
+    'SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Blender',
+    'InstallLocation', Dummy) then
+  begin
+    Result := True;
+    exit;
+  end;
+  { Check common Blender install paths }
+  if DirExists(ExpandConstant('{autopf}\Blender Foundation\Blender 4.2')) or
+     DirExists(ExpandConstant('{autopf}\Blender Foundation\Blender 4.1')) or
+     DirExists(ExpandConstant('{autopf}\Blender Foundation\Blender 4.0')) or
+     DirExists(ExpandConstant('{autopf}\Blender Foundation\Blender 3.6')) or
+     DirExists(ExpandConstant('{autopf}\Blender Foundation')) then
+  begin
+    Result := True;
+  end;
+end;
+
 function UpdateReadyMemo(Space, NewLine, MemoUserInfoInfo, MemoDirInfo,
   MemoTypeInfo, MemoComponentsInfo, MemoGroupInfo, MemoTasksInfo: string): string;
 begin
@@ -142,6 +173,23 @@ begin
       begin
         { Open the FreeCAD download page in the default browser }
         ShellExec('open', 'https://www.freecad.org/downloads.php', '', '', SW_SHOW, ewNoWait, ResultCode);
+      end;
+    end;
+
+    if not IsBlenderInstalled then
+    begin
+      if MsgBox(
+        'Blender was not detected.' + #13#10 + #13#10 +
+        'CAD Engine supports Blender for 3D mesh modeling, rendering, and asset generation.' + #13#10 +
+        'Would you like to install Blender automatically via winget?',
+        mbConfirmation, MB_YESNO) = IDYES then
+      begin
+        Exec('winget.exe', 'install BlenderFoundation.Blender --accept-package-agreements --accept-source-agreements',
+          '', SW_SHOW, ewWaitUntilTerminated, ResultCode);
+      end else
+      begin
+        { Open the Blender download page in the default browser }
+        ShellExec('open', 'https://www.blender.org/download/', '', '', SW_SHOW, ewNoWait, ResultCode);
       end;
     end;
   end;

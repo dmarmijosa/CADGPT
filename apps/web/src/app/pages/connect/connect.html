@@ -45,6 +45,180 @@
   </ol>
 </section>
 
+<section class="panel engines-section" data-testid="cad-engines-section">
+  <div class="panel-header">
+    <span class="status highlight">{{ 'connect.engine_freecad_badge' | translate }}</span>
+    <h2>{{ 'connect.engines_title' | translate }}</h2>
+  </div>
+  <p>{{ 'connect.engines_subtitle' | translate }}</p>
+
+  <div class="os-guides">
+    <!-- FreeCAD Card -->
+    <article class="os-guide" data-testid="engine-freecad">
+      <div class="os-guide-header">
+        <span class="status">{{ 'connect.engine_freecad_badge' | translate }}</span>
+        <h3>{{ 'connect.engine_freecad_title' | translate }}</h3>
+      </div>
+      <p>{{ 'connect.engine_freecad_desc' | translate }}</p>
+      <div class="engine-card-actions">
+        <a
+          href="https://www.freecad.org/downloads.php"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="cta"
+          data-testid="freecad-install-link"
+        >
+          {{ 'connect.engine_freecad_install_btn' | translate }}
+        </a>
+      </div>
+
+      <div class="command-snippets">
+        <div class="command-snippet-row">
+          <span class="pkg-label">{{ 'connect.engine_pkg_windows' | translate }}</span>
+          <div class="snippet-box">
+            <pre><code>{{ freecadWinget }}</code></pre>
+            <button
+              type="button"
+              class="quiet"
+              (click)="copySnippet(freecadWinget, 'freecad-winget')"
+              [attr.aria-label]="('connect.copy_snippet' | translate) + ' FreeCAD winget'"
+            >
+              {{
+                (copiedSnippet() === 'freecad-winget'
+                  ? 'connect.snippet_copied'
+                  : 'connect.copy_snippet'
+                ) | translate
+              }}
+            </button>
+          </div>
+        </div>
+
+        <div class="command-snippet-row">
+          <span class="pkg-label">{{ 'connect.engine_pkg_macos' | translate }}</span>
+          <div class="snippet-box">
+            <pre><code>{{ freecadBrew }}</code></pre>
+            <button
+              type="button"
+              class="quiet"
+              (click)="copySnippet(freecadBrew, 'freecad-brew')"
+              [attr.aria-label]="('connect.copy_snippet' | translate) + ' FreeCAD brew'"
+            >
+              {{
+                (copiedSnippet() === 'freecad-brew'
+                  ? 'connect.snippet_copied'
+                  : 'connect.copy_snippet'
+                ) | translate
+              }}
+            </button>
+          </div>
+        </div>
+
+        <div class="command-snippet-row">
+          <span class="pkg-label">{{ 'connect.engine_pkg_linux' | translate }}</span>
+          <div class="snippet-box">
+            <pre><code>{{ freecadApt }}</code></pre>
+            <button
+              type="button"
+              class="quiet"
+              (click)="copySnippet(freecadApt, 'freecad-apt')"
+              [attr.aria-label]="('connect.copy_snippet' | translate) + ' FreeCAD apt'"
+            >
+              {{
+                (copiedSnippet() === 'freecad-apt'
+                  ? 'connect.snippet_copied'
+                  : 'connect.copy_snippet'
+                ) | translate
+              }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- Blender Card -->
+    <article class="os-guide" data-testid="engine-blender">
+      <div class="os-guide-header">
+        <span class="status">{{ 'connect.engine_blender_badge' | translate }}</span>
+        <h3>{{ 'connect.engine_blender_title' | translate }}</h3>
+      </div>
+      <p>{{ 'connect.engine_blender_desc' | translate }}</p>
+      <div class="engine-card-actions">
+        <a
+          href="https://www.blender.org/download/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="cta"
+          data-testid="blender-install-link"
+        >
+          {{ 'connect.engine_blender_install_btn' | translate }}
+        </a>
+      </div>
+
+      <div class="command-snippets">
+        <div class="command-snippet-row">
+          <span class="pkg-label">{{ 'connect.engine_pkg_windows' | translate }}</span>
+          <div class="snippet-box">
+            <pre><code>{{ blenderWinget }}</code></pre>
+            <button
+              type="button"
+              class="quiet"
+              (click)="copySnippet(blenderWinget, 'blender-winget')"
+              [attr.aria-label]="('connect.copy_snippet' | translate) + ' Blender winget'"
+            >
+              {{
+                (copiedSnippet() === 'blender-winget'
+                  ? 'connect.snippet_copied'
+                  : 'connect.copy_snippet'
+                ) | translate
+              }}
+            </button>
+          </div>
+        </div>
+
+        <div class="command-snippet-row">
+          <span class="pkg-label">{{ 'connect.engine_pkg_macos' | translate }}</span>
+          <div class="snippet-box">
+            <pre><code>{{ blenderBrew }}</code></pre>
+            <button
+              type="button"
+              class="quiet"
+              (click)="copySnippet(blenderBrew, 'blender-brew')"
+              [attr.aria-label]="('connect.copy_snippet' | translate) + ' Blender brew'"
+            >
+              {{
+                (copiedSnippet() === 'blender-brew'
+                  ? 'connect.snippet_copied'
+                  : 'connect.copy_snippet'
+                ) | translate
+              }}
+            </button>
+          </div>
+        </div>
+
+        <div class="command-snippet-row">
+          <span class="pkg-label">{{ 'connect.engine_pkg_linux' | translate }}</span>
+          <div class="snippet-box">
+            <pre><code>{{ blenderApt }}</code></pre>
+            <button
+              type="button"
+              class="quiet"
+              (click)="copySnippet(blenderApt, 'blender-apt')"
+              [attr.aria-label]="('connect.copy_snippet' | translate) + ' Blender apt'"
+            >
+              {{
+                (copiedSnippet() === 'blender-apt'
+                  ? 'connect.snippet_copied'
+                  : 'connect.copy_snippet'
+                ) | translate
+              }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </article>
+  </div>
+</section>
+
 <section class="panel">
   <h2>{{ 'connect.resource_url_title' | translate }}</h2>
   <p>
@@ -339,6 +513,99 @@
         </button>
       </div>
     </article>
+  </div>
+</section>
+
+<section class="panel quick-commands-section" data-testid="quick-commands-section">
+  <div class="panel-header">
+    <h2>{{ 'connect.quick_commands_title' | translate }}</h2>
+  </div>
+  <p>{{ 'connect.quick_commands_subtitle' | translate }}</p>
+
+  <div class="quick-commands-grid">
+    <div class="quick-command-card" data-testid="quick-cmd-gui">
+      <div class="quick-cmd-header">
+        <strong>cadengine gui</strong>
+        <span class="hint">{{ 'connect.quick_cmd_gui_desc' | translate }}</span>
+      </div>
+      <div class="snippet-box">
+        <pre><code>{{ quickCmdGui }}</code></pre>
+        <button
+          type="button"
+          class="quiet"
+          (click)="copySnippet(quickCmdGui, 'cmd-gui')"
+          [attr.aria-label]="('connect.copy_snippet' | translate) + ' cadengine gui'"
+        >
+          {{
+            (copiedSnippet() === 'cmd-gui' ? 'connect.snippet_copied' : 'connect.copy_snippet')
+              | translate
+          }}
+        </button>
+      </div>
+    </div>
+
+    <div class="quick-command-card" data-testid="quick-cmd-pair">
+      <div class="quick-cmd-header">
+        <strong>cadengine pair</strong>
+        <span class="hint">{{ 'connect.quick_cmd_pair_desc' | translate }}</span>
+      </div>
+      <div class="snippet-box">
+        <pre><code>{{ quickCmdPair }}</code></pre>
+        <button
+          type="button"
+          class="quiet"
+          (click)="copySnippet(quickCmdPair, 'cmd-pair')"
+          [attr.aria-label]="('connect.copy_snippet' | translate) + ' cadengine pair'"
+        >
+          {{
+            (copiedSnippet() === 'cmd-pair' ? 'connect.snippet_copied' : 'connect.copy_snippet')
+              | translate
+          }}
+        </button>
+      </div>
+    </div>
+
+    <div class="quick-command-card" data-testid="quick-cmd-status">
+      <div class="quick-cmd-header">
+        <strong>cadengine status</strong>
+        <span class="hint">{{ 'connect.quick_cmd_status_desc' | translate }}</span>
+      </div>
+      <div class="snippet-box">
+        <pre><code>{{ quickCmdStatus }}</code></pre>
+        <button
+          type="button"
+          class="quiet"
+          (click)="copySnippet(quickCmdStatus, 'cmd-status')"
+          [attr.aria-label]="('connect.copy_snippet' | translate) + ' cadengine status'"
+        >
+          {{
+            (copiedSnippet() === 'cmd-status' ? 'connect.snippet_copied' : 'connect.copy_snippet')
+              | translate
+          }}
+        </button>
+      </div>
+    </div>
+
+    <div class="quick-command-card" data-testid="quick-cmd-doctor">
+      <div class="quick-cmd-header">
+        <strong>cadengine doctor</strong>
+        <span class="hint">{{ 'connect.quick_cmd_doctor_desc' | translate }}</span>
+      </div>
+      <div class="snippet-box">
+        <pre><code>{{ quickCmdDoctor }}</code></pre>
+        <button
+          type="button"
+          class="quiet"
+          (click)="copySnippet(quickCmdDoctor, 'cmd-doctor')"
+          [attr.aria-label]="('connect.copy_snippet' | translate) + ' cadengine doctor'"
+        >
+          {{
+            (copiedSnippet() === 'cmd-doctor' ? 'connect.snippet_copied' : 'connect.copy_snippet')
+              | translate
+          }}
+        </button>
+      </div>
+    </div>
   </div>
 </section>
 

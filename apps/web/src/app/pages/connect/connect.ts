@@ -35,6 +35,19 @@ export class ConnectPage {
   readonly copiedSnippet = signal<string | null>(null);
   readonly serviceInstallCommand = 'cadengine service install';
 
+  readonly freecadWinget = 'winget install FreeCAD.FreeCAD';
+  readonly freecadBrew = 'brew install --cask freecad';
+  readonly freecadApt = 'sudo apt install freecad';
+
+  readonly blenderWinget = 'winget install BlenderFoundation.Blender';
+  readonly blenderBrew = 'brew install --cask blender';
+  readonly blenderApt = 'sudo apt install blender';
+
+  readonly quickCmdGui = 'cadengine gui';
+  readonly quickCmdPair = 'cadengine pair';
+  readonly quickCmdStatus = 'cadengine status';
+  readonly quickCmdDoctor = 'cadengine doctor';
+
   readonly geminiPythonSnippet = computed(
     () => `# Google Gemini 2.5 / 1.5 with CAD Engine MCP Integration
 import os
