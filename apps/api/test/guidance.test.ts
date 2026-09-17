@@ -9,6 +9,7 @@ const RESOURCE_URIS = [
   'cadgpt://guidance/mechanical',
   'cadgpt://guidance/architectural',
   'cadgpt://guidance/units-tolerances',
+  'cadgpt://guidance/modeling-engine-selection',
 ];
 
 /**
@@ -54,7 +55,7 @@ test('instructions mention millimeters and selection_required with no code/path 
   assert.match(SERVER_INSTRUCTIONS, /selection_required/);
 });
 
-test('resource list is exactly the three guidance URIs and each is readable with no code/path hints', async () => {
+test('resource list is exactly the four guidance URIs and each is readable with no code/path hints', async () => {
   const client = await connectClient();
   const list = await client.listResources();
   const uris = list.resources.map((r) => r.uri).sort();
@@ -96,4 +97,90 @@ test('design_brief and design_review prompts are listed and mention read_scene p
   assert.match(reviewText, /confirm/i);
   assert.match(reviewText, /mutating/i);
   assert.ok(reviewText.includes('read_scene'));
+});
+
+test('select_modeling_engine tool routes organic figurine to Blender', async () => {
+  const client = await connectClient();
+  const res = await client.callTool({
+    name: 'select_modeling_engine',
+    arguments: {
+      domain: 'organic',
+      precision_required: 'visual_only',
+      intended_output: 'rendering',
+      description: 'An organic creature figurine',
+    },
+  });
+  assert.equal(res.isError, undefined);
+  const text = (res.content as { type: string; text: string }[])[0].text;
+  const body = JSON.parse(text);
+  assert.equal(body.recommended_engine, 'Blender');
+  assert.ok(body.suggested_tools.includes('create_blender_mesh'));
+  assert.ok(body.suggested_tools.includes('extrude_subdivide_mesh'));
+  assert.ok(body.suggested_tools.includes('displace_sculpt_mesh'));
+  assert.ok(typeof body.rationale === 'string' && body.rationale.length > 0);
+});
+
+test('select_modeling_engine tool routes precision bracket to FreeCAD', async () => {
+  const client = await connectClient();
+  const res = await client.callTool({
+    name: 'select_modeling_engine',
+    arguments: {
+      domain: 'mechanical',
+      precision_required: 'high_tolerance',
+      intended_output: 'cnc_milling',
+      description: 'Bearing mount bracket',
+    },
+  });
+  assert.equal(res.isError, undefined);
+  const text = (res.content as { type: string; text: string }[])[0].text;
+  const body = JSON.parse(text);
+  assert.equal(body.recommended_engine, 'FreeCAD');
+  assert.ok(body.suggested_tools.includes('create_box'));
+  assert.ok(body.suggested_tools.includes('create_cylinder'));
+  assert.ok(body.suggested_tools.includes('boolean_cut'));
+  assert.ok(typeof body.rationale === 'string' && body.rationale.length > 0);
+});
+
+test('select_modeling_engine tool routes architectural floor plan to AutoCAD', async () => {
+  const client = await connectClient();
+  const res = await client.callTool({
+    name: 'select_modeling_engine',
+    arguments: {
+      domain: 'architectural',
+      precision_required: 'standard',
+      intended_output: 'drawing_permit',
+      description: 'Single family home floor plan',
+    },
+  });
+  assert.equal(res.isError, undefined);
+  const text = (res.content as { type: string; text: string }[])[0].text;
+  const body = JSON.parse(text);
+  assert.equal(body.recommended_engine, 'AutoCAD');
+  assert.ok(body.suggested_tools.includes('create_box'));
+  assert.ok(body.suggested_tools.includes('extrude_rect'));
+  assert.ok(body.suggested_tools.includes('boolean_cut'));
+});
+
+test('select_modeling_engine schema rejects invalid domain or extra code properties', async () => {
+  const client = await connectClient();
+  const resInvalidDomain = await client.callTool({
+    name: 'select_modeling_engine',
+    arguments: {
+      domain: 'quantum_physics',
+      precision_required: 'standard',
+      intended_output: 'rendering',
+    },
+  });
+  assert.equal(resInvalidDomain.isError, true);
+
+  const resExtraCode = await client.callTool({
+    name: 'select_modeling_engine',
+    arguments: {
+      domain: 'organic',
+      precision_required: 'visual_only',
+      intended_output: 'rendering',
+      code: 'import bpy; bpy.ops.mesh.primitive_cube_add()',
+    },
+  });
+  assert.equal(resExtraCode.isError, true);
 });

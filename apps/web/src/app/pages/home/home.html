@@ -1,34 +1,31 @@
 <app-exploded-plug>
   @if (auth.user()) {
-    <a class="cta" routerLink="/designs">Open your dashboard</a>
+    <a class="cta" routerLink="/designs">{{ 'home.open_dashboard' | translate }}</a>
   } @else {
-    <button type="button" (click)="signIn()">Sign in</button>
+    <button type="button" (click)="signIn()">{{ 'home.sign_in' | translate }}</button>
   }
-  <a class="quiet" [href]="releasesUrl">Download the connector ↗</a>
+  <a class="quiet" [href]="releasesUrl">{{ 'home.download_connector' | translate }}</a>
 </app-exploded-plug>
 
 <section class="manifesto" appRevealOnScroll>
   <div class="manifesto__statement">
-    <h2>An assistant that reaches your CAD software — not the other way around.</h2>
+    <h2>{{ 'home.manifesto_title' | translate }}</h2>
     <p>
-      CAD Engine runs as a small agent on the same computer as FreeCAD or AutoCAD. Claude or ChatGPT
-      talks to that agent through a fixed set of operations, never a shell and never a free-form
-      script, so the model can create and edit real designs without ever holding a copy of your
-      files.
+      {{ 'home.manifesto_p' | translate }}
     </p>
   </div>
   <dl class="specsheet">
     <div class="specsheet__row">
-      <dt>Execution surface</dt>
-      <dd>A closed allowlist of CAD operations. Nothing free-form reaches your machine.</dd>
+      <dt>{{ 'home.surface_title' | translate }}</dt>
+      <dd>{{ 'home.surface_desc' | translate }}</dd>
     </div>
     <div class="specsheet__row">
-      <dt>Where it runs</dt>
-      <dd>Your computer. Native <code>.FCStd</code> and <code>.dwg</code> files never leave it.</dd>
+      <dt>{{ 'home.runs_title' | translate }}</dt>
+      <dd>{{ 'home.runs_desc' | translate }}</dd>
     </div>
     <div class="specsheet__row">
-      <dt>Setup time</dt>
-      <dd>One pairing code, valid for <span class="tabular-nums">10</span> minutes.</dd>
+      <dt>{{ 'home.setup_title' | translate }}</dt>
+      <dd>{{ 'home.setup_desc' | translate }}</dd>
     </div>
   </dl>
 </section>

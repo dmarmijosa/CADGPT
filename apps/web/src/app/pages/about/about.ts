@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
 import { ApiClient } from '../../core/api/api-client';
+import { TranslatePipe } from '../../core/i18n';
 
 const README_URL = 'https://github.com/dmarmijosa/CADGPT#readme';
 const SECURITY_URL = 'https://github.com/dmarmijosa/CADGPT/blob/main/SECURITY.md';
@@ -8,6 +9,7 @@ const SECURITY_URL = 'https://github.com/dmarmijosa/CADGPT/blob/main/SECURITY.md
 /** Public informational page (spec dashboard-routing: public route). */
 @Component({
   selector: 'app-about-page',
+  imports: [TranslatePipe],
   templateUrl: './about.html',
   styleUrl: './about.css',
 })

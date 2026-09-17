@@ -3,6 +3,7 @@ per-CAD capabilities. Detection only: no test here ever executes a candidate
 binary, and `winreg` is always mocked so macOS/Linux never import the real
 module (guarded import in `discovery.py`).
 """
+import json
 import platform
 import tempfile
 import unittest
@@ -351,6 +352,127 @@ class EnableAutocadFlagTests(unittest.TestCase):
             cad = next(c for c in cads if c["path"] == str(path.resolve()))
             self.assertTrue(cad["capabilities"]["execute"])
             self.assertTrue(cad["executable"])
+
+
+class BlenderDiscoveryTests(unittest.TestCase):
+    """Tests Blender binary detection, BLENDER_OPS parity, and capabilities."""
+
+    def test_blender_ops_parity(self):
+        expected_ops = [
+            "create_blender_mesh",
+            "extrude_subdivide_mesh",
+            "displace_sculpt_mesh",
+            "boolean_blender_mesh",
+            "export_blender_scene",
+            "read_scene",
+            "export_design",
+        ]
+        self.assertEqual(discovery.BLENDER_OPS, expected_ops)
+        self.assertEqual(len(discovery.BLENDER_OPS), 7)
+
+    def test_discovery_detects_blender_on_macos(self):
+        with tempfile.TemporaryDirectory() as d:
+            app_dir = Path(d) / "Applications" / "Blender.app" / "Contents" / "MacOS"
+            app_dir.mkdir(parents=True)
+            blender_bin = app_dir / "Blender"
+            blender_bin.touch()
+
+            with patch("cadgpt_agent.discovery.platform.system", return_value="Darwin"), \
+                 patch("cadgpt_agent.discovery.Path.home", return_value=Path(d)):
+                cads = discover(str(blender_bin))
+
+            matches = [c for c in cads if c["path"] == str(blender_bin.resolve())]
+            self.assertEqual(len(matches), 1)
+            cad = matches[0]
+            self.assertEqual(cad["name"], "Blender")
+            self.assertTrue(cad["executable"])
+            self.assertTrue(cad["capabilities"]["execute"])
+            self.assertEqual(cad["capabilities"]["edition"], "standard")
+            self.assertIsNone(cad["capabilities"]["console"])
+            self.assertTrue(cad["capabilities"]["mesh"])
+            self.assertEqual(cad["capabilities"]["ops"], discovery.BLENDER_OPS)
+
+    def test_discovery_detects_blender_on_windows_program_files(self):
+        with tempfile.TemporaryDirectory() as d:
+            pf = Path(d) / "Program Files"
+            blender_dir = pf / "Blender Foundation" / "Blender 4.0"
+            blender_dir.mkdir(parents=True)
+            blender_exe = blender_dir / "blender.exe"
+            blender_exe.touch()
+
+            with patch("cadgpt_agent.discovery.platform.system", return_value="Windows"), \
+                 patch("cadgpt_agent.discovery.winreg", make_fake_winreg({})), \
+                 patch.dict("cadgpt_agent.discovery.os.environ", {
+                     "ProgramFiles": str(pf),
+                     "LOCALAPPDATA": str(Path(d) / "LocalAppData"),
+                 }):
+                cads = discover()
+
+            matches = [c for c in cads if c["path"] == str(blender_exe.resolve())]
+            self.assertEqual(len(matches), 1)
+            cad = matches[0]
+            self.assertEqual(cad["name"], "Blender")
+            self.assertTrue(cad["capabilities"]["execute"])
+            self.assertEqual(cad["capabilities"]["ops"], discovery.BLENDER_OPS)
+
+    def test_discovery_detects_blender_on_linux(self):
+        with tempfile.TemporaryDirectory() as d:
+            usr_bin = Path(d) / "usr" / "bin"
+            usr_bin.mkdir(parents=True)
+            blender_bin = usr_bin / "blender"
+            blender_bin.touch()
+
+            with patch("cadgpt_agent.discovery.platform.system", return_value="Linux"), \
+                 patch("cadgpt_agent.discovery.shutil.which", return_value=str(blender_bin)):
+                cads = discover()
+
+            matches = [c for c in cads if c["name"] == "Blender"]
+            self.assertGreaterEqual(len(matches), 1)
+            cad = matches[0]
+            self.assertTrue(cad["capabilities"]["execute"])
+            self.assertEqual(cad["capabilities"]["ops"], discovery.BLENDER_OPS)
+
+    def test_discovery_resolves_custom_blender_path_parameter(self):
+        with tempfile.TemporaryDirectory() as d:
+            custom_bin = Path(d) / "opt" / "blender-custom" / "blender"
+            custom_bin.parent.mkdir(parents=True)
+            custom_bin.touch()
+
+            cads = discover(blender_path=str(custom_bin))
+            matches = [c for c in cads if c["path"] == str(custom_bin.resolve())]
+            self.assertEqual(len(matches), 1)
+            cad = matches[0]
+            self.assertEqual(cad["name"], "Blender")
+            self.assertTrue(cad["capabilities"]["execute"])
+
+    def test_discovery_resolves_blender_path_from_config_json(self):
+        with tempfile.TemporaryDirectory() as d:
+            user_data = Path(d) / "CADGPT"
+            user_data.mkdir()
+            custom_bin = Path(d) / "blender-from-config"
+            custom_bin.touch()
+
+            config_file = user_data / "config.json"
+            config_file.write_text(json.dumps({"blenderPath": str(custom_bin)}), encoding="utf-8")
+
+            with patch("platformdirs.user_data_dir", return_value=str(user_data)):
+                cads = discover()
+
+            matches = [c for c in cads if c["path"] == str(custom_bin.resolve())]
+            self.assertEqual(len(matches), 1)
+            cad = matches[0]
+            self.assertEqual(cad["name"], "Blender")
+            self.assertTrue(cad["capabilities"]["execute"])
+
+    def test_discovery_excludes_blender_when_absent(self):
+        with tempfile.TemporaryDirectory() as d:
+            with patch("cadgpt_agent.discovery.platform.system", return_value="Linux"), \
+                 patch("cadgpt_agent.discovery.shutil.which", return_value=None), \
+                 patch("platformdirs.user_data_dir", return_value=str(Path(d) / "empty-data")):
+                cads = discover()
+
+            blender_cads = [c for c in cads if c["name"] == "Blender"]
+            self.assertEqual(len(blender_cads), 0)
 
 
 if __name__ == "__main__":

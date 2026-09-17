@@ -25,7 +25,7 @@ export const cadCapabilitiesSchema = z.object({
 });
 export const cadSchema = z.object({
   id: z.string().min(1).max(64),
-  name: z.enum(['FreeCAD', 'AutoCAD']),
+  name: z.enum(['FreeCAD', 'AutoCAD', 'Blender']),
   path: z.string().min(1).max(1024),
   version: z.string().max(120),
   executable: z.boolean(),
@@ -127,7 +127,7 @@ export class Store {
         expires INTEGER, created INTEGER, result TEXT);
       CREATE TABLE IF NOT EXISTS documents (
         id TEXT PRIMARY KEY, owner TEXT NOT NULL, device_id TEXT NOT NULL,
-        cad_kind TEXT NOT NULL CHECK (cad_kind IN ('FreeCAD','AutoCAD')),
+        cad_kind TEXT NOT NULL CHECK (cad_kind IN ('FreeCAD','AutoCAD','Blender')),
         name TEXT NOT NULL, native_path TEXT, created INTEGER NOT NULL,
         updated INTEGER NOT NULL, latest_job_id TEXT);
       CREATE INDEX IF NOT EXISTS documents_owner ON documents(owner, updated DESC);
@@ -319,6 +319,21 @@ export class Store {
       created: r.created as number,
     }));
   }
+  listAllRoots(owner: string) {
+    return (
+      this.db
+        .prepare(
+          'SELECT id,owner,device_id AS deviceId,path,created FROM allowed_roots WHERE owner=? ORDER BY created DESC, rowid DESC',
+        )
+        .all(owner) as Row[]
+    ).map((r) => ({
+      id: r.id as string,
+      owner: r.owner as string,
+      deviceId: r.deviceId as string,
+      path: r.path as string,
+      created: r.created as number,
+    }));
+  }
   // Owner-scoped: a foreign owner's id deletes zero rows, so it reads
   // identically to "not found" and never leaks whether the id exists.
   removeRoot(owner: string, id: string) {
@@ -411,7 +426,7 @@ export class Store {
   createDocument(
     owner: string,
     deviceId: string,
-    cadKind: 'FreeCAD' | 'AutoCAD',
+    cadKind: 'FreeCAD' | 'AutoCAD' | 'Blender',
     name: string,
     nativePath?: string | null,
   ) {

@@ -10,10 +10,11 @@ import time
 import uuid
 
 from .strategies.autocad import AutoCadStrategy
+from .strategies.blender import BlenderStrategy
 from .strategies.freecad import FreeCadStrategy
 
 # Keyed by cad["name"].
-STRATEGIES = {"FreeCAD": FreeCadStrategy(), "AutoCAD": AutoCadStrategy()}
+STRATEGIES = {"FreeCAD": FreeCadStrategy(), "AutoCAD": AutoCadStrategy(), "Blender": BlenderStrategy()}
 
 # Mirrors the server-side re-enforcement in `apps/api/src/tools.ts`.
 SCENE_CAP_BYTES = 12_000
@@ -225,8 +226,8 @@ def execute(job, cads, root, allowed_roots=None, timeout=120):
             if not chunk:
                 break
             tail.extend(chunk)
-            if len(tail) > 4000:
-                del tail[:-4000]
+            if len(tail) > 4096:
+                del tail[:-4096]
     reader = threading.Thread(target=drain, daemon=True)
     reader.start()
     try:

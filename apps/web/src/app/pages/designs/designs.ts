@@ -4,6 +4,7 @@ import { FormField, form, max, min } from '@angular/forms/signals';
 import { RouterLink } from '@angular/router';
 import { ApiClient } from '../../core/api/api-client';
 import { WorkspaceStore } from '../../core/state/workspace.store';
+import { TranslatePipe } from '../../core/i18n';
 
 /**
  * Guarded designs list (`GET /api/designs`, owner-scoped by the server —
@@ -17,7 +18,7 @@ import { WorkspaceStore } from '../../core/state/workspace.store';
  */
 @Component({
   selector: 'app-designs-page',
-  imports: [FormField, RouterLink, DatePipe],
+  imports: [FormField, RouterLink, DatePipe, TranslatePipe],
   templateUrl: './designs.html',
 })
 export class DesignsPage {

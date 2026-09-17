@@ -12,6 +12,12 @@ import {
   phase5CadSchemas,
   analyzeImageToCadSchema,
   analyzeImageToCadBaseSchema,
+  createBlenderMeshSchema,
+  extrudeSubdivideMeshSchema,
+  displaceSculptMeshSchema,
+  booleanBlenderMeshSchema,
+  exportBlenderSceneSchema,
+  blenderSchemas,
 } from '../src/tools.js';
 
 const freecad = {
@@ -35,6 +41,28 @@ const autocad = {
     console: 'C:\\accoreconsole.exe',
     ops: ['create_box', 'create_cylinder', 'create_sphere', 'create_cone', 'extrude_rect'],
     mesh: false,
+  },
+};
+
+const blender = {
+  id: 'blender-cad',
+  name: 'Blender',
+  path: '/Applications/Blender.app/Contents/MacOS/Blender',
+  version: '4.0.0',
+  executable: true,
+  capabilities: {
+    execute: true,
+    edition: 'standard',
+    ops: [
+      'create_blender_mesh',
+      'extrude_subdivide_mesh',
+      'displace_sculpt_mesh',
+      'boolean_blender_mesh',
+      'export_blender_scene',
+      'read_scene',
+      'export_design',
+    ],
+    mesh: true,
   },
 };
 
@@ -1060,4 +1088,313 @@ test('analyzeImageToCadSchema rejects invalid format and oversized payloads', ()
     }).success,
     false,
   );
+});
+
+test('blenderSchemas reject code-shaped fields and owner/username', () => {
+  for (const [name, schema] of Object.entries(blenderSchemas)) {
+    assert.equal(
+      schema.safeParse({ code: 'import os; os.system("rm -rf /")', confirmed: true }).success,
+      false,
+      `${name} must reject code field`,
+    );
+    assert.equal(
+      schema.safeParse({ owner: 'alice', confirmed: true }).success,
+      false,
+      `${name} must reject owner field`,
+    );
+    assert.equal(
+      schema.safeParse({ username: 'alice', confirmed: true }).success,
+      false,
+      `${name} must reject username field`,
+    );
+  }
+});
+
+test('createBlenderMeshSchema boundary and enum validation', () => {
+  assert.equal(
+    createBlenderMeshSchema.safeParse({
+      primitive_type: 'monkey',
+      subdivisions: 2,
+      smooth_shading: true,
+      confirmed: true,
+    }).success,
+    true,
+  );
+
+  // Rejects invalid primitive type
+  assert.equal(
+    createBlenderMeshSchema.safeParse({
+      primitive_type: 'teapot',
+      confirmed: true,
+    }).success,
+    false,
+  );
+
+  // Rejects subdivisions out of bounds
+  assert.equal(
+    createBlenderMeshSchema.safeParse({
+      primitive_type: 'cube',
+      subdivisions: 5,
+      confirmed: true,
+    }).success,
+    false,
+  );
+
+  // Rejects negative/oversized dimensions
+  assert.equal(
+    createBlenderMeshSchema.safeParse({
+      primitive_type: 'cube',
+      dimensions: { x: -10, y: 10, z: 10 },
+      confirmed: true,
+    }).success,
+    false,
+  );
+  assert.equal(
+    createBlenderMeshSchema.safeParse({
+      primitive_type: 'cube',
+      dimensions: { x: 15000, y: 10, z: 10 },
+      confirmed: true,
+    }).success,
+    false,
+  );
+});
+
+test('extrudeSubdivideMeshSchema and displaceSculptMeshSchema boundary validation', () => {
+  assert.equal(
+    extrudeSubdivideMeshSchema.safeParse({
+      object_name: 'Cage',
+      extrude_distance: 25.0,
+      subdivision_levels: 3,
+      crease_edges: 0.5,
+      confirmed: true,
+    }).success,
+    true,
+  );
+
+  // Rejects subdivision levels out of bounds
+  assert.equal(
+    extrudeSubdivideMeshSchema.safeParse({
+      object_name: 'Cage',
+      extrude_distance: 25.0,
+      subdivision_levels: 6,
+      confirmed: true,
+    }).success,
+    false,
+  );
+
+  // Displace valid
+  assert.equal(
+    displaceSculptMeshSchema.safeParse({
+      object_name: 'Terrain',
+      displace_strength: 5.0,
+      texture_type: 'voronoi',
+      texture_scale: 10.0,
+      voxel_remesh_size: 1.0,
+      confirmed: true,
+    }).success,
+    true,
+  );
+
+  // Displace invalid texture type
+  assert.equal(
+    displaceSculptMeshSchema.safeParse({
+      object_name: 'Terrain',
+      displace_strength: 5.0,
+      texture_type: 'perlin',
+      texture_scale: 10.0,
+      confirmed: true,
+    }).success,
+    false,
+  );
+});
+
+test('booleanBlenderMeshSchema and exportBlenderSceneSchema boundary validation', () => {
+  assert.equal(
+    booleanBlenderMeshSchema.safeParse({
+      target_object: 'Target',
+      tool_object: 'Tool',
+      operation: 'difference',
+      solver: 'exact',
+      confirmed: true,
+    }).success,
+    true,
+  );
+
+  assert.equal(
+    booleanBlenderMeshSchema.safeParse({
+      target_object: 'Target',
+      tool_object: 'Tool',
+      operation: 'cut',
+      confirmed: true,
+    }).success,
+    false,
+  );
+
+  assert.equal(
+    exportBlenderSceneSchema.safeParse({
+      format: 'gltf',
+      apply_modifiers: true,
+      confirmed: true,
+    }).success,
+    true,
+  );
+
+  assert.equal(
+    exportBlenderSceneSchema.safeParse({
+      format: 'fbx',
+      confirmed: true,
+    }).success,
+    false,
+  );
+});
+
+test('happy path: create_blender_mesh enqueues job and creates Blender document', async () => {
+  const store = new Store(':memory:');
+  const device = pairAndApprove(store, 'alice', 'BlenderWorkstation', [blender]);
+  const client = await connectClient(store, 'alice');
+
+  const res = await client.callTool({
+    name: 'create_blender_mesh',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'blender-cad',
+      name: 'Suzanne',
+      primitive_type: 'monkey',
+      subdivisions: 2,
+      smooth_shading: true,
+      confirmed: true,
+    },
+  });
+  assert.equal(res.isError, undefined);
+  const text = (res.content as { type: string; text: string }[])[0].text;
+  const body = JSON.parse(text);
+  assert.equal(body.status, 'queued');
+  assert.ok(body.documentId);
+
+  // Document in store belongs to Blender cadKind
+  const doc = store.getDocument(body.documentId, 'alice');
+  assert.equal(doc.cadKind, 'Blender');
+
+  const picked = store.heartbeat(device.credential!, [blender]) as {
+    job?: Record<string, unknown>;
+  };
+  assert.equal(picked.job?.id, body.jobId);
+  assert.equal(picked.job?.type, 'create_blender_mesh');
+  assert.equal(picked.job?.primitive_type, 'monkey');
+  assert.equal(picked.job?.subdivisions, 2);
+  assert.equal(picked.job?.smooth_shading, true);
+});
+
+test('happy path: extrude_subdivide_mesh, displace_sculpt_mesh, boolean_blender_mesh, export_blender_scene enqueue jobs', async () => {
+  const store = new Store(':memory:');
+  const device = pairAndApprove(store, 'alice', 'BlenderWorkstation', [blender]);
+  const client = await connectClient(store, 'alice');
+
+  // Create initial document
+  const initRes = await client.callTool({
+    name: 'create_blender_mesh',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'blender-cad',
+      primitive_type: 'cube',
+      confirmed: true,
+    },
+  });
+  const initBody = JSON.parse((initRes.content as { type: string; text: string }[])[0].text);
+  const docId = initBody.documentId;
+  store.heartbeat(device.credential!, [blender]);
+  store.complete(device.credential!, initBody.jobId, 'ok', true);
+
+  // 1. extrude_subdivide_mesh
+  const resExtrude = await client.callTool({
+    name: 'extrude_subdivide_mesh',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'blender-cad',
+      documentId: docId,
+      object_name: 'BaseCage',
+      extrude_distance: 15.0,
+      subdivision_levels: 3,
+      crease_edges: 0.8,
+      confirmed: true,
+    },
+  });
+  assert.equal(resExtrude.isError, undefined);
+  const extrudeBody = JSON.parse((resExtrude.content as { type: string; text: string }[])[0].text);
+  store.heartbeat(device.credential!, [blender]);
+  store.complete(device.credential!, extrudeBody.jobId, 'ok', true);
+
+  // 2. displace_sculpt_mesh
+  const resDisplace = await client.callTool({
+    name: 'displace_sculpt_mesh',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'blender-cad',
+      documentId: docId,
+      object_name: 'Terrain',
+      displace_strength: 5.0,
+      texture_type: 'voronoi',
+      texture_scale: 12.5,
+      voxel_remesh_size: 1.0,
+      confirmed: true,
+    },
+  });
+  assert.equal(resDisplace.isError, undefined);
+  const displaceBody = JSON.parse(
+    (resDisplace.content as { type: string; text: string }[])[0].text,
+  );
+  store.heartbeat(device.credential!, [blender]);
+  store.complete(device.credential!, displaceBody.jobId, 'ok', true);
+
+  // 3. boolean_blender_mesh
+  const resBool = await client.callTool({
+    name: 'boolean_blender_mesh',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'blender-cad',
+      documentId: docId,
+      target_object: 'Handle',
+      tool_object: 'Cutter',
+      operation: 'difference',
+      solver: 'exact',
+      confirmed: true,
+    },
+  });
+  assert.equal(resBool.isError, undefined);
+  const boolBody = JSON.parse((resBool.content as { type: string; text: string }[])[0].text);
+  store.heartbeat(device.credential!, [blender]);
+  store.complete(device.credential!, boolBody.jobId, 'ok', true);
+
+  // 4. export_blender_scene
+  const resExport = await client.callTool({
+    name: 'export_blender_scene',
+    arguments: {
+      deviceId: device.deviceId!,
+      cadId: 'blender-cad',
+      documentId: docId,
+      format: 'gltf',
+      apply_modifiers: true,
+      confirmed: true,
+    },
+  });
+  assert.equal(resExport.isError, undefined);
+  const exportBody = JSON.parse((resExport.content as { type: string; text: string }[])[0].text);
+  assert.equal(exportBody.status, 'queued');
+});
+
+test('create_blender_mesh requires write permission', async () => {
+  const store = new Store(':memory:');
+  pairAndApprove(store, 'alice', 'BlenderWorkstation', [blender]);
+  const client = await connectClient(store, 'alice', async () => {
+    throw new Error('Forbidden: insufficient scope.');
+  });
+  const res = await client.callTool({
+    name: 'create_blender_mesh',
+    arguments: {
+      primitive_type: 'cube',
+      confirmed: true,
+    },
+  });
+  assert.equal(res.isError, true);
+  assert.equal(store.jobs('alice').length, 0);
 });

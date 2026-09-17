@@ -3,6 +3,7 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ApiClient } from '../../core/api/api-client';
 import { WorkspaceStore } from '../../core/state/workspace.store';
+import { TranslatePipe } from '../../core/i18n';
 
 const RELEASES_URL = 'https://github.com/dmarmijosa/CADGPT/releases';
 
@@ -25,7 +26,7 @@ export function relativeTime(msAgo: number): string {
  */
 @Component({
   selector: 'app-devices-page',
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink, TranslatePipe],
   templateUrl: './devices.html',
 })
 export class DevicesPage {

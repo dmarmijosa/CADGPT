@@ -1,8 +1,8 @@
 <section class="page-head">
   <div class="section-title">
     <div>
-      <h1>Jobs</h1>
-      <p>Recent jobs across every linked device. Files and CAD documents stay on that device.</p>
+      <h1>{{ 'jobs.title' | translate }}</h1>
+      <p>{{ 'jobs.subtitle' | translate }}</p>
     </div>
     <button
       class="quiet"
@@ -20,7 +20,7 @@
 }
 
 @if (workspace.jobs.isLoading() && !workspace.jobs.hasValue()) {
-  <p>Loading jobs…</p>
+  <p>{{ 'jobs.loading' | translate }}…</p>
 } @else if (workspace.jobs.hasValue() && workspace.jobs.value().length) {
   <table class="data">
     <thead>
@@ -66,7 +66,7 @@
   </table>
 } @else {
   <article class="panel empty">
-    <h2>No jobs yet</h2>
+    <h2>{{ 'jobs.empty' | translate }}</h2>
     <p>Jobs appear here once a connected MCP client creates or modifies a design.</p>
   </article>
 }

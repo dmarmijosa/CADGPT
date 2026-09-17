@@ -1,0 +1,162 @@
+# gui-onboarding-system-tray (NEW)
+
+Purpose: Provide a lightweight, cross-platform desktop graphical user interface consisting of a progressive 4-step onboarding wizard, a hard CAD prerequisite verification gate, Blender tool discovery with user-level PATH/configuration support, a background system tray daemon with connection HUD and unpair controls, and complete bilingual internationalization (English and Spanish) across the agent and web application.
+
+---
+
+### Requirement: Progressive 4-Step Onboarding Wizard Architecture
+The agent desktop application MUST provide a progressive 4-step onboarding wizard implemented using standard `tkinter` (`ttk`) and `pystray` with total packaging overhead not exceeding 5 MB:
+1. **Step 1 — Language Selection & Welcome**:
+   - The wizard MUST present an interactive language toggle supporting English (`en`) and Spanish (`es`).
+   - Switching language MUST dynamically update all UI text, labels, and explanations across the wizard in real time.
+2. **Step 2 — Parametric CAD Prerequisite Verification Gate**:
+   - The wizard MUST invoke the local discovery engine to detect installed CAD kernels.
+   - The step MUST display detection status for FreeCAD and AutoCAD.
+   - Progression MUST be blocked unless at least one valid CAD kernel is verified.
+3. **Step 3 — Blender Tool Discovery & Configuration**:
+   - The wizard MUST probe for a local Blender installation.
+   - If detected, the wizard MUST display the detected executable path and enable Blender capabilities.
+   - If not detected, the wizard MUST present explicit user options to configure Blender or proceed without it.
+4. **Step 4 — Server Pairing & Startup Enrollment**:
+   - The wizard MUST request an ephemeral 12-character pairing code from the configured API server (`POST /api/pairings`).
+   - The wizard MUST display the pairing code, provide a one-click button to open the web dashboard pairing page in the default web browser, and poll the server for user approval.
+   - Upon confirmed pairing, the wizard MUST save the device credentials to the OS secure keyring (`keyring`) and configure background execution.
+
+#### Scenario: First launch runs onboarding wizard when credentials are absent
+- GIVEN the agent executable is launched interactively without existing keyring credentials
+- WHEN the application initializes
+- THEN it opens the 4-step onboarding wizard starting on Step 1 (Language & Welcome)
+
+#### Scenario: Language toggle updates wizard text dynamically
+- GIVEN the onboarding wizard is open in English
+- WHEN the user clicks the Spanish language toggle ("Español")
+- THEN all visible step headings, instructions, button labels, and descriptions immediately switch to Spanish without restarting the application
+
+#### Scenario: Approved pairing advances to completion and launches tray
+- GIVEN the user is on Step 4 viewing the 12-character pairing code
+- WHEN the user approves the pairing in the web dashboard
+- THEN the background polling loop detects approval, stores credentials in the OS keyring, closes the wizard, and launches the persistent system tray icon
+
+---
+
+### Requirement: Hard CAD Prerequisite Verification Gate
+The onboarding wizard MUST enforce a non-bypassable verification gate requiring at least one verified parametric CAD kernel (FreeCAD or AutoCAD):
+1. **Blocking Condition**: If discovery detects neither FreeCAD nor AutoCAD on the host workstation:
+   - The "Next" navigation button MUST be disabled or blocked.
+   - If the user attempts to proceed, the wizard MUST display a modal warning explaining that CAD Engine requires FreeCAD or AutoCAD for precision engineering geometry.
+2. **Guided Installation Assistance**:
+   - The wizard MUST provide guided installation commands and web links tailored to the host operating system:
+     - **Windows**: Command `winget install FreeCAD.FreeCAD` and link to official FreeCAD download page.
+     - **macOS**: Command `brew install --cask freecad` and link to official FreeCAD DMG installer.
+     - **Linux**: Command `sudo apt install freecad` (or distribution equivalent) and Flathub package link.
+3. **Re-Check Capability**:
+   - The wizard MUST provide a dedicated "Re-check / Volver a comprobar" button that triggers immediate re-discovery of host CAD installations without requiring wizard restart or state loss.
+   - Once a supported CAD kernel is detected, the blocking state MUST be lifted immediately and the "Next" button enabled.
+
+#### Scenario: Wizard blocks advancement when no CAD kernel is detected
+- GIVEN a host computer with neither FreeCAD nor AutoCAD installed
+- WHEN Step 2 executes discovery
+- THEN the step displays a missing prerequisite alert, disables the "Next" progression button, and shows guided installation commands for the current OS
+
+#### Scenario: Re-check unblocks wizard upon FreeCAD installation
+- GIVEN the wizard is currently blocked on Step 2
+- WHEN the user installs FreeCAD on the host machine and clicks "Re-check"
+- THEN discovery detects the newly installed FreeCAD binary, updates the status indicator to verified, and enables the "Next" button
+
+#### Scenario: Host with AutoCAD detected passes prerequisite gate
+- GIVEN a host workstation with AutoCAD detected via registry
+- WHEN Step 2 executes discovery
+- THEN the step marks AutoCAD as verified and allows immediate progression to Step 3
+
+---
+
+### Requirement: Blender Tool Discovery and Path Configuration
+The onboarding wizard MUST detect local Blender installations while providing flexible configuration and opt-out mechanics:
+1. **Automated Discovery**:
+   - The wizard MUST probe standard system locations:
+     - Windows: `C:\Program Files\Blender Foundation\Blender*\blender.exe`, `%LOCALAPPDATA%\Programs\Blender Foundation\...`, and `PATH`.
+     - macOS: `/Applications/Blender.app/Contents/MacOS/Blender`, `~/Applications/...`, and `PATH`.
+     - Linux: `/usr/bin/blender`, `/usr/local/bin/blender`, `/snap/bin/blender`, `flatpak`.
+2. **Missing Blender Handling & User Choice**:
+   - If Blender is not detected, the wizard MUST NOT block progression and MUST present two explicit options:
+     - **"Enable Blender (3D Organic Modeling)"**: Allows the user to select an existing `blender` executable via file browser dialog, or provides a download link (`https://www.blender.org/download/`).
+     - **"Continue without Blender"**: Allows the user to opt out. Blender tools remain disabled, and the agent completes pairing with CAD capabilities only.
+3. **User-Level Path Configuration**:
+   - If the user selects a custom Blender executable located outside the system `PATH`:
+     - The agent MUST attempt to append the directory to the user environment `PATH` (`HKCU\Environment\Path` on Windows) without requiring elevated administrator (UAC) permissions.
+     - If environment modification is restricted or fails, the agent MUST persist the absolute path in the user configuration file `config.json["blenderPath"]`.
+     - The agent MUST use `config.json["blenderPath"]` as a primary invocation target during headless execution.
+
+#### Scenario: Discovered Blender is automatically activated
+- GIVEN Blender is installed in a standard program directory
+- WHEN Step 3 runs
+- THEN the wizard displays the detected Blender version and path, pre-selecting it as enabled
+
+#### Scenario: User configures custom Blender binary without admin elevation
+- GIVEN Blender is installed in a custom non-PATH folder
+- WHEN the user browses and selects the Blender executable
+- THEN the agent saves the absolute path into `config.json["blenderPath"]` and marks Blender as ready without requesting UAC admin elevation
+
+#### Scenario: User opts out of Blender and completes onboarding
+- GIVEN Blender is not installed on the workstation
+- WHEN the user selects "Continue without Blender" and proceeds
+- THEN the agent registers device capabilities advertising FreeCAD/AutoCAD operations while excluding Blender operations
+
+---
+
+### Requirement: Background System Tray Application
+The agent MUST provide a background system tray process using `pystray` to maintain workstation connectivity and lifecycle management:
+1. **Visual Identity**:
+   - The tray icon MUST use the CAD Engine 3D isometric cube logo derived from `favicon.ico` / PNG assets.
+   - On macOS, the icon MUST render as a native Menu Bar Extra item.
+   - On Windows, the icon MUST reside in the Taskbar Notification Area with balloon notification support.
+2. **Tray Context Menu**:
+   The tray context menu MUST expose the following actions:
+   - **Status Header**: Non-clickable label displaying current connection state (e.g. `"CAD Engine: Connected (v0.2.0-alpha.1)"` or `"CAD Engine: Disconnected"`).
+   - **View Pairing Code** (`Ver código de vinculación`): Displays the active pairing code if pending, or the workstation Device ID if already paired.
+   - **View Connection Status** (`Ver estado de conexión`): Opens a lightweight HUD dialog displaying Server URL, Workstation Hostname, Device ID, Active Engines (FreeCAD, AutoCAD, Blender), and Heartbeat Latency.
+   - **Open Web Dashboard** (`Abrir Panel Web`): Launches the default system browser to the configured server web URL.
+   - **Unpair Device...** (`Desvincular equipo...`): Displays a modal confirmation prompt (`"Are you sure you want to disconnect this device? Saved credentials will be removed."`). Upon user confirmation, it revokes the device registration on the API server, deletes credentials from the OS keyring, and resets the agent to unpaired state.
+   - **Exit / Quit** (`Salir`): Gracefully terminates polling workers, removes the tray icon, and exits the process.
+3. **Thread Safety & macOS Main Thread Guarantee**:
+   - On macOS and Windows, the GUI event loop MUST run on the main OS thread to prevent Cocoa/Win32 threading crashes.
+   - Network polling and job worker processes MUST run on background threads communicating via thread-safe queues.
+
+#### Scenario: Tray menu opens connection status HUD
+- GIVEN the system tray application is running and connected
+- WHEN the user clicks "View Connection Status"
+- THEN a dialog displays the server URL, device ID, active engines (FreeCAD, AutoCAD, Blender), and last heartbeat latency
+
+#### Scenario: Unpair confirmation revokes credentials and resets state
+- GIVEN a paired agent running in the system tray
+- WHEN the user selects "Unpair Device..." and confirms the confirmation dialog
+- THEN the agent sends a revocation request to the API server, removes the device token from the OS keyring, and transitions to unpaired state
+
+#### Scenario: Graceful exit terminates background poller
+- GIVEN the system tray application is running
+- WHEN the user selects "Exit"
+- THEN the agent stops network polling, unregisters the tray icon, and cleanly exits the process
+
+---
+
+### Requirement: Bilingual Internationalization (i18n)
+The desktop agent GUI and the web application MUST support comprehensive English (`en`) and Spanish (`es`) localization:
+1. **Agent GUI i18n (`cadgpt_agent/i18n.py`)**:
+   - The agent MUST detect system locale upon launch (`locale.getdefaultlocale()`), defaulting to Spanish if the locale begins with `es_`, otherwise defaulting to English.
+   - The agent MUST provide a structured translation dictionary covering all wizard steps, blocking modals, tray menu items, and HUD labels.
+   - The user's explicit language selection MUST be stored in `config.json["language"]` and persist across restarts.
+2. **Web Application i18n (`apps/web/`)**:
+   - The web client MUST provide a reactive `TranslationService` driven by Angular signals (`currentLang = signal<'en' | 'es'>('en')`).
+   - The web client MUST provide a persistent language selector in the navigation header.
+   - Selected language preference MUST be stored in browser `localStorage`.
+   - All text across views (`home`, `pair`, `devices`, `designs`, `jobs`, `about`) MUST be fully localized in both English and Spanish.
+
+#### Scenario: System locale defaults agent GUI to Spanish
+- GIVEN an operating system configured with Spanish locale (`es_ES` or `es_MX`)
+- WHEN `cadengine` is launched for the first time
+- THEN the onboarding wizard displays in Spanish by default
+
+#### Scenario: Web client language switch updates dashboard instantly
+- GIVEN a user visiting the web dashboard in English
+- WHEN the user selects "Español" in the header language selector
+- THEN all text across the current view updates immediately to Spanish and the preference is saved to `localStorage`

@@ -61,6 +61,14 @@ def validate_packaging_assets():
     if not worker.is_file():
         raise FileNotFoundError(f"FreeCAD worker not found: {worker}")
 
+    gui_file = ROOT / "agent" / "cadgpt_agent" / "gui.py"
+    if not gui_file.is_file():
+        raise FileNotFoundError(f"GUI module not found: {gui_file}")
+
+    i18n_file = ROOT / "agent" / "cadgpt_agent" / "i18n.py"
+    if not i18n_file.is_file():
+        raise FileNotFoundError(f"i18n module not found: {i18n_file}")
+
     wix_file = ROOT / "packaging" / "wix" / "cadengine.wxs"
     if not wix_file.is_file():
         raise FileNotFoundError(f"WiX v4 source not found: {wix_file}")
@@ -104,14 +112,24 @@ def get_pyinstaller_command(dist_dir: Path) -> list[str]:
         "cv2",
         "--collect-all",
         "numpy",
+        "--collect-all",
+        "pystray",
+        "--collect-all",
+        "PIL",
         "--add-data",
         f"{ROOT / 'agent/cadgpt_agent/freecad_worker.py'}{sep}cadgpt_agent",
         "--add-data",
         f"{ROOT / 'agent/cadgpt_agent/vision.py'}{sep}cadgpt_agent",
         "--add-data",
+        f"{ROOT / 'agent/cadgpt_agent/gui.py'}{sep}cadgpt_agent",
+        "--add-data",
+        f"{ROOT / 'agent/cadgpt_agent/i18n.py'}{sep}cadgpt_agent",
+        "--add-data",
         f"{ROOT / 'agent/cadgpt_agent/autocad'}{sep}cadgpt_agent/autocad",
         "--add-data",
         f"{ROOT / 'agent/cadgpt_agent/fonts'}{sep}cadgpt_agent/fonts",
+        "--add-data",
+        f"{ROOT / 'apps/web/public/favicon.ico'}{sep}cadgpt_agent/assets",
     ]
     if platform.system() == "Darwin":
         args += ["--windowed", "--osx-bundle-identifier", "com.cadengine.agent"]

@@ -253,7 +253,9 @@ http.use((e: unknown, _q: Request, r: Response, _n: NextFunction) => {
   r.status(status).json({
     error:
       status === 500
-        ? 'Internal server error.'
+        ? e instanceof DomainError
+          ? e.message
+          : 'Internal server error.'
         : e instanceof Error
           ? e.message
           : 'Invalid request.',

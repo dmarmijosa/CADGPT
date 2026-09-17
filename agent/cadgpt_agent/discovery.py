@@ -46,6 +46,16 @@ AUTOCAD_OPS = [
     "read_scene", "export_design",
 ]
 
+BLENDER_OPS = [
+    "create_blender_mesh",
+    "extrude_subdivide_mesh",
+    "displace_sculpt_mesh",
+    "boolean_blender_mesh",
+    "export_blender_scene",
+    "read_scene",
+    "export_design",
+]
+
 
 
 def _iter_subkeys(key):
@@ -112,12 +122,12 @@ def _autocad_registry_installs():
     return installs
 
 
-def discover(manual=None, enable_autocad=False):
+def discover(manual=None, enable_autocad=False, blender_path=None):
     system = platform.system()
     paths = []
     console_editions = {}  # str(path) -> 'full' | 'lt', for accoreconsole.exe candidates
 
-    for binary in ("FreeCADCmd", "freecadcmd", "freecad", "FreeCAD", "acad", "acadlt"):
+    for binary in ("FreeCADCmd", "freecadcmd", "freecad", "FreeCAD", "acad", "acadlt", "blender", "blender.exe"):
         found = shutil.which(binary)
         if found:
             paths.append(Path(found))
@@ -126,6 +136,9 @@ def discover(manual=None, enable_autocad=False):
         for root in (program_files, Path(os.environ.get("LOCALAPPDATA", "")) / "Programs"):
             paths.extend(root.glob("FreeCAD*/bin/FreeCADCmd.exe"))
             paths.extend(root.glob("Autodesk/AutoCAD*/acad*.exe"))
+            paths.extend(root.glob("Blender Foundation/Blender*/blender.exe"))
+            paths.extend(root.glob("Blender Foundation/Blender*/blender"))
+            paths.extend(root.glob("Blender*/blender.exe"))
         try:
             with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\acad.exe") as key:
                 paths.append(Path(winreg.QueryValue(key, None)))
@@ -146,10 +159,16 @@ def discover(manual=None, enable_autocad=False):
             paths.extend(root.glob("FreeCAD*.app/Contents/MacOS/FreeCADCmd"))
             paths.extend(root.glob("Autodesk/AutoCAD*/*.app"))
             paths.extend(root.glob("Autodesk/AutoCAD*.app"))
+            paths.extend(root.glob("Blender.app/Contents/MacOS/Blender"))
+            paths.extend(root.glob("Blender*/Blender.app/Contents/MacOS/Blender"))
     else:
         for root in (Path("/usr/bin"), Path("/usr/local/bin")):
             paths.extend(root.glob("*reecad*"))
+            paths.extend(root.glob("blender"))
         paths.extend(Path("/opt").glob("FreeCAD*/bin/FreeCADCmd"))
+        paths.extend(Path("/snap/bin").glob("blender"))
+        paths.extend(Path("/var/lib/flatpak/exports/bin").glob("*blender*"))
+        paths.extend((Path.home() / ".local/share/flatpak/exports/bin").glob("*blender*"))
     environments = Path.home() / ".conda/environments.txt"
     if environments.is_file():
         for line in environments.read_text().splitlines()[:100]:
@@ -162,6 +181,19 @@ def discover(manual=None, enable_autocad=False):
             # Manual `--cad-path` pointing straight at accoreconsole.exe
             # (D14): presence alone implies full edition (LT never ships it).
             console_editions.setdefault(str(manual_path), "full")
+    if blender_path:
+        paths.append(Path(blender_path).expanduser())
+    else:
+        try:
+            from platformdirs import user_data_dir
+            cfg_path = Path(user_data_dir("CADGPT", appauthor=False)) / "config.json"
+            if cfg_path.is_file():
+                import json
+                cfg_data = json.loads(cfg_path.read_text(encoding="utf-8"))
+                if cfg_data.get("blenderPath"):
+                    paths.append(Path(cfg_data["blenderPath"]).expanduser())
+        except Exception:
+            pass
 
     result = {}
     for path in paths:
@@ -169,9 +201,17 @@ def discover(manual=None, enable_autocad=False):
             continue
         p = str(path.resolve())
         is_console = path.name.lower() == "accoreconsole.exe"
-        name = "AutoCAD" if is_console or "autocad" in p.lower() or path.name.lower().startswith("acad") else "FreeCAD"
+        if is_console or "autocad" in p.lower() or path.name.lower().startswith("acad"):
+            name = "AutoCAD"
+        elif "blender" in p.lower() or path.name.lower().startswith("blender"):
+            name = "Blender"
+        else:
+            name = "FreeCAD"
         identity = hashlib.sha256(p.encode()).hexdigest()[:24]
-        if name == "FreeCAD":
+        if name == "Blender":
+            executable = True
+            capabilities = dict(execute=True, edition="standard", console=None, ops=BLENDER_OPS, mesh=True)
+        elif name == "FreeCAD":
             executable = path.name.lower() in ("freecadcmd", "freecadcmd.exe")
             capabilities = dict(execute=executable, edition=None, console=None, ops=FREECAD_OPS, mesh=True)
         else:

@@ -10,6 +10,8 @@ dependencies = [
     "platformdirs>=4.3,<5",
     "opencv-python-headless>=4.8",
     "numpy>=1.24",
+    "pystray>=0.19",
+    "Pillow>=10.0",
 ]
 [project.scripts]
 cadengine = "cadgpt_agent.main:main"

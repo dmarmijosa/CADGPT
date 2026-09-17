@@ -2,16 +2,18 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
+import { TranslationService, TranslatePipe } from '../../core/i18n';
 
 /** App shell: header, persistent left rail nav, `<router-outlet>`, footer. */
 @Component({
   selector: 'app-shell',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe],
   templateUrl: './shell.html',
   styleUrl: './shell.css',
 })
 export class Shell {
   readonly auth = inject(AuthService);
+  readonly i18n = inject(TranslationService);
   private readonly router = inject(Router);
 
   readonly currentUrl = signal(this.router.url);

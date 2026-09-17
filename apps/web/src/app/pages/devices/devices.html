@@ -1,9 +1,9 @@
 <section class="page-head">
   <div class="section-title">
     <div>
-      <h1>Linked computers</h1>
+      <h1>{{ 'devices.title' | translate }}</h1>
       <p>
-        Computers running the CAD Agent Designer agent, and the CAD installations detected on each.
+        {{ 'devices.subtitle' | translate }}
       </p>
     </div>
     <button
@@ -12,7 +12,7 @@
       (click)="workspace.devices.reload()"
       [disabled]="workspace.devices.isLoading()"
     >
-      ↻ Refresh status
+      {{ 'devices.refresh' | translate }}
     </button>
   </div>
 </section>
@@ -25,16 +25,16 @@
 }
 
 @if (workspace.devices.isLoading() && !workspace.devices.hasValue()) {
-  <p>Loading devices…</p>
+  <p>{{ 'devices.loading' | translate }}</p>
 } @else if (workspace.devices.hasValue() && workspace.devices.value().length) {
   <table class="data">
     <thead>
       <tr>
-        <th scope="col">Name</th>
-        <th scope="col">Status</th>
-        <th scope="col">Last seen</th>
-        <th scope="col">CAD installations</th>
-        <th scope="col">Actions</th>
+        <th scope="col">{{ 'devices.th_name' | translate }}</th>
+        <th scope="col">{{ 'devices.th_status' | translate }}</th>
+        <th scope="col">{{ 'devices.th_last_seen' | translate }}</th>
+        <th scope="col">{{ 'devices.th_cads' | translate }}</th>
+        <th scope="col">{{ 'devices.th_actions' | translate }}</th>
       </tr>
     </thead>
     <tbody>
@@ -207,7 +207,7 @@
   }
 } @else {
   <article class="panel empty">
-    <h2>No linked computers yet</h2>
+    <h2>{{ 'devices.empty' | translate }}</h2>
     <p>
       Install the agent from the
       <a [href]="releasesUrl">GitHub Releases page ↗</a>, then

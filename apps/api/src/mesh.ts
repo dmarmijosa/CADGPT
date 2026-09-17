@@ -2,10 +2,11 @@ import { Router, type Request, type Response, type NextFunction } from 'express'
 import { rateLimit } from 'express-rate-limit';
 import { createHash } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
-import { rename, unlink } from 'node:fs/promises';
+import { readFile, rename, unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { z } from 'zod';
 import { Store, DomainError } from './store.js';
+import { validateBinaryStlBuffer } from './integrity.js';
 
 // mesh-preview-upload "Size Cap and Per-Device Quota"; design.md "Mesh Upload / Serve".
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024; // 25 MiB per file
@@ -122,6 +123,15 @@ async function uploadMesh(req: Request, res: Response, store: Store, dataDir: st
     if (hash.digest('hex') !== expectedSha) throw new DomainError(400, 'Mesh sha256 mismatch.');
     if (!isBinaryStl(size, header))
       throw new DomainError(400, 'Mesh is not a valid binary STL file.');
+    const partBuffer = await readFile(partPath);
+    try {
+      validateBinaryStlBuffer(partBuffer, MAX_UPLOAD_BYTES);
+    } catch (err) {
+      throw new DomainError(
+        400,
+        err instanceof Error ? err.message : 'Mesh is not a valid binary STL file.',
+      );
+    }
     await rename(partPath, finalPath);
   } catch (e) {
     await unlinkIfExists(partPath);
@@ -173,13 +183,28 @@ export function meshRouter(store: Store, opts: MeshRouterOptions): Router {
       // spec "Non-owner cannot fetch mesh" avoids an existence leak.
       const doc = store.getDocument(z.uuid().parse(req.params.id), owner);
       const mesh = store.latestMeshForDocument(doc.id);
-      if (!mesh) throw new DomainError(404, 'No mesh available for this design yet.');
+      if (!mesh) {
+        throw new DomainError(404, 'No mesh available for this design yet.');
+      }
+      const meshFilePath = meshPath(opts.dataDir, mesh.jobId, '.stl');
+      try {
+        const diskBuffer = await readFile(meshFilePath);
+        validateBinaryStlBuffer(diskBuffer);
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+          throw new DomainError(404, 'Mesh file not found on disk.');
+        }
+        throw new DomainError(
+          500,
+          `File integrity failure: ${err instanceof Error ? err.message : 'Corrupted mesh file on disk.'}`,
+        );
+      }
       res.set({
         'Content-Type': 'model/stl',
         'Cache-Control': 'private, no-store',
         'X-Content-Type-Options': 'nosniff',
       });
-      res.sendFile(meshPath(opts.dataDir, mesh.jobId, '.stl'));
+      res.sendFile(meshFilePath);
     }),
   );
   return router;

@@ -2,6 +2,7 @@
 main.py job loop's upload-then-report ordering (tolerant of upload failure).
 """
 import hashlib
+import struct
 import tempfile
 import unittest
 import urllib.error
@@ -13,7 +14,17 @@ from cadgpt_agent.upload import upload_mesh
 
 
 def _stl_bytes(facets=4):
-    return b"\x00" * 80 + facets.to_bytes(4, "little") + b"\x00" * (50 * facets)
+    facet_data = b""
+    for i in range(facets):
+        facet_data += struct.pack(
+            "<12fH",
+            0.0, 0.0, 1.0,
+            0.0, 0.0, 0.0,
+            1.0 + i, 0.0, 0.0,
+            0.0, 1.0, 0.0,
+            0,
+        )
+    return b"\x00" * 80 + facets.to_bytes(4, "little") + facet_data
 
 
 class _FakeResponse:

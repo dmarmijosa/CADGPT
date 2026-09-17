@@ -29,7 +29,7 @@ Safety posture
 - Only the allowlisted tools may be called. Never request code execution, scripts, or file system paths from the user or the model.
 - Design files stay on the user's own machine. Only STL previews may leave the machine, and only for mesh viewing.
 
-Read cadgpt://guidance/mechanical, cadgpt://guidance/architectural, and cadgpt://guidance/units-tolerances for full domain guidance before proposing a design plan.`;
+Read cadgpt://guidance/mechanical, cadgpt://guidance/architectural, cadgpt://guidance/units-tolerances, and cadgpt://guidance/modeling-engine-selection for full domain guidance before proposing a design plan.`;
 
 const MECHANICAL_GUIDANCE = `# Mechanical Design Guidance
 
@@ -115,6 +115,37 @@ const UNITS_TOLERANCES_GUIDANCE = `# Units and Tolerances Reference
 - Never substitute a guessed tolerance when the user has not stated a fit requirement; ask instead.
 `;
 
+const MODELING_ENGINE_SELECTION_GUIDANCE = `# Modeling Engine Selection Guidance
+
+## Overview
+CADGPT supports three distinct modeling engines: AutoCAD, FreeCAD, and Blender. Each engine serves a specialized geometric paradigm and manufacturing pipeline. Select the engine that matches your design domain and output requirements.
+
+## AutoCAD
+- Recommended for: 2D and 3D architectural drafting, building permit drawings, architectural floor plans, standard DWG layering, and coordinate-aligned line work.
+- Geometric paradigm: Coordinate-aligned drafting, 2D boundary extraction, 2.5D and 3D architectural extrusions.
+- Suggested tools: create_box, extrude_rect, boolean_cut, read_scene, export_design.
+- Deliverables: DWG construction documentation and coordinate-aligned layout plans.
+
+## FreeCAD
+- Recommended for: Precision mechanical engineering, parametric B-Rep solid modeling, exact CSG booleans, fastener assemblies, and parts destined for CNC milling or functional FDM/SLA 3D printing.
+- Geometric paradigm: Parametric boundary representation (B-Rep) solid geometry with exact analytical surfaces and strict mechanical tolerances (+/-0.02 mm to +/-0.1 mm).
+- Suggested tools: create_box, create_cylinder, create_sphere, create_cone, extrude_rect, create_wedge, extrude_polygon, boolean_cut, boolean_union, boolean_intersect, fillet, chamfer, loft, create_text_3d, analyze_image_to_cad.
+- Deliverables: Parametric solid models, STEP/IGES exchange files, and high-precision binary STL meshes.
+
+## Blender
+- Recommended for: Organic forms, ergonomic curvatures, characters, figurines, subdivision surfaces (Catmull-Clark), procedural displacement texturing, mesh sculpting, and visual CGI assets.
+- Geometric paradigm: Quad-dominant polygonal meshes, iterative Catmull-Clark subdivision surfaces, procedural texture displacement, OpenVDB voxel remeshing, and polygonal CSG booleans.
+- Suggested tools: create_blender_mesh, extrude_subdivide_mesh, displace_sculpt_mesh, boolean_blender_mesh, export_blender_scene.
+- Deliverables: Native blend project files, WebGL-ready glTF/GLB assets, Wavefront OBJ, and binary STL surface meshes.
+
+## Selection Workflow
+- Confirm part intent, domain, and manufacturing process with the user.
+- For architectural permit drawings, choose AutoCAD.
+- For mechanical engineering, CNC milling, or functional 3D printing, choose FreeCAD.
+- For organic, artistic, ergonomic, or rendering/animation assets, choose Blender.
+- Call select_modeling_engine tool to obtain automated routing recommendations.
+`;
+
 const RESOURCES = [
   {
     uri: 'cadgpt://guidance/mechanical',
@@ -134,7 +165,91 @@ const RESOURCES = [
     title: 'Units and tolerances reference',
     text: UNITS_TOLERANCES_GUIDANCE,
   },
+  {
+    uri: 'cadgpt://guidance/modeling-engine-selection',
+    name: 'modeling-engine-selection-guidance',
+    title: 'Modeling engine selection guidance',
+    text: MODELING_ENGINE_SELECTION_GUIDANCE,
+  },
 ] as const;
+
+export const selectModelingEngineSchema = z
+  .object({
+    domain: z.enum(['mechanical', 'architectural', 'organic', 'artistic', 'hybrid']),
+    precision_required: z.enum(['high_tolerance', 'standard', 'visual_only']),
+    intended_output: z.enum([
+      'cnc_milling',
+      '3d_printing',
+      'rendering',
+      'drawing_permit',
+      'animation',
+    ]),
+    description: z.string().min(1).max(500).optional(),
+  })
+  .strict();
+
+export function determineModelingEngine(input: {
+  domain: 'mechanical' | 'architectural' | 'organic' | 'artistic' | 'hybrid';
+  precision_required: 'high_tolerance' | 'standard' | 'visual_only';
+  intended_output: 'cnc_milling' | '3d_printing' | 'rendering' | 'drawing_permit' | 'animation';
+  description?: string;
+}): {
+  recommended_engine: 'FreeCAD' | 'AutoCAD' | 'Blender';
+  rationale: string;
+  suggested_tools: string[];
+} {
+  const { domain, precision_required, intended_output } = input;
+
+  if (
+    domain === 'organic' ||
+    domain === 'artistic' ||
+    intended_output === 'animation' ||
+    intended_output === 'rendering' ||
+    precision_required === 'visual_only'
+  ) {
+    if (domain === 'architectural' && intended_output === 'drawing_permit') {
+      return {
+        recommended_engine: 'AutoCAD',
+        rationale:
+          'Architectural documentation and permit drawings require 2D/3D coordinate-aligned drafting, standard layering, and DWG output.',
+        suggested_tools: ['create_box', 'extrude_rect', 'boolean_cut'],
+      };
+    }
+    if (
+      domain === 'mechanical' &&
+      (intended_output === 'cnc_milling' || precision_required === 'high_tolerance')
+    ) {
+      return {
+        recommended_engine: 'FreeCAD',
+        rationale:
+          'Precision mechanical engineering requiring high tolerances or CNC milling demands exact parametric B-Rep solid modeling and CSG booleans.',
+        suggested_tools: ['create_box', 'create_cylinder', 'boolean_cut'],
+      };
+    }
+    return {
+      recommended_engine: 'Blender',
+      rationale:
+        'Organic shapes, artistic designs, ergonomic surfaces, and rendering/animation workflows benefit from quad-dominant subdivision surfaces, procedural displacement, and polygonal sculpting.',
+      suggested_tools: ['create_blender_mesh', 'extrude_subdivide_mesh', 'displace_sculpt_mesh'],
+    };
+  }
+
+  if (domain === 'architectural' || intended_output === 'drawing_permit') {
+    return {
+      recommended_engine: 'AutoCAD',
+      rationale:
+        'Architectural documentation, building permit drawings, and floor plans require coordinate-aligned drafting, layering, and DWG format compatibility.',
+      suggested_tools: ['create_box', 'extrude_rect', 'boolean_cut'],
+    };
+  }
+
+  return {
+    recommended_engine: 'FreeCAD',
+    rationale:
+      'Precision mechanical components, parametric assemblies, and functional parts for CNC milling or 3D printing require exact B-Rep boundary representations and deterministic CSG solid operations.',
+    suggested_tools: ['create_box', 'create_cylinder', 'boolean_cut'],
+  };
+}
 
 const designBriefArgs = {
   goal: z.string().min(1).max(2000),
@@ -158,6 +273,27 @@ export function registerGuidance(server: McpServer) {
       }),
     );
   }
+
+  server.registerTool(
+    'select_modeling_engine',
+    {
+      description:
+        'Select the optimal CAD or 3D modeling engine (FreeCAD, AutoCAD, or Blender) based on domain, precision, and intended manufacturing output.',
+      inputSchema: selectModelingEngineSchema,
+      annotations: { readOnlyHint: true },
+    },
+    async (args) => {
+      const recommendation = determineModelingEngine(args);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(recommendation, null, 2),
+          },
+        ],
+      };
+    },
+  );
 
   server.registerPrompt(
     'design_brief',

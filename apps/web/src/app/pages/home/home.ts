@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { ExplodedPlug } from '../../features/exploded/exploded-plug';
 import { AuthService } from '../../core/auth/auth.service';
 import { RevealOnScrollDirective } from '../../shared/reveal-on-scroll.directive';
+import { TranslatePipe } from '../../core/i18n';
 
 const RELEASES_URL = 'https://github.com/dmarmijosa/CADGPT/releases';
 
@@ -20,7 +21,7 @@ const RELEASES_URL = 'https://github.com/dmarmijosa/CADGPT/releases';
  */
 @Component({
   selector: 'app-home-page',
-  imports: [RouterLink, ExplodedPlug, RevealOnScrollDirective],
+  imports: [RouterLink, ExplodedPlug, RevealOnScrollDirective, TranslatePipe],
   templateUrl: './home.html',
 })
 export class HomePage {

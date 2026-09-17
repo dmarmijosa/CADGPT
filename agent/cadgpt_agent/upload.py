@@ -11,6 +11,8 @@ import struct
 import urllib.error
 import urllib.request
 
+from .integrity import validate_binary_stl
+
 # Mirrors the server-side caps in `apps/api/src/mesh.ts` so a mesh the server
 # will reject is never sent over the wire in the first place.
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MiB per file
@@ -65,6 +67,7 @@ def upload_mesh(server, job_id, credential, path, opener=None):
     `OSError` on a network or server-side failure. Callers report the failure
     as a "preview unavailable" note rather than failing the whole job.
     """
+    validate_binary_stl(path, max_bytes=MAX_UPLOAD_BYTES)
     size, header, digest = _sha256_and_size(path)
     _validate_binary_stl(size, header)
     headers = {

@@ -2,11 +2,12 @@ import { Component, inject, signal } from '@angular/core';
 import { FormField, form, maxLength } from '@angular/forms/signals';
 import { Router } from '@angular/router';
 import { ApiService } from '../../core/api/api.service';
+import { TranslatePipe } from '../../core/i18n';
 
 /** Pairing-code approval (guarded — requires a signed-in owner). */
 @Component({
   selector: 'app-pair-page',
-  imports: [FormField],
+  imports: [FormField, TranslatePipe],
   templateUrl: './pair.html',
 })
 export class PairPage {

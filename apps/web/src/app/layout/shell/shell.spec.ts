@@ -110,12 +110,14 @@ describe('Shell (header, left rail nav, and footer)', () => {
     expect(badge?.textContent?.trim()).toBe('GDPR & ISO/IEC 27001');
 
     const title = sheet?.querySelector('#consent-title');
-    expect(title?.textContent?.trim()).toBe('Tratamiento de Datos y Gobernanza CAD');
+    expect(title?.textContent?.trim()).toMatch(
+      /Tratamiento de Datos y Gobernanza CAD|Data Processing and CAD Governance/,
+    );
 
     // Disclosures
-    expect(sheet?.textContent).toContain('Ejecución Local CAD');
-    expect(sheet?.textContent).toContain('Retención de Mallas STL');
-    expect(sheet?.textContent).toContain('Derecho al Olvido');
+    expect(sheet?.textContent).toMatch(/Ejecución Local CAD|Local CAD Execution/);
+    expect(sheet?.textContent).toMatch(/Retención de Mallas STL|STL Mesh Retention/);
+    expect(sheet?.textContent).toMatch(/Derecho al Olvido|Right to Be Forgotten/);
 
     // Checkbox and disabled button
     const checkbox = sheet?.querySelector('#consent-accept-check') as HTMLInputElement;
@@ -125,7 +127,7 @@ describe('Shell (header, left rail nav, and footer)', () => {
     const acceptBtn = sheet?.querySelector('#consent-accept-btn') as HTMLButtonElement;
     expect(acceptBtn).toBeTruthy();
     expect(acceptBtn.disabled).toBe(true);
-    expect(acceptBtn.textContent?.trim()).toBe('Aceptar y Continuar');
+    expect(acceptBtn.textContent?.trim()).toMatch(/Aceptar y Continuar|Accept and Continue/);
   });
 
   it('gates acceptance button on mandatory checkbox toggle (spec: checkbox gating)', async () => {
@@ -235,5 +237,45 @@ describe('Shell (header, left rail nav, and footer)', () => {
     const shellElement = harness.routeNativeElement!;
     expect(shellElement.querySelector('#consent-sheet')).toBeNull();
     expect(shellElement.querySelector('#consent-backdrop')).toBeNull();
+  });
+
+  it('switches interface language dynamically between EN and ES in shell header', async () => {
+    const fakeAuth = {
+      ready: () => Promise.resolve(),
+      user: () => ({ profile: { preferred_username: 'ada' } }),
+      token: () => 'token',
+      login: vi.fn(),
+      logout: () => Promise.resolve(),
+      hasConsent: () => true,
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: fakeAuth },
+        provideRouter([{ path: '', component: Shell, children: routes }]),
+      ],
+    });
+
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/devices');
+
+    const shellElement = harness.routeNativeElement!;
+    const esBtn = Array.from(shellElement.querySelectorAll('.lang-btn')).find(
+      (b) => b.textContent?.trim() === 'ES',
+    ) as HTMLButtonElement;
+    expect(esBtn).toBeTruthy();
+
+    esBtn.click();
+    await harness.fixture.whenStable();
+
+    const rail = shellElement.querySelector('nav[aria-label="Primary"]');
+    const active = rail!.querySelector('a[aria-current="page"]');
+    expect(active?.textContent?.trim()).toBe('Dispositivos');
+
+    const enBtn = Array.from(shellElement.querySelectorAll('.lang-btn')).find(
+      (b) => b.textContent?.trim() === 'EN',
+    ) as HTMLButtonElement;
+    enBtn.click();
+    await harness.fixture.whenStable();
+    expect(active?.textContent?.trim()).toBe('Devices');
   });
 });

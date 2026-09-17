@@ -36,16 +36,39 @@
   </div>
 
   <div class="header-right">
+    <div class="lang-switcher" role="group" aria-label="Language selector">
+      <button
+        type="button"
+        class="lang-btn"
+        [class.active]="i18n.currentLang() === 'en'"
+        (click)="i18n.switchLanguage('en')"
+        title="English"
+      >
+        EN
+      </button>
+      <span class="lang-divider" aria-hidden="true">/</span>
+      <button
+        type="button"
+        class="lang-btn"
+        [class.active]="i18n.currentLang() === 'es'"
+        (click)="i18n.switchLanguage('es')"
+        title="Español"
+      >
+        ES
+      </button>
+    </div>
     <div class="status-indicator" title="Connected CAD Engines & Telemetry Ready">
       <span class="status-dot"></span>
-      <span class="status-text">Daemon Online</span>
+      <span class="status-text">{{ 'nav.daemon_online' | translate }}</span>
     </div>
     <nav aria-label="Account">
       @if (auth.user(); as user) {
         <span class="user-name">{{ user.profile.preferred_username ?? 'Your account' }}</span>
-        <button class="quiet" type="button" (click)="signOut()">Sign out</button>
+        <button class="quiet" type="button" (click)="signOut()">
+          {{ 'nav.sign_out' | translate }}
+        </button>
       } @else {
-        <button type="button" (click)="signIn()">Sign in</button>
+        <button type="button" (click)="signIn()">{{ 'nav.sign_in' | translate }}</button>
       }
     </nav>
   </div>
@@ -69,7 +92,7 @@
           <line x1="12" y1="17" x2="12" y2="21" />
         </svg>
       </span>
-      Devices
+      {{ 'nav.devices' | translate }}
     </a>
     <a routerLink="/designs" routerLinkActive="active" ariaCurrentWhenActive="page">
       <span class="rail-icon" aria-hidden="true">
@@ -90,7 +113,7 @@
           <line x1="12" y1="22.08" x2="12" y2="12" />
         </svg>
       </span>
-      Designs
+      {{ 'nav.designs' | translate }}
     </a>
     <a routerLink="/jobs" routerLinkActive="active" ariaCurrentWhenActive="page">
       <span class="rail-icon" aria-hidden="true">
@@ -108,7 +131,7 @@
           <polyline points="12 6 12 12 16 14" />
         </svg>
       </span>
-      Jobs
+      {{ 'nav.jobs' | translate }}
     </a>
     <a routerLink="/connect" routerLinkActive="active" ariaCurrentWhenActive="page">
       <span class="rail-icon" aria-hidden="true">
@@ -126,7 +149,7 @@
           <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
         </svg>
       </span>
-      Connect
+      {{ 'nav.connect' | translate }}
     </a>
     <a routerLink="/keys" routerLinkActive="active" ariaCurrentWhenActive="page">
       <span class="rail-icon" aria-hidden="true">
@@ -145,7 +168,7 @@
           />
         </svg>
       </span>
-      API keys
+      {{ 'nav.api_keys' | translate }}
     </a>
     <div class="rail-secondary">
       <a routerLink="/about" routerLinkActive="active" ariaCurrentWhenActive="page">
@@ -165,7 +188,7 @@
             <line x1="12" y1="8" x2="12.01" y2="8" />
           </svg>
         </span>
-        About
+        {{ 'nav.about' | translate }}
       </a>
     </div>
   </nav>
@@ -175,11 +198,11 @@
 </div>
 <footer>
   <div class="footer-left">
-    <span class="footer-brand">CAD Agent Designer</span>
-    <span class="footer-status">— experimental alpha</span>
+    <span class="footer-brand">{{ 'footer.brand' | translate }}</span>
+    <span class="footer-status">{{ 'footer.status' | translate }}</span>
   </div>
   <div class="footer-right">
-    <span>FreeCAD execution, AutoCAD Core Console parity, and remote MCP.</span>
+    <span>{{ 'footer.tagline' | translate }}</span>
   </div>
 </footer>
 
@@ -193,11 +216,10 @@
     aria-labelledby="consent-title"
   >
     <div class="stitch-consent-header">
-      <div class="stitch-consent-badge">GDPR &amp; ISO/IEC 27001</div>
-      <h2 id="consent-title" class="stitch-consent-title">Tratamiento de Datos y Gobernanza CAD</h2>
+      <div class="stitch-consent-badge">{{ 'consent.badge' | translate }}</div>
+      <h2 id="consent-title" class="stitch-consent-title">{{ 'consent.title' | translate }}</h2>
       <p class="stitch-consent-subtitle">
-        Conformidad regulatoria para el procesamiento de modelos paramétricos y privacidad de
-        ingeniería.
+        {{ 'consent.subtitle' | translate }}
       </p>
     </div>
 
@@ -220,10 +242,9 @@
           </svg>
         </div>
         <div class="stitch-consent-card-text">
-          <strong>Ejecución Local CAD</strong>
+          <strong>{{ 'consent.local_title' | translate }}</strong>
           <p>
-            Los modelos paramétricos CAD y scripts de ingeniería se ejecutan exclusivamente de
-            manera local en los dispositivos vinculados del usuario.
+            {{ 'consent.local_desc' | translate }}
           </p>
         </div>
       </div>
@@ -248,10 +269,9 @@
           </svg>
         </div>
         <div class="stitch-consent-card-text">
-          <strong>Retención de Mallas STL</strong>
+          <strong>{{ 'consent.retention_title' | translate }}</strong>
           <p>
-            Únicamente las mallas de previsualización 3D trianguladas (STL) se almacenan
-            temporalmente en el servidor para permitir la visualización en el navegador.
+            {{ 'consent.retention_desc' | translate }}
           </p>
         </div>
       </div>
@@ -272,10 +292,9 @@
           </svg>
         </div>
         <div class="stitch-consent-card-text">
-          <strong>Derecho al Olvido</strong>
+          <strong>{{ 'consent.forgotten_title' | translate }}</strong>
           <p>
-            Los usuarios conservan el derecho incondicional de supresión permanente para purgar la
-            totalidad de datos de cuenta y máquinas vinculadas en cualquier momento.
+            {{ 'consent.forgotten_desc' | translate }}
           </p>
         </div>
       </div>
@@ -290,10 +309,7 @@
           [checked]="consentAccepted()"
           (change)="onConsentCheckChange($event)"
         />
-        <span
-          >He leído y acepto los Términos de Servicio y la Política de Privacidad y Tratamiento de
-          Datos.</span
-        >
+        <span>{{ 'consent.checkbox' | translate }}</span>
       </label>
 
       <button
@@ -303,7 +319,7 @@
         [disabled]="!consentAccepted()"
         (click)="acceptConsent()"
       >
-        Aceptar y Continuar
+        {{ 'consent.accept_btn' | translate }}
       </button>
     </div>
   </div>

@@ -1,6 +1,9 @@
+import { existsSync, statSync } from 'node:fs';
+import { basename, dirname, resolve } from 'node:path';
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { Store, DomainError, isValidPathShape, isPathContained } from './store.js';
+import { auditProjectStructure, reorganizeProjectStructure } from './workspace.js';
 
 /**
  * Fallback op list for a CAD that predates the `capabilities` field (D11).
@@ -437,6 +440,153 @@ export const phase5CadSchemas = {
   analyze_image_to_cad: analyzeImageToCadSchema,
 } as const;
 
+export const auditProjectStructureBaseSchema = z
+  .object({
+    deviceId: deviceIdFrag,
+    projectId: z.uuid().optional(),
+    documentId: documentIdFrag,
+    project_dir: pathFrag.optional(),
+  })
+  .strict();
+
+export const auditProjectStructureSchema = auditProjectStructureBaseSchema.superRefine(
+  (val, ctx) => {
+    if (!val.projectId && !val.documentId && !val.project_dir) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'At least one of projectId, documentId, or project_dir must be provided.',
+        path: ['project_dir'],
+      });
+    }
+  },
+);
+
+export const reorganizeProjectStructureBaseSchema = z
+  .object({
+    deviceId: deviceIdFrag,
+    projectId: z.uuid().optional(),
+    documentId: documentIdFrag,
+    project_dir: pathFrag.optional(),
+    confirmed: confirmedFrag,
+  })
+  .strict();
+
+export const reorganizeProjectStructureSchema = reorganizeProjectStructureBaseSchema.superRefine(
+  (val, ctx) => {
+    if (!val.projectId && !val.documentId && !val.project_dir) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'At least one of projectId, documentId, or project_dir must be provided.',
+        path: ['project_dir'],
+      });
+    }
+  },
+);
+
+export const workspaceSchemas = {
+  audit_project_structure: auditProjectStructureSchema,
+  reorganize_project_structure: reorganizeProjectStructureSchema,
+} as const;
+
+export const governanceSchemas = workspaceSchemas;
+
+export const createBlenderMeshSchema = z
+  .object({
+    deviceId: deviceIdFrag,
+    cadId: cadIdFrag,
+    documentId: documentIdFrag,
+    name: nameFrag,
+    primitive_type: z.enum([
+      'cube',
+      'cylinder',
+      'uv_sphere',
+      'icosphere',
+      'torus',
+      'monkey',
+      'grid',
+    ]),
+    dimensions: z
+      .object({
+        x: mmFrag,
+        y: mmFrag,
+        z: mmFrag,
+      })
+      .strict()
+      .optional(),
+    subdivisions: z.number().int().min(0).max(4).default(0).optional(),
+    location: z
+      .object({
+        x: coordFrag,
+        y: coordFrag,
+        z: coordFrag,
+      })
+      .strict()
+      .optional(),
+    smooth_shading: z.boolean().default(true).optional(),
+    confirmed: confirmedFrag,
+  })
+  .strict();
+
+export const extrudeSubdivideMeshSchema = z
+  .object({
+    deviceId: deviceIdFrag,
+    cadId: cadIdFrag,
+    documentId: documentIdFrag,
+    object_name: z.string().regex(/^[A-Za-z0-9 _-]{1,60}$/),
+    extrude_distance: z.number().finite().min(-10000).max(10000),
+    subdivision_levels: z.number().int().min(1).max(5).default(1),
+    crease_edges: z.number().finite().min(0.0).max(1.0).optional(),
+    confirmed: confirmedFrag,
+  })
+  .strict();
+
+export const displaceSculptMeshSchema = z
+  .object({
+    deviceId: deviceIdFrag,
+    cadId: cadIdFrag,
+    documentId: documentIdFrag,
+    object_name: z.string().regex(/^[A-Za-z0-9 _-]{1,60}$/),
+    displace_strength: z.number().finite().min(-10000).max(10000),
+    midlevel: z.number().finite().min(0.0).max(1.0).default(0.5).optional(),
+    texture_type: z.enum(['clouds', 'voronoi', 'wood', 'marble', 'musgrave']),
+    texture_scale: z.number().finite().positive().max(1000),
+    voxel_remesh_size: z.number().finite().positive().max(100).optional(),
+    confirmed: confirmedFrag,
+  })
+  .strict();
+
+export const booleanBlenderMeshSchema = z
+  .object({
+    deviceId: deviceIdFrag,
+    cadId: cadIdFrag,
+    documentId: documentIdFrag,
+    target_object: z.string().regex(/^[A-Za-z0-9 _-]{1,60}$/),
+    tool_object: z.string().regex(/^[A-Za-z0-9 _-]{1,60}$/),
+    operation: z.enum(['difference', 'union', 'intersect']),
+    solver: z.enum(['exact', 'fast']).default('exact').optional(),
+    confirmed: confirmedFrag,
+  })
+  .strict();
+
+export const exportBlenderSceneSchema = z
+  .object({
+    deviceId: deviceIdFrag,
+    cadId: cadIdFrag,
+    documentId: documentIdFrag,
+    format: z.enum(['stl', 'obj', 'gltf', 'glb']),
+    apply_modifiers: z.boolean().default(true).optional(),
+    confirmed: confirmedFrag,
+  })
+  .strict();
+
+export const blenderSchemas = {
+  create_blender_mesh: createBlenderMeshSchema,
+  extrude_subdivide_mesh: extrudeSubdivideMeshSchema,
+  displace_sculpt_mesh: displaceSculptMeshSchema,
+  boolean_blender_mesh: booleanBlenderMeshSchema,
+  export_blender_scene: exportBlenderSceneSchema,
+} as const;
+
 type ToolResult = { content: { type: 'text'; text: string }[] };
 const result = (value: unknown): ToolResult => ({
   content: [{ type: 'text', text: JSON.stringify(value) }],
@@ -596,7 +746,7 @@ function enqueueOp(
     documentId = store.createDocument(
       owner,
       device.id,
-      cad.name as 'FreeCAD' | 'AutoCAD',
+      cad.name as 'FreeCAD' | 'AutoCAD' | 'Blender',
       defaultDocumentName,
     ).id;
   }
@@ -607,6 +757,70 @@ function enqueueOp(
     documentId,
   );
   return { jobId: job.id, documentId, status: 'queued' as const };
+}
+
+function resolveProjectDir(
+  store: Store,
+  owner: string,
+  input: { deviceId?: string; projectId?: string; documentId?: string; project_dir?: string },
+): string {
+  const roots = input.deviceId ? store.listRoots(owner, input.deviceId) : store.listAllRoots(owner);
+  if (roots.length === 0) {
+    throw new DomainError(400, 'No allowed roots registered for owner.');
+  }
+
+  let candidateDir: string | undefined;
+
+  if (input.project_dir) {
+    candidateDir = resolve(input.project_dir);
+  } else if (input.documentId) {
+    const doc = store.getDocument(input.documentId, owner);
+    if (!doc.nativePath) {
+      throw new DomainError(400, 'Document has no native path.');
+    }
+    const absNative = resolve(doc.nativePath);
+    if (existsSync(absNative) && statSync(absNative).isDirectory()) {
+      candidateDir = absNative;
+    } else {
+      const parentDir = dirname(absNative);
+      const parentBase = basename(parentDir);
+      if (['cad', 'meshes', 'exports', 'renders', 'references'].includes(parentBase)) {
+        candidateDir = dirname(parentDir);
+      } else {
+        candidateDir = parentDir;
+      }
+    }
+  } else if (input.projectId) {
+    for (const r of roots) {
+      const p1 = resolve(r.path, 'projects', input.projectId);
+      if (existsSync(p1) && statSync(p1).isDirectory()) {
+        candidateDir = p1;
+        break;
+      }
+      const p2 = resolve(r.path, input.projectId);
+      if (existsSync(p2) && statSync(p2).isDirectory()) {
+        candidateDir = p2;
+        break;
+      }
+    }
+    if (!candidateDir) {
+      candidateDir = resolve(roots[0].path, 'projects', input.projectId);
+    }
+  }
+
+  if (!candidateDir) {
+    throw new DomainError(400, 'Unable to resolve project directory.');
+  }
+
+  if (!roots.some((r) => isPathContained(candidateDir!, r.path))) {
+    throw new DomainError(400, 'Path outside allowed roots.');
+  }
+
+  if (!existsSync(candidateDir) || !statSync(candidateDir).isDirectory()) {
+    throw new DomainError(404, 'Project directory not found.');
+  }
+
+  return candidateDir;
 }
 
 export function registerTools(
@@ -1243,6 +1457,220 @@ export function registerTools(
         documentId: doc.id,
         status: 'queued' as const,
       });
+    },
+  );
+  server.registerTool(
+    'audit_project_structure',
+    {
+      description:
+        'Audit the 5-folder structure and project.json manifest of a CAD project directory in a read-only, non-disruptive manner.',
+      inputSchema: auditProjectStructureSchema,
+      annotations: {
+        readOnlyHint: true,
+      },
+    },
+    async (p) => {
+      const projectDir = resolveProjectDir(store, owner, p);
+      const report = await auditProjectStructure(projectDir);
+      return result(report);
+    },
+  );
+  server.registerTool(
+    'reorganize_project_structure',
+    {
+      description:
+        'Reorganize unorganized files into the standard 5-folder layout and update project.json. Requires explicit confirmation (confirmed: true).',
+      inputSchema: reorganizeProjectStructureSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (p) => {
+      await requireWrite();
+      if (p.confirmed !== true) {
+        throw new DomainError(400, 'Reorganization requires confirmed: true');
+      }
+      const projectDir = resolveProjectDir(store, owner, p);
+      const res = await reorganizeProjectStructure(projectDir, true);
+      return result(res);
+    },
+  );
+  server.registerTool(
+    'create_blender_mesh',
+    {
+      description:
+        'Create a quad-dominant base mesh primitive in Blender (cube, cylinder, uv_sphere, icosphere, torus, monkey, grid) with optional subdivision surfaces and smooth shading. Ask user to confirm dimensions first.',
+      inputSchema: createBlenderMeshSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (p) => {
+      await requireWrite();
+      const {
+        deviceId,
+        cadId,
+        documentId,
+        name,
+        primitive_type,
+        dimensions,
+        subdivisions,
+        location,
+        smooth_shading,
+      } = p;
+      return result(
+        enqueueOp(
+          store,
+          owner,
+          'create_blender_mesh',
+          { primitive_type, dimensions, subdivisions, location, smooth_shading },
+          { deviceId, cadId, documentId },
+          name ?? 'BlenderMesh',
+        ),
+      );
+    },
+  );
+  server.registerTool(
+    'extrude_subdivide_mesh',
+    {
+      description:
+        'Extrude polygon faces along surface normals and apply Catmull-Clark subdivision modifier to an existing Blender mesh. Ask user to confirm distance first.',
+      inputSchema: extrudeSubdivideMeshSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (p) => {
+      await requireWrite();
+      const {
+        deviceId,
+        cadId,
+        documentId,
+        object_name,
+        extrude_distance,
+        subdivision_levels,
+        crease_edges,
+      } = p;
+      return result(
+        enqueueOp(
+          store,
+          owner,
+          'extrude_subdivide_mesh',
+          { object_name, extrude_distance, subdivision_levels, crease_edges },
+          { deviceId, cadId, documentId },
+          object_name,
+        ),
+      );
+    },
+  );
+  server.registerTool(
+    'displace_sculpt_mesh',
+    {
+      description:
+        'Apply procedural texture displacement (clouds, voronoi, wood, marble, musgrave) and optional OpenVDB voxel remeshing for organic surface relief in Blender. Ask user to confirm first.',
+      inputSchema: displaceSculptMeshSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (p) => {
+      await requireWrite();
+      const {
+        deviceId,
+        cadId,
+        documentId,
+        object_name,
+        displace_strength,
+        midlevel,
+        texture_type,
+        texture_scale,
+        voxel_remesh_size,
+      } = p;
+      return result(
+        enqueueOp(
+          store,
+          owner,
+          'displace_sculpt_mesh',
+          {
+            object_name,
+            displace_strength,
+            midlevel,
+            texture_type,
+            texture_scale,
+            voxel_remesh_size,
+          },
+          { deviceId, cadId, documentId },
+          object_name,
+        ),
+      );
+    },
+  );
+  server.registerTool(
+    'boolean_blender_mesh',
+    {
+      description:
+        'Execute a constructive solid geometry (CSG) boolean difference, union, or intersect between two polygonal meshes in Blender. Ask user to confirm first.',
+      inputSchema: booleanBlenderMeshSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (p) => {
+      await requireWrite();
+      const { deviceId, cadId, documentId, target_object, tool_object, operation, solver } = p;
+      return result(
+        enqueueOp(
+          store,
+          owner,
+          'boolean_blender_mesh',
+          { target_object, tool_object, operation, solver },
+          { deviceId, cadId, documentId },
+          target_object,
+        ),
+      );
+    },
+  );
+  server.registerTool(
+    'export_blender_scene',
+    {
+      description:
+        'Export the active Blender scene to binary STL, Wavefront OBJ, or glTF/GLB with baked modifiers and save the native .blend project file. Ask user to confirm first.',
+      inputSchema: exportBlenderSceneSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (p) => {
+      await requireWrite();
+      const { deviceId, cadId, documentId, format, apply_modifiers } = p;
+      return result(
+        enqueueOp(
+          store,
+          owner,
+          'export_blender_scene',
+          { format, apply_modifiers },
+          { deviceId, cadId, documentId },
+          'BlenderExport',
+        ),
+      );
     },
   );
 }

@@ -3,6 +3,7 @@ import { Component, DestroyRef, computed, effect, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { WorkspaceStore } from '../../core/state/workspace.store';
 import { relativeTime } from '../devices/devices';
+import { TranslatePipe } from '../../core/i18n';
 
 const POLL_INTERVAL_MS = 10_000;
 const RESULT_PREVIEW_LENGTH = 140;
@@ -53,7 +54,7 @@ export function jobResultSummary(raw: string | null | undefined): JobResultSumma
  */
 @Component({
   selector: 'app-jobs-page',
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, DatePipe, TranslatePipe],
   templateUrl: './jobs.html',
 })
 export class JobsPage {

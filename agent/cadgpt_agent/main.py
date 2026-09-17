@@ -390,8 +390,9 @@ def cmd_status(args):
             server_info["error"] = str(exc)
 
     cad_path = getattr(args, "cad_path", None) or cfg.get("cadPath")
+    blender_path = getattr(args, "blender_path", None) or cfg.get("blenderPath")
     enable_autocad = getattr(args, "enable_autocad", False)
-    cads = discover(cad_path, enable_autocad=enable_autocad)
+    cads = discover(cad_path, enable_autocad=enable_autocad, blender_path=blender_path)
     service_info = get_service_status()
 
     is_json = getattr(args, "json", False)
@@ -465,12 +466,15 @@ def cmd_pair(args):
 
     server = server_url(value)
     manual = getattr(args, "cad_path", None) or config.get("cadPath")
+    blender_manual = getattr(args, "blender_path", None) or config.get("blenderPath")
     config["server"] = server
     if manual:
         config["cadPath"] = manual
+    if blender_manual:
+        config["blenderPath"] = blender_manual
     config_file.write_text(json.dumps(config))
 
-    cads = discover(manual, enable_autocad=getattr(args, "enable_autocad", False))
+    cads = discover(manual, enable_autocad=getattr(args, "enable_autocad", False), blender_path=blender_manual)
     file = root / "credential.json"
     use_file = False
 
@@ -688,7 +692,7 @@ def cmd_test(args):
     cfg = json.loads(config_file.read_text()) if config_file.is_file() else {}
 
     target_cad = getattr(args, "cad", None)
-    cads = discover(cfg.get("cadPath"), enable_autocad=True)
+    cads = discover(cfg.get("cadPath"), enable_autocad=True, blender_path=cfg.get("blenderPath"))
 
     candidates = [c for c in cads if c.get("executable")]
     if target_cad:
@@ -902,7 +906,7 @@ def run_doctor_checks(args, root, config_file, cfg):
 
     # 4. CAD Engine Discovery
     print("4. Checking CAD Backends...")
-    cads = discover(cfg.get("cadPath"), enable_autocad=True)
+    cads = discover(cfg.get("cadPath"), enable_autocad=True, blender_path=cfg.get("blenderPath"))
     exec_cads = [c for c in cads if c.get("executable")]
     if exec_cads:
         for c in exec_cads:
@@ -1104,6 +1108,46 @@ def cmd_update(args):
 
 
 # ---------------------------------------------------------------------------
+# GUI Wizard & System Tray Command
+# ---------------------------------------------------------------------------
+
+
+def cmd_gui(args):
+    """Handle gui subcommand: launch 4-step wizard if needed, then run system tray daemon."""
+    from .gui import OnboardingController, OnboardingWizard, SystemTrayDaemon, TK_AVAILABLE, PYSTRAY_AVAILABLE
+
+    root = Path(user_data_dir(SERVICE, appauthor=False))
+    config_file = root / "config.json"
+    cfg = json.loads(config_file.read_text()) if config_file.is_file() else {}
+    server = getattr(args, "server", None) or cfg.get("server")
+
+    has_cred = False
+    if server:
+        try:
+            cred = keyring.get_password(SERVICE, server)
+            if cred:
+                has_cred = True
+        except Exception:
+            pass
+
+    tray_only = getattr(args, "tray_only", False)
+
+    if not has_cred and not tray_only:
+        if not TK_AVAILABLE:
+            print("Error: Graphical interface (tkinter) is not available in this environment.", file=sys.stderr)
+            return 1
+        controller = OnboardingController(config_path=config_file)
+        wizard = OnboardingWizard(controller=controller)
+        wizard.run()
+
+    # Once onboarding is complete or if already paired, launch system tray daemon
+    if PYSTRAY_AVAILABLE:
+        daemon = SystemTrayDaemon(server=server, config_path=config_file)
+        daemon.run()
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # Default Foreground Polling Loop
 # ---------------------------------------------------------------------------
 
@@ -1136,12 +1180,15 @@ def run_foreground_loop(args):
         return 0
     server = server_url(value)
     manual = getattr(args, "cad_path", None) or config.get("cadPath")
+    blender_manual = getattr(args, "blender_path", None) or config.get("blenderPath")
     config["server"] = server
     if manual:
         config["cadPath"] = manual
+    if blender_manual:
+        config["blenderPath"] = blender_manual
     config_file.write_text(json.dumps(config))
     cads = discover(
-        manual, enable_autocad=getattr(args, "enable_autocad", False)
+        manual, enable_autocad=getattr(args, "enable_autocad", False), blender_path=blender_manual
     )
     file = root / "credential.json"
     credential = None
@@ -1289,6 +1336,7 @@ def create_parser():
     parent_parser = argparse.ArgumentParser(add_help=False)
     parent_parser.add_argument("--server", default=argparse.SUPPRESS, help="CAD Agent Designer HTTPS server origin")
     parent_parser.add_argument("--cad-path", default=argparse.SUPPRESS, help="Manual FreeCADCmd or AutoCAD executable path")
+    parent_parser.add_argument("--blender-path", default=argparse.SUPPRESS, help="Manual Blender executable path")
     parent_parser.add_argument("--enable-autocad", action="store_true", default=argparse.SUPPRESS,
                                help="Opt in to running full AutoCAD via Core Console (accoreconsole.exe)")
 
@@ -1344,6 +1392,10 @@ def create_parser():
     # update
     subparsers.add_parser("update", help="Update cadengine to latest GitHub release")
 
+    # gui
+    p_gui = subparsers.add_parser("gui", parents=[parent_parser], help="Launch onboarding wizard and system tray")
+    p_gui.add_argument("--tray-only", action="store_true", help="Launch system tray daemon directly without onboarding wizard")
+
     return parser
 
 
@@ -1376,6 +1428,8 @@ def main(argv=None):
         return cmd_doctor(args)
     elif args.subcommand == "update":
         return cmd_update(args)
+    elif args.subcommand == "gui":
+        return cmd_gui(args)
 
     # Subcommand is None: execute backward-compatible foreground loop
     return run_foreground_loop(args)

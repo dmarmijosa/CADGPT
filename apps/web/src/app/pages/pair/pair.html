@@ -1,18 +1,22 @@
 <section class="panel">
-  <p class="eyebrow">LINK A COMPUTER</p>
-  <h1>Pair your device</h1>
+  <p class="eyebrow">{{ 'pair.eyebrow' | translate }}</p>
+  <h1>{{ 'pair.title' | translate }}</h1>
   <p>
-    Only enter a code from an agent you installed on a computer you control. Codes expire after 10
-    minutes.
+    {{ 'pair.desc' | translate }}
   </p>
   @if (error()) {
     <div class="message error" role="alert">{{ error() }}</div>
   }
   <form (submit)="$event.preventDefault(); approve()">
-    <label for="code">12-character pairing code</label>
-    <input id="code" autocomplete="off" placeholder="A1B2C3D4E5F6" [formField]="fields.code" />
+    <label for="code">{{ 'pair.code_label' | translate }}</label>
+    <input
+      id="code"
+      autocomplete="off"
+      [placeholder]="'pair.code_placeholder' | translate"
+      [formField]="fields.code"
+    />
     <button type="submit" [disabled]="busy() || model().code.trim().length !== 12">
-      Confirm &amp; link device
+      {{ 'pair.confirm_btn' | translate }}
     </button>
   </form>
 </section>
