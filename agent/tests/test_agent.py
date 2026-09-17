@@ -631,11 +631,17 @@ class LoggingSubcommandTests(unittest.TestCase):
     def test_rotating_file_handler_configuration(self):
         from cadgpt_agent.main import setup_logging
         with tempfile.TemporaryDirectory() as td:
-            logger, log_path = setup_logging(root_dir=td, log_filename="cadengine.log")
-            self.assertEqual(log_path, Path(td) / "logs" / "cadengine.log")
-            rfh = next(h for h in logger.handlers if isinstance(h, logging.handlers.RotatingFileHandler))
-            self.assertEqual(rfh.maxBytes, 5 * 1024 * 1024)
-            self.assertEqual(rfh.backupCount, 3)
+            logger = logging.getLogger("cadgpt_agent")
+            try:
+                logger, log_path = setup_logging(root_dir=td, log_filename="cadengine.log")
+                self.assertEqual(log_path, Path(td) / "logs" / "cadengine.log")
+                rfh = next(h for h in logger.handlers if isinstance(h, logging.handlers.RotatingFileHandler))
+                self.assertEqual(rfh.maxBytes, 5 * 1024 * 1024)
+                self.assertEqual(rfh.backupCount, 3)
+            finally:
+                for h in list(logger.handlers):
+                    h.close()
+                    logger.removeHandler(h)
 
     def test_logs_subcommand_outputs_lines(self):
         from cadgpt_agent.main import main
@@ -994,30 +1000,36 @@ class DefaultServerResolutionTests(unittest.TestCase):
     def test_foreground_loop_defaults_to_production_server_without_prompts(self):
         from cadgpt_agent.main import run_foreground_loop, DEFAULT_SERVER
         with tempfile.TemporaryDirectory() as td:
-            with patch("cadgpt_agent.main.user_data_dir", return_value=td), \
-                 patch("cadgpt_agent.main.discover", return_value=[]), \
-                 patch("keyring.get_password", return_value="existing_token"), \
-                 patch("cadgpt_agent.main.request") as mock_req, \
-                 patch("builtins.input") as mock_input:
-                mock_req.side_effect = KeyboardInterrupt()
-                args = SimpleNamespace(
-                    server=None,
-                    cad_path=None,
-                    blender_path=None,
-                    enable_autocad=False,
-                    headless=True,
-                    pair=False,
-                    allow_file_credentials=False,
-                )
-                try:
-                    run_foreground_loop(args)
-                except KeyboardInterrupt:
-                    pass
-                mock_input.assert_not_called()
-                mock_req.assert_called_once()
-                self.assertEqual(mock_req.call_args[0][0], DEFAULT_SERVER)
-                cfg = json.loads((Path(td) / "config.json").read_text())
-                self.assertEqual(cfg["server"], DEFAULT_SERVER)
+            try:
+                with patch("cadgpt_agent.main.user_data_dir", return_value=td), \
+                     patch("cadgpt_agent.main.discover", return_value=[]), \
+                     patch("keyring.get_password", return_value="existing_token"), \
+                     patch("cadgpt_agent.main.request") as mock_req, \
+                     patch("builtins.input") as mock_input:
+                    mock_req.side_effect = KeyboardInterrupt()
+                    args = SimpleNamespace(
+                        server=None,
+                        cad_path=None,
+                        blender_path=None,
+                        enable_autocad=False,
+                        headless=True,
+                        pair=False,
+                        allow_file_credentials=False,
+                    )
+                    try:
+                        run_foreground_loop(args)
+                    except KeyboardInterrupt:
+                        pass
+                    mock_input.assert_not_called()
+                    mock_req.assert_called_once()
+                    self.assertEqual(mock_req.call_args[0][0], DEFAULT_SERVER)
+                    cfg = json.loads((Path(td) / "config.json").read_text())
+                    self.assertEqual(cfg["server"], DEFAULT_SERVER)
+            finally:
+                logger = logging.getLogger("cadgpt_agent")
+                for h in list(logger.handlers):
+                    h.close()
+                    logger.removeHandler(h)
 
 
 if __name__ == "__main__":

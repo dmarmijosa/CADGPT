@@ -251,8 +251,8 @@ class BlenderWorkerValidationTests(unittest.TestCase):
         # Full blender invocation with --
         argv1 = ["blender", "-b", "--factory-startup", "--python", "worker.py", "--", "/path/to/request.json", "/path/to/result.json"]
         req, res = parse_cli_args(argv1)
-        self.assertEqual(str(req), "/path/to/request.json")
-        self.assertEqual(str(res), "/path/to/result.json")
+        self.assertEqual(req.as_posix(), "/path/to/request.json")
+        self.assertEqual(res.as_posix(), "/path/to/result.json")
 
         # Direct script invocation without --
         argv2 = ["worker.py", "req.json", "res.json"]
