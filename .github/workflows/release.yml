@@ -98,4 +98,3 @@ jobs:
             --prerelease \
             --title "CAD Engine $TAG — unsigned alpha" \
             --notes "CAD Engine $TAG: Unified CLI and daemons (schtasks, systemd, launchctl); Inno Setup installer with PATH integration; FreeCAD 1.1.3 (20 operations); AutoCAD 2026 Core Console (13 operations); Blender 4.x organic modeling engine (5 operations); 4-step onboarding wizard and system tray daemon; bilingual internationalization (English & Spanish); Google OAuth2 identity provider."
-
