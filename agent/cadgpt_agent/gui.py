@@ -30,8 +30,28 @@ except ImportError:
 try:
     import pystray
     PYSTRAY_AVAILABLE = True
-except ImportError:
+except Exception:
+    pystray = None  # type: ignore
     PYSTRAY_AVAILABLE = False
+
+
+class _DummyMenuItem:
+    def __init__(self, text: Any, action: Any = None, enabled: bool = True) -> None:
+        self.text = text
+        self.action = action
+        self.enabled = enabled
+
+
+class _DummyMenu:
+    SEPARATOR = object()
+
+    def __init__(self, *items: Any) -> None:
+        self.items = items
+
+
+class _FallbackPystray:
+    Menu = _DummyMenu
+    MenuItem = _DummyMenuItem
 
 try:
     import tkinter as tk
@@ -1114,18 +1134,16 @@ class SystemTrayDaemon:
             self.icon.stop()
 
     def build_menu(self) -> Any:
-        if not PYSTRAY_AVAILABLE:
-            return None
-
-        return pystray.Menu(
-            pystray.MenuItem(lambda item: self.get_status_label(), lambda: None, enabled=False),
-            pystray.Menu.SEPARATOR,
-            pystray.MenuItem(lambda item: t("tray_view_pairing_code", get_language(self.config_path)), lambda: self.on_view_pairing_code()),
-            pystray.MenuItem(lambda item: t("tray_view_status", get_language(self.config_path)), lambda: self.on_view_status_hud()),
-            pystray.MenuItem(lambda item: t("tray_open_dashboard", get_language(self.config_path)), lambda: self.on_open_dashboard()),
-            pystray.Menu.SEPARATOR,
-            pystray.MenuItem(lambda item: t("tray_unpair", get_language(self.config_path)), lambda: self.on_unpair_device()),
-            pystray.MenuItem(lambda item: t("tray_exit", get_language(self.config_path)), lambda: self.on_exit()),
+        tray_mod = pystray if (PYSTRAY_AVAILABLE and pystray is not None) else _FallbackPystray
+        return tray_mod.Menu(
+            tray_mod.MenuItem(lambda item: self.get_status_label(), lambda: None, enabled=False),
+            tray_mod.Menu.SEPARATOR,
+            tray_mod.MenuItem(lambda item: t("tray_view_pairing_code", get_language(self.config_path)), lambda: self.on_view_pairing_code()),
+            tray_mod.MenuItem(lambda item: t("tray_view_status", get_language(self.config_path)), lambda: self.on_view_status_hud()),
+            tray_mod.MenuItem(lambda item: t("tray_open_dashboard", get_language(self.config_path)), lambda: self.on_open_dashboard()),
+            tray_mod.Menu.SEPARATOR,
+            tray_mod.MenuItem(lambda item: t("tray_unpair", get_language(self.config_path)), lambda: self.on_unpair_device()),
+            tray_mod.MenuItem(lambda item: t("tray_exit", get_language(self.config_path)), lambda: self.on_exit()),
         )
 
     def _background_poller(self) -> None:
@@ -1135,8 +1153,8 @@ class SystemTrayDaemon:
 
     def run(self) -> None:
         """Run the system tray icon on the main thread (thread safety guarantee)."""
-        if not PYSTRAY_AVAILABLE:
-            raise RuntimeError("pystray is not installed.")
+        if not PYSTRAY_AVAILABLE or pystray is None:
+            raise RuntimeError("pystray is not installed or display server is not available.")
 
         image = get_tray_icon_image()
         if not image:
