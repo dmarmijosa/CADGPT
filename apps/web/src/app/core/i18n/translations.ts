@@ -16,7 +16,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     'nav.version_tag': 'v0.2.0-alpha.1',
 
     // Footer
-    'footer.brand': 'CAD Agent Designer',
+    'footer.brand': 'CAD Engine',
     'footer.status': '— experimental alpha',
     'footer.tagline': 'FreeCAD execution, AutoCAD Core Console parity, and remote MCP.',
     'footer.author_lead': 'Designed & Developed by',
@@ -119,7 +119,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     // Devices Page
     'devices.title': 'Linked computers',
     'devices.subtitle':
-      'Computers running the CAD Agent Designer agent, and the CAD installations detected on each.',
+      'Computers running the CAD Engine agent, and the CAD installations detected on each.',
     'devices.refresh': '↻ Refresh status',
     'devices.loading': 'Loading devices…',
     'devices.empty': 'No linked computers yet',
@@ -169,7 +169,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     'connect.claude_step2_prefix': 'Choose ',
     'connect.claude_step2_strong': 'Add custom connector',
     'connect.claude_step3': 'Paste the MCP resource URL above.',
-    'connect.claude_step4': 'Sign in with your CAD Agent Designer account when prompted.',
+    'connect.claude_step4': 'Sign in with your CAD Engine account when prompted.',
     'connect.chatgpt_title': 'Connect ChatGPT',
     'connect.chatgpt_step1_prefix': 'Open ChatGPT and go to ',
     'connect.chatgpt_step1_strong': 'Settings → Connectors',
@@ -226,7 +226,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     'connect.try_desc_or': ' or ',
     'connect.try_prompt2': '"Model an extruded enclosure profile"',
     'connect.try_hint':
-      'Note: CAD Agent Designer specializes in precision parametric and mechanical CAD modeling (primitives, transforms, booleans, and extrusions), along with subdivision polygonal modeling via Blender 4.x.',
+      'Note: CAD Engine specializes in precision parametric and mechanical CAD modeling (primitives, transforms, booleans, and extrusions), along with subdivision polygonal modeling via Blender 4.x.',
     'connect.auto_service_badge': 'Recommended',
     'connect.auto_service_title': 'Automated One-Step Setup',
     'connect.auto_service_desc':
@@ -353,7 +353,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     'nav.version_tag': 'v0.2.0-alpha.1',
 
     // Footer
-    'footer.brand': 'CAD Agent Designer',
+    'footer.brand': 'CAD Engine',
     'footer.status': '— alfa experimental',
     'footer.tagline': 'Ejecución FreeCAD, paridad con AutoCAD Core Console y MCP remoto.',
     'footer.author_lead': 'Diseñado y Desarrollado por',
@@ -456,7 +456,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     // Devices Page
     'devices.title': 'Equipos vinculados',
     'devices.subtitle':
-      'Computadoras ejecutando el agente CAD Agent Designer y las instalaciones CAD detectadas en cada una.',
+      'Computadoras ejecutando el agente CAD Engine y las instalaciones CAD detectadas en cada una.',
     'devices.refresh': '↻ Actualizar estado',
     'devices.loading': 'Cargando dispositivos…',
     'devices.empty': 'No hay computadoras vinculadas aún',
@@ -506,8 +506,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     'connect.claude_step2_prefix': 'Seleccione ',
     'connect.claude_step2_strong': 'Añadir conector personalizado',
     'connect.claude_step3': 'Pegue la URL del recurso MCP indicada arriba.',
-    'connect.claude_step4':
-      'Inicie sesión con su cuenta de CAD Agent Designer cuando se le solicite.',
+    'connect.claude_step4': 'Inicie sesión con su cuenta de CAD Engine cuando se le solicite.',
     'connect.chatgpt_title': 'Conectar ChatGPT',
     'connect.chatgpt_step1_prefix': 'Abra ChatGPT y diríjase a ',
     'connect.chatgpt_step1_strong': 'Configuración → Conectores',
@@ -564,7 +563,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
     'connect.try_desc_or': ' o ',
     'connect.try_prompt2': '"Modele un perfil de gabinete extruido"',
     'connect.try_hint':
-      'Nota: CAD Agent Designer se especializa en modelado CAD mecánico y paramétrico de precisión (primitivas, transformaciones, booleanas y extrusiones), junto con modelado poligonal por subdivisión con Blender 4.x.',
+      'Nota: CAD Engine se especializa en modelado CAD mecánico y paramétrico de precisión (primitivas, transformaciones, booleanas y extrusiones), junto con modelado poligonal por subdivisión con Blender 4.x.',
     'connect.auto_service_badge': 'Recomendado',
     'connect.auto_service_title': 'Configuración Automática en un Solo Paso',
     'connect.auto_service_desc':

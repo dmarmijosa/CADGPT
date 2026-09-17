@@ -49,7 +49,7 @@ describe('Shell (header, left rail nav, and footer)', () => {
 
     // Footer
     const footer = shellElement.querySelector('footer');
-    expect(footer?.textContent).toContain('CAD Agent Designer');
+    expect(footer?.textContent).toContain('CAD Engine');
     expect(footer?.textContent).toContain('AutoCAD Core Console parity');
   });
 

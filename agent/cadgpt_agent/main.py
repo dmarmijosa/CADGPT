@@ -456,7 +456,7 @@ def cmd_pair(args):
     if not value:
         try:
             value = input(
-                "CAD Agent Designer server URL (https://…): "
+                "CAD Engine server URL (https://…): "
             ).strip()
         except Exception:
             value = None
@@ -1180,13 +1180,13 @@ def run_foreground_loop(args):
             window = tk.Tk()
             window.withdraw()
             value = askstring(
-                "Connect CAD Agent Designer",
-                "Your CAD Agent Designer server URL (https://…):",
+                "Connect CAD Engine",
+                "Your CAD Engine server URL (https://…):",
             )
             window.destroy()
         except Exception:
             value = input(
-                "CAD Agent Designer server URL (https://…): "
+                "CAD Engine server URL (https://…): "
             ).strip()
     if not value:
         return 0
@@ -1346,7 +1346,7 @@ def run_foreground_loop(args):
 def create_parser():
     """Create and return the top-level CLI argument parser with subparsers."""
     parent_parser = argparse.ArgumentParser(add_help=False)
-    parent_parser.add_argument("--server", default=argparse.SUPPRESS, help="CAD Agent Designer HTTPS server origin")
+    parent_parser.add_argument("--server", default=argparse.SUPPRESS, help="CAD Engine HTTPS server origin")
     parent_parser.add_argument("--cad-path", default=argparse.SUPPRESS, help="Manual FreeCADCmd or AutoCAD executable path")
     parent_parser.add_argument("--blender-path", default=argparse.SUPPRESS, help="Manual Blender executable path")
     parent_parser.add_argument("--enable-autocad", action="store_true", default=argparse.SUPPRESS,
@@ -1355,7 +1355,7 @@ def create_parser():
     parser = argparse.ArgumentParser(
         prog="cadengine",
         parents=[parent_parser],
-        description="Connect this CAD computer to your CAD Agent Designer server.",
+        description="Connect this CAD computer to your CAD Engine server.",
     )
     parser.add_argument("--version", action="store_true", help="Show cadengine version")
     parser.add_argument("--headless", action="store_true", help="Print pairing URL instead of opening a browser")

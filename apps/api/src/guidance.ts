@@ -118,7 +118,7 @@ const UNITS_TOLERANCES_GUIDANCE = `# Units and Tolerances Reference
 const MODELING_ENGINE_SELECTION_GUIDANCE = `# Modeling Engine Selection Guidance
 
 ## Overview
-CADGPT supports three distinct modeling engines: AutoCAD, FreeCAD, and Blender. Each engine serves a specialized geometric paradigm and manufacturing pipeline. Select the engine that matches your design domain and output requirements.
+CAD Engine supports three distinct modeling engines: AutoCAD, FreeCAD, and Blender. Each engine serves a specialized geometric paradigm and manufacturing pipeline. Select the engine that matches your design domain and output requirements.
 
 ## AutoCAD
 - Recommended for: 2D and 3D architectural drafting, building permit drawings, architectural floor plans, standard DWG layering, and coordinate-aligned line work.

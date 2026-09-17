@@ -5,13 +5,13 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         pass
     except Exception as error:
-        print("CAD Agent Designer: " + str(error))
+        print("CAD Engine: " + str(error))
         try:
             import tkinter as tk
             from tkinter.messagebox import showerror
             window = tk.Tk()
             window.withdraw()
-            showerror("CAD Agent Designer could not connect", str(error))
+            showerror("CAD Engine could not connect", str(error))
             window.destroy()
         except Exception:
             pass
