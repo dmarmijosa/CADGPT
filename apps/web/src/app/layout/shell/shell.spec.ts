@@ -278,4 +278,119 @@ describe('Shell (header, left rail nav, and footer)', () => {
     await harness.fixture.whenStable();
     expect(active?.textContent?.trim()).toBe('Devices');
   });
+
+  it('renders author attribution to Danny Armijos with secure LinkedIn and personal website links', async () => {
+    const fakeAuth = {
+      ready: () => Promise.resolve(),
+      user: () => ({ profile: { preferred_username: 'ada' } }),
+      token: () => 'token',
+      login: vi.fn(),
+      logout: () => Promise.resolve(),
+      hasConsent: () => true,
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: fakeAuth },
+        provideRouter([{ path: '', component: Shell, children: routes }]),
+      ],
+    });
+
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/devices');
+
+    const shellElement = harness.routeNativeElement!;
+    const footer = shellElement.querySelector('footer');
+    expect(footer).toBeTruthy();
+
+    const authorSection = footer!.querySelector('.footer-author');
+    expect(authorSection).toBeTruthy();
+    expect(authorSection?.textContent).toContain('Danny Armijos');
+
+    // LinkedIn link
+    const linkedinLink = authorSection!.querySelector(
+      'a[href="https://www.linkedin.com/in/dmarmijosa/"]',
+    ) as HTMLAnchorElement;
+    expect(linkedinLink).toBeTruthy();
+    expect(linkedinLink.getAttribute('target')).toBe('_blank');
+    expect(linkedinLink.getAttribute('rel')).toBe('noopener noreferrer');
+    expect(linkedinLink.getAttribute('aria-label')).toBeTruthy();
+
+    // Personal website link
+    const websiteLink = authorSection!.querySelector(
+      'a[href="https://www.danny-armijos.com/"]',
+    ) as HTMLAnchorElement;
+    expect(websiteLink).toBeTruthy();
+    expect(websiteLink.getAttribute('target')).toBe('_blank');
+    expect(websiteLink.getAttribute('rel')).toBe('noopener noreferrer');
+    expect(websiteLink.getAttribute('aria-label')).toBeTruthy();
+  });
+
+  it('allows consented user to open and dismiss data governance review mode without altering consent', async () => {
+    const clearConsentSpy = vi.fn();
+    const fakeAuth = {
+      ready: () => Promise.resolve(),
+      user: () => ({ profile: { sub: 'usr-consented', preferred_username: 'ada' } }),
+      token: () => 'token',
+      login: vi.fn(),
+      logout: () => Promise.resolve(),
+      hasConsent: () => true,
+      clearConsent: clearConsentSpy,
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: fakeAuth },
+        provideRouter([{ path: '', component: Shell, children: routes }]),
+      ],
+    });
+
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/devices');
+
+    const shellElement = harness.routeNativeElement!;
+    // Initially sheet is not visible for consented user
+    expect(shellElement.querySelector('#consent-sheet')).toBeNull();
+
+    // Click data governance review trigger in footer
+    const reviewBtn = shellElement.querySelector('.footer-gov-btn') as HTMLButtonElement;
+    expect(reviewBtn).toBeTruthy();
+    reviewBtn.click();
+    await harness.fixture.whenStable();
+
+    // Sheet is now visible
+    const sheet = shellElement.querySelector('#consent-sheet');
+    expect(sheet).toBeTruthy();
+
+    // Verified active consent badge is displayed
+    const statusBadge = sheet?.querySelector('.stitch-consent-status-badge');
+    expect(statusBadge).toBeTruthy();
+    expect(statusBadge?.textContent).toMatch(
+      /Active Data Processing Consent Verified|Consentimiento Activo de Tratamiento de Datos Verificado/,
+    );
+
+    // Close button is present instead of gating checkbox/accept button
+    const closeBtn = sheet?.querySelector('#consent-close-btn') as HTMLButtonElement;
+    expect(closeBtn).toBeTruthy();
+    expect(sheet?.querySelector('#consent-accept-check')).toBeNull();
+    expect(sheet?.querySelector('#consent-accept-btn')).toBeNull();
+
+    // Clicking Close dismisses sheet
+    closeBtn.click();
+    await harness.fixture.whenStable();
+
+    expect(shellElement.querySelector('#consent-sheet')).toBeNull();
+    expect(clearConsentSpy).not.toHaveBeenCalled();
+
+    // Test backdrop click dismissal in review mode
+    reviewBtn.click();
+    await harness.fixture.whenStable();
+    expect(shellElement.querySelector('#consent-sheet')).toBeTruthy();
+
+    const backdrop = shellElement.querySelector('#consent-backdrop') as HTMLElement;
+    expect(backdrop).toBeTruthy();
+    backdrop.click();
+    await harness.fixture.whenStable();
+
+    expect(shellElement.querySelector('#consent-sheet')).toBeNull();
+    expect(clearConsentSpy).not.toHaveBeenCalled();
+  });
 });

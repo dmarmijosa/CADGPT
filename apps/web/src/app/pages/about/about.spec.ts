@@ -1,11 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { signal, computed } from '@angular/core';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { AboutPage } from './about';
 import { AuthService } from '../../core/auth/auth.service';
 import { ApiClient } from '../../core/api/api-client';
+import { TranslationService } from '../../core/i18n';
 
-describe('AboutPage (spec user-account-lifecycle & dashboard-routing)', () => {
+describe('AboutPage (spec user-account-lifecycle, dashboard-routing, & web-i18n-author-attribution)', () => {
   let fakeUser: any;
   let fakeAuth: any;
   let fakeApi: any;
@@ -24,6 +25,10 @@ describe('AboutPage (spec user-account-lifecycle & dashboard-routing)', () => {
     fakeApi = {
       deleteAccount: vi.fn().mockResolvedValue(undefined),
     };
+  });
+
+  afterEach(() => {
+    localStorage.clear();
   });
 
   it('renders compatibility and security content without an active session', () => {
@@ -45,7 +50,7 @@ describe('AboutPage (spec user-account-lifecycle & dashboard-routing)', () => {
     expect(root.querySelector('.btn-destructive')).toBeTruthy();
   });
 
-  it('renders AutoCAD 2026 Core Console 13-op parity and LT detection-only disclaimer in compatibility table', () => {
+  it('renders AutoCAD 2026 and Blender 4.x in compatibility table', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: AuthService, useValue: { user: () => null, token: () => '' } },
@@ -58,12 +63,111 @@ describe('AboutPage (spec user-account-lifecycle & dashboard-routing)', () => {
 
     const root: HTMLElement = fixture.nativeElement;
     const tableText = root.querySelector('table.data')?.textContent ?? '';
+    // AutoCAD
     expect(tableText).toContain('AutoCAD 2026 Core Console');
     expect(tableText).toContain('Full 13-operation headless execution');
     expect(tableText).toContain('MASSPROP');
     expect(tableText).toContain('binary STL preview via headless STLOUT');
     expect(tableText).toContain('AutoCAD LT');
     expect(tableText).toContain('Installation detection only; execution disabled');
+
+    // Blender 4.x
+    expect(tableText).toContain('Blender 4.x');
+    expect(tableText).toContain('subdivision surfaces');
+    expect(tableText).toContain('--enable-blender');
+  });
+
+  it('renders Tri-Engine Architecture section documenting FreeCAD, AutoCAD, and Blender 4.x', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: { user: () => null, token: () => '' } },
+        { provide: ApiClient, useValue: fakeApi },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(AboutPage);
+    fixture.detectChanges();
+
+    const root: HTMLElement = fixture.nativeElement;
+    const archSection = root.querySelector('[data-testid="tri-engine-architecture"]');
+    expect(archSection).toBeTruthy();
+
+    const cards = archSection!.querySelectorAll('.tri-engine-card');
+    expect(cards.length).toBe(3);
+
+    const archText = archSection!.textContent ?? '';
+    expect(archText).toContain('FreeCAD');
+    expect(archText).toContain('CSG');
+    expect(archText).toContain('AutoCAD');
+    expect(archText).toContain('Core Console');
+    expect(archText).toContain('Blender 4.x');
+    expect(archText).toContain('Subsurf');
+  });
+
+  it('renders Author profile card for Danny Armijos with secure external links', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: { user: () => null, token: () => '' } },
+        { provide: ApiClient, useValue: fakeApi },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(AboutPage);
+    fixture.detectChanges();
+
+    const root: HTMLElement = fixture.nativeElement;
+    const authorCard = root.querySelector('[data-testid="author-profile-card"]');
+    expect(authorCard).toBeTruthy();
+    expect(authorCard?.textContent).toContain('Danny Armijos');
+    expect(authorCard?.textContent).toContain('Software Architect & CAD Systems Engineer');
+
+    // LinkedIn link security & accessibility
+    const linkedinBtn = authorCard!.querySelector(
+      'a[href="https://www.linkedin.com/in/dmarmijosa/"]',
+    ) as HTMLAnchorElement;
+    expect(linkedinBtn).toBeTruthy();
+    expect(linkedinBtn.getAttribute('target')).toBe('_blank');
+    expect(linkedinBtn.getAttribute('rel')).toBe('noopener noreferrer');
+    expect(linkedinBtn.getAttribute('aria-label')).toBeTruthy();
+
+    // Personal website link security & accessibility
+    const websiteBtn = authorCard!.querySelector(
+      'a[href="https://www.danny-armijos.com/"]',
+    ) as HTMLAnchorElement;
+    expect(websiteBtn).toBeTruthy();
+    expect(websiteBtn.getAttribute('target')).toBe('_blank');
+    expect(websiteBtn.getAttribute('rel')).toBe('noopener noreferrer');
+    expect(websiteBtn.getAttribute('aria-label')).toBeTruthy();
+  });
+
+  it('reactively updates all About page literals when switching language to Spanish', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: { user: () => null, token: () => '' } },
+        { provide: ApiClient, useValue: fakeApi },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(AboutPage);
+    const i18n = TestBed.inject(TranslationService);
+    fixture.detectChanges();
+
+    i18n.switchLanguage('es');
+    fixture.detectChanges();
+
+    const root: HTMLElement = fixture.nativeElement;
+    expect(root.querySelector('h1')?.textContent).toContain('Acerca de CAD Engine');
+    expect(root.textContent).toContain('Arquitectura de Triple Motor');
+    expect(root.textContent).toContain('Compatibilidad');
+    expect(root.textContent).toContain('Seguridad y limitaciones');
+    expect(root.textContent).toContain('Autor y Responsable de Ingeniería');
+    expect(root.textContent).toContain('Gobernanza de Cuenta / Derecho al Olvido');
+    expect(root.textContent).toContain('Perfil de LinkedIn ↗');
+    expect(root.textContent).toContain('Sitio Web Personal ↗');
+
+    i18n.switchLanguage('en');
+    fixture.detectChanges();
+    expect(root.querySelector('h1')?.textContent).toContain('About CAD Engine');
   });
 
   it('opens confirmation dialog warning about CAD documents, meshes, and devices', () => {
@@ -86,10 +190,12 @@ describe('AboutPage (spec user-account-lifecycle & dashboard-routing)', () => {
 
     const dialog = root.querySelector('.modal-dialog');
     expect(dialog).toBeTruthy();
-    expect(dialog?.textContent).toContain('PELIGRO / IRREVERSIBLE');
-    expect(dialog?.textContent).toContain('archivos y documentos CAD');
-    expect(dialog?.textContent).toContain('mallas de previsualización 3D');
-    expect(dialog?.textContent).toContain('máquinas y dispositivos vinculados');
+    expect(dialog?.textContent).toMatch(/PELIGRO \/ IRREVERSIBLE|DANGER \/ IRREVERSIBLE/);
+    expect(dialog?.textContent).toMatch(/archivos y documentos CAD|CAD files and documents/);
+    expect(dialog?.textContent).toMatch(/mallas de previsualización 3D|preview meshes/);
+    expect(dialog?.textContent).toMatch(
+      /máquinas y dispositivos vinculados|linked machines and devices/,
+    );
   });
 
   it('gates the confirm button until ELIMINAR is typed exactly', () => {

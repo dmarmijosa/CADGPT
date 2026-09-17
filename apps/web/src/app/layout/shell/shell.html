@@ -200,14 +200,45 @@
   <div class="footer-left">
     <span class="footer-brand">{{ 'footer.brand' | translate }}</span>
     <span class="footer-status">{{ 'footer.status' | translate }}</span>
+    <span class="footer-separator" aria-hidden="true">•</span>
+    <div class="footer-author">
+      <span class="author-lead">{{ 'footer.author_lead' | translate }}</span>
+      <a
+        href="https://www.linkedin.com/in/dmarmijosa/"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="author-link author-name"
+        [attr.aria-label]="'footer.author_linkedin_aria' | translate"
+      >
+        {{ 'footer.author_name' | translate }}
+      </a>
+      <span class="author-divider" aria-hidden="true">/</span>
+      <a
+        href="https://www.danny-armijos.com/"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="author-link author-site"
+        [attr.aria-label]="'footer.author_website_aria' | translate"
+      >
+        {{ 'footer.author_website' | translate }} ↗
+      </a>
+    </div>
   </div>
   <div class="footer-right">
-    <span>{{ 'footer.tagline' | translate }}</span>
+    <button type="button" class="footer-gov-btn" (click)="openConsentReview()">
+      {{ 'footer.data_governance_btn' | translate }}
+    </button>
+    <span class="footer-tagline">{{ 'footer.tagline' | translate }}</span>
   </div>
 </footer>
 
-@if (isConsentRequired()) {
-  <div id="consent-backdrop" class="stitch-consent-backdrop active" aria-hidden="true"></div>
+@if (showConsentSheet()) {
+  <div
+    id="consent-backdrop"
+    class="stitch-consent-backdrop active"
+    (click)="onBackdropClick()"
+    aria-hidden="true"
+  ></div>
   <div
     id="consent-sheet"
     class="stitch-consent-sheet active"
@@ -217,6 +248,12 @@
   >
     <div class="stitch-consent-header">
       <div class="stitch-consent-badge">{{ 'consent.badge' | translate }}</div>
+      @if (isReviewingConsent() && auth.hasConsent()) {
+        <div class="stitch-consent-status-badge">
+          <span class="status-dot"></span>
+          <span>{{ 'consent.status_active' | translate }}</span>
+        </div>
+      }
       <h2 id="consent-title" class="stitch-consent-title">{{ 'consent.title' | translate }}</h2>
       <p class="stitch-consent-subtitle">
         {{ 'consent.subtitle' | translate }}
@@ -301,26 +338,37 @@
     </div>
 
     <div class="stitch-consent-footer">
-      <label class="stitch-consent-checkbox-label" for="consent-accept-check">
-        <input
-          type="checkbox"
-          id="consent-accept-check"
-          class="stitch-consent-checkbox"
-          [checked]="consentAccepted()"
-          (change)="onConsentCheckChange($event)"
-        />
-        <span>{{ 'consent.checkbox' | translate }}</span>
-      </label>
+      @if (isReviewingConsent() && auth.hasConsent()) {
+        <button
+          type="button"
+          id="consent-close-btn"
+          class="stitch-consent-btn btn-close"
+          (click)="closeConsentReview()"
+        >
+          {{ 'consent.close_btn' | translate }}
+        </button>
+      } @else {
+        <label class="stitch-consent-checkbox-label" for="consent-accept-check">
+          <input
+            type="checkbox"
+            id="consent-accept-check"
+            class="stitch-consent-checkbox"
+            [checked]="consentAccepted()"
+            (change)="onConsentCheckChange($event)"
+          />
+          <span>{{ 'consent.checkbox' | translate }}</span>
+        </label>
 
-      <button
-        type="button"
-        id="consent-accept-btn"
-        class="stitch-consent-btn"
-        [disabled]="!consentAccepted()"
-        (click)="acceptConsent()"
-      >
-        {{ 'consent.accept_btn' | translate }}
-      </button>
+        <button
+          type="button"
+          id="consent-accept-btn"
+          class="stitch-consent-btn"
+          [disabled]="!consentAccepted()"
+          (click)="acceptConsent()"
+        >
+          {{ 'consent.accept_btn' | translate }}
+        </button>
+      }
     </div>
   </div>
 }

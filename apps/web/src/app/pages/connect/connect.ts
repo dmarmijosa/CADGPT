@@ -1,6 +1,7 @@
 import { Component, DestroyRef, computed, effect, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { WorkspaceStore } from '../../core/state/workspace.store';
+import { TranslatePipe } from '../../core/i18n';
 
 const POLL_INTERVAL_MS = 10_000;
 
@@ -11,7 +12,7 @@ const POLL_INTERVAL_MS = 10_000;
  */
 @Component({
   selector: 'app-connect-page',
-  imports: [RouterLink],
+  imports: [RouterLink, TranslatePipe],
   templateUrl: './connect.html',
 })
 export class ConnectPage {

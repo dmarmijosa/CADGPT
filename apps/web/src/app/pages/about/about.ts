@@ -18,6 +18,8 @@ export class AboutPage {
   private readonly api = inject(ApiClient);
   readonly readmeUrl = README_URL;
   readonly securityUrl = SECURITY_URL;
+  readonly authorLinkedinUrl = 'https://www.linkedin.com/in/dmarmijosa/';
+  readonly authorWebsiteUrl = 'https://www.danny-armijos.com/';
 
   readonly isDialogOpen = signal(false);
   readonly deleteConfirmationInput = signal('');

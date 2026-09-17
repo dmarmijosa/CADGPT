@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import type { Device } from '../../core/api/models';
 import { WorkspaceStore } from '../../core/state/workspace.store';
+import { TranslationService } from '../../core/i18n';
 import { ConnectPage } from './connect';
 
 /** Minimal stand-in for a `resource()` — only the members the template reads. */
@@ -33,10 +34,15 @@ function setup(devices: Device[] = [], deviceInput = '') {
   fixture.componentRef.setInput('device', deviceInput);
   fixture.detectChanges();
   TestBed.tick(); // flushes the constructor `effect()` synchronously for the test
-  return { fixture, workspace, root: fixture.nativeElement as HTMLElement };
+  const i18n = TestBed.inject(TranslationService);
+  return { fixture, workspace, root: fixture.nativeElement as HTMLElement, i18n };
 }
 
 describe('ConnectPage (spec mcp-client-onboarding)', () => {
+  afterEach(() => {
+    localStorage.clear();
+  });
+
   it('renders Claude and ChatGPT instruction sets that are distinct from each other', () => {
     const { root } = setup([onlineDevice]);
 
@@ -110,6 +116,49 @@ describe('ConnectPage (spec mcp-client-onboarding)', () => {
     expect(
       windowsBlock?.querySelector('button[aria-label="Copy Windows PowerShell snippet"]'),
     ).toBeTruthy();
+  });
+
+  it('reactively updates all text literals and button aria-labels when language is switched to Spanish', () => {
+    const { fixture, root, i18n } = setup([onlineDevice]);
+
+    i18n.switchLanguage('es');
+    fixture.detectChanges();
+
+    // Eyebrow and titles in Spanish
+    expect(root.querySelector('.eyebrow')?.textContent).toBe('CONECTE SU CLIENTE MCP');
+    expect(root.querySelector('h1')?.textContent).toBe('Casi listo.');
+
+    // Claude and ChatGPT steps in Spanish
+    const claude = root.querySelector('[data-testid="claude-steps"]')?.textContent ?? '';
+    const chatgpt = root.querySelector('[data-testid="chatgpt-steps"]')?.textContent ?? '';
+    expect(claude).toContain('Configuración → Conectores');
+    expect(claude).toContain('Añadir conector personalizado');
+    expect(chatgpt).toContain('Modo desarrollador');
+
+    // Status label
+    expect(root.textContent).toContain('En línea');
+
+    // Keep-alive aria-labels in Spanish
+    const linuxBlock = root.querySelector('[data-testid="keep-alive-linux"]');
+    const macosBlock = root.querySelector('[data-testid="keep-alive-macos"]');
+    const windowsBlock = root.querySelector('[data-testid="keep-alive-windows"]');
+
+    expect(
+      linuxBlock?.querySelector('button[aria-label="Copiar fragmento de systemd para Linux"]'),
+    ).toBeTruthy();
+    expect(
+      macosBlock?.querySelector('button[aria-label="Copiar fragmento de launchd para macOS"]'),
+    ).toBeTruthy();
+    expect(
+      windowsBlock?.querySelector(
+        'button[aria-label="Copiar fragmento de PowerShell para Windows"]',
+      ),
+    ).toBeTruthy();
+
+    // Snippets remain intact and identical (shell commands not localized)
+    const linuxSnippet = linuxBlock?.querySelector('pre code')?.textContent ?? '';
+    expect(linuxSnippet).toContain('cadengine.service');
+    expect(linuxSnippet).toContain('systemctl enable --now cadengine');
   });
 });
 

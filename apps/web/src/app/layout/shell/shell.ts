@@ -24,6 +24,7 @@ export class Shell {
 
   readonly consentAccepted = signal(false);
   readonly isDismissed = signal(false);
+  readonly isReviewingConsent = signal(false);
 
   readonly isConsentRequired = computed(() => {
     if (this.isDismissed()) return false;
@@ -31,6 +32,9 @@ export class Shell {
     if (!user) return false;
     return !this.auth.hasConsent();
   });
+
+  readonly showConsentSheet = computed(() => this.isConsentRequired() || this.isReviewingConsent());
+  readonly isConsentVisible = this.showConsentSheet;
 
   constructor() {
     this.router.events
@@ -48,6 +52,20 @@ export class Shell {
     void this.auth.logout();
   }
 
+  openConsentReview(): void {
+    this.isReviewingConsent.set(true);
+  }
+
+  closeConsentReview(): void {
+    this.isReviewingConsent.set(false);
+  }
+
+  onBackdropClick(): void {
+    if (this.isReviewingConsent()) {
+      this.closeConsentReview();
+    }
+  }
+
   onConsentCheckChange(event: Event): void {
     const target = event.target as HTMLInputElement;
     this.consentAccepted.set(Boolean(target?.checked));
@@ -58,5 +76,6 @@ export class Shell {
     this.auth.recordConsent();
     this.consentAccepted.set(false);
     this.isDismissed.set(true);
+    this.isReviewingConsent.set(false);
   }
 }

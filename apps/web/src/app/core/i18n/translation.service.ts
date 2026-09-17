@@ -17,9 +17,23 @@ export class TranslationService {
           return stored;
         }
       }
-      if (typeof navigator !== 'undefined' && navigator.language) {
-        if (navigator.language.toLowerCase().startsWith('es')) {
-          return 'es';
+      if (typeof navigator !== 'undefined') {
+        const candidates: string[] = [];
+        if (Array.isArray(navigator.languages)) {
+          candidates.push(...navigator.languages);
+        }
+        if (typeof navigator.language === 'string') {
+          candidates.push(navigator.language);
+        }
+        for (const cand of candidates) {
+          if (!cand || typeof cand !== 'string') continue;
+          const normalized = cand.trim().toLowerCase();
+          if (normalized.startsWith('es')) {
+            return 'es';
+          }
+          if (normalized.startsWith('en')) {
+            return 'en';
+          }
         }
       }
     } catch {

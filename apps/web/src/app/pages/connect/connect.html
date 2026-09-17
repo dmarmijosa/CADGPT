@@ -1,11 +1,11 @@
 <section class="page-head">
-  <p class="eyebrow">CONNECT YOUR MCP CLIENT</p>
-  <h1>Almost there.</h1>
-  <p>Paste this deployment's MCP resource URL into Claude or ChatGPT to finish connecting.</p>
+  <p class="eyebrow">{{ 'connect.eyebrow' | translate }}</p>
+  <h1>{{ 'connect.title' | translate }}</h1>
+  <p>{{ 'connect.subtitle' | translate }}</p>
 </section>
 
 <section class="panel">
-  <h2>MCP resource URL</h2>
+  <h2>{{ 'connect.resource_url_title' | translate }}</h2>
   <p>
     <code>{{ resourceUrl }}</code>
   </p>
@@ -13,71 +13,99 @@
     type="button"
     class="quiet"
     (click)="copyResourceUrl()"
-    [attr.aria-label]="'Copy ' + resourceUrl"
+    [attr.aria-label]="('connect.copy_url' | translate) + ' ' + resourceUrl"
   >
-    {{ copied() ? 'Copied!' : 'Copy URL' }}
+    {{ (copied() ? 'connect.copied' : 'connect.copy_url') | translate }}
   </button>
 </section>
 
 <section class="panel" data-testid="claude-steps">
-  <h2>Connect Claude</h2>
+  <h2>{{ 'connect.claude_title' | translate }}</h2>
   <ol>
-    <li>Open Claude and go to <strong>Settings → Connectors</strong>.</li>
-    <li>Choose <strong>Add custom connector</strong>.</li>
-    <li>Paste the MCP resource URL above.</li>
-    <li>Sign in with your CAD Agent Designer account when prompted.</li>
+    <li>
+      {{ 'connect.claude_step1_prefix' | translate
+      }}<strong>{{ 'connect.claude_step1_strong' | translate }}</strong
+      >.
+    </li>
+    <li>
+      {{ 'connect.claude_step2_prefix' | translate
+      }}<strong>{{ 'connect.claude_step2_strong' | translate }}</strong
+      >.
+    </li>
+    <li>{{ 'connect.claude_step3' | translate }}</li>
+    <li>{{ 'connect.claude_step4' | translate }}</li>
   </ol>
 </section>
 
 <section class="panel" data-testid="chatgpt-steps">
-  <h2>Connect ChatGPT</h2>
+  <h2>{{ 'connect.chatgpt_title' | translate }}</h2>
   <ol>
-    <li>Open ChatGPT and go to <strong>Settings → Connectors</strong>.</li>
-    <li>Turn on <strong>Developer mode</strong>.</li>
-    <li>Choose <strong>Add</strong> and paste the MCP resource URL above.</li>
+    <li>
+      {{ 'connect.chatgpt_step1_prefix' | translate
+      }}<strong>{{ 'connect.chatgpt_step1_strong' | translate }}</strong
+      >.
+    </li>
+    <li>
+      {{ 'connect.chatgpt_step2_prefix' | translate
+      }}<strong>{{ 'connect.chatgpt_step2_strong' | translate }}</strong
+      >.
+    </li>
+    <li>
+      {{ 'connect.chatgpt_step3_prefix' | translate
+      }}<strong>{{ 'connect.chatgpt_step3_strong' | translate }}</strong
+      >{{ 'connect.chatgpt_step3_suffix' | translate }}
+    </li>
   </ol>
 </section>
 
 <section class="panel">
-  <h2>Device status</h2>
+  <h2>{{ 'connect.device_title' | translate }}</h2>
   @if (workspace.devices.error(); as error) {
-    <div class="message error" role="alert">Could not load device status.</div>
+    <div class="message error" role="alert">{{ 'connect.device_error' | translate }}</div>
   } @else if (device()) {
     @if (boundDevice(); as bound) {
       <p>
         <span class="status" [class.online]="bound.online">
-          {{ bound.online ? 'Online' : 'Waiting for this computer to come online…' }}
+          {{ (bound.online ? 'connect.device_online' : 'connect.device_waiting') | translate }}
         </span>
         {{ bound.name }}
       </p>
     } @else if (workspace.devices.isLoading()) {
-      <p>Looking up this device…</p>
+      <p>{{ 'connect.device_looking_up' | translate }}</p>
     } @else {
-      <p>This device was not found. Check <a routerLink="/devices">your linked computers</a>.</p>
+      <p>
+        {{ 'connect.device_not_found_lead' | translate
+        }}<a routerLink="/devices">{{ 'connect.device_linked_link' | translate }}</a
+        >.
+      </p>
     }
   } @else if (workspace.devices.isLoading() && !workspace.devices.hasValue()) {
-    <p>Loading device status…</p>
+    <p>{{ 'connect.device_loading' | translate }}</p>
   } @else if (workspace.devices.hasValue() && workspace.devices.value().length) {
     <ul>
       @for (d of workspace.devices.value(); track d.id) {
         <li>
           <span class="status" [class.online]="d.online">{{
-            d.online ? 'Online' : 'Offline'
+            (d.online ? 'connect.device_online' : 'connect.device_offline') | translate
           }}</span>
           {{ d.name }}
         </li>
       }
     </ul>
   } @else {
-    <p>No linked computers yet. <a routerLink="/pair">Pair one first</a>.</p>
+    <p>
+      {{ 'connect.device_empty_lead' | translate
+      }}<a routerLink="/pair">{{ 'connect.device_pair_link' | translate }}</a
+      >.
+    </p>
   }
 </section>
 
 <section class="panel keep-alive-section" data-testid="keep-alive-section">
   <div class="section-title">
     <div>
-      <h2>Keep the agent running</h2>
-      <p>Configure the agent to survive user logouts and system reboots on your CAD workstation.</p>
+      <h2>{{ 'connect.keep_alive_title' | translate }}</h2>
+      <p>{{ 'connect.keep_alive_desc' | translate }}</p>
     </div>
   </div>
 
@@ -85,12 +113,13 @@
     <!-- Linux systemd -->
     <article class="os-guide" data-testid="keep-alive-linux">
       <div class="os-guide-header">
-        <span class="status">Linux</span>
-        <h3>systemd service</h3>
+        <span class="status">{{ 'connect.linux_badge' | translate }}</span>
+        <h3>{{ 'connect.linux_title' | translate }}</h3>
       </div>
       <p>
-        Create a service under <code>/etc/systemd/system/cadengine.service</code> (replace
-        <code>youruser</code> with your paired account):
+        {{ 'connect.linux_desc_prefix' | translate
+        }}<code>/etc/systemd/system/cadengine.service</code>{{ 'connect.linux_desc_mid' | translate
+        }}<code>youruser</code>{{ 'connect.linux_desc_suffix' | translate }}
       </p>
       <div class="snippet-box">
         <pre><code>{{ linuxSnippet() }}</code></pre>
@@ -98,9 +127,12 @@
           type="button"
           class="quiet"
           (click)="copySnippet(linuxSnippet(), 'linux')"
-          [attr.aria-label]="'Copy Linux systemd snippet'"
+          [attr.aria-label]="'connect.linux_copy_aria' | translate"
         >
-          {{ copiedSnippet() === 'linux' ? 'Copied!' : 'Copy snippet' }}
+          {{
+            (copiedSnippet() === 'linux' ? 'connect.snippet_copied' : 'connect.copy_snippet')
+              | translate
+          }}
         </button>
       </div>
     </article>
@@ -108,12 +140,13 @@
     <!-- macOS launchd -->
     <article class="os-guide" data-testid="keep-alive-macos">
       <div class="os-guide-header">
-        <span class="status">macOS</span>
-        <h3>launchd LaunchAgent</h3>
+        <span class="status">{{ 'connect.macos_badge' | translate }}</span>
+        <h3>{{ 'connect.macos_title' | translate }}</h3>
       </div>
       <p>
-        Create <code>~/Library/LaunchAgents/com.cadengine.agent.plist</code> to run within your user
-        session:
+        {{ 'connect.macos_desc_prefix' | translate
+        }}<code>~/Library/LaunchAgents/com.cadengine.agent.plist</code
+        >{{ 'connect.macos_desc_suffix' | translate }}
       </p>
       <div class="snippet-box">
         <pre><code>{{ macosSnippet() }}</code></pre>
@@ -121,13 +154,16 @@
           type="button"
           class="quiet"
           (click)="copySnippet(macosSnippet(), 'macos')"
-          [attr.aria-label]="'Copy macOS launchd snippet'"
+          [attr.aria-label]="'connect.macos_copy_aria' | translate"
         >
-          {{ copiedSnippet() === 'macos' ? 'Copied!' : 'Copy snippet' }}
+          {{
+            (copiedSnippet() === 'macos' ? 'connect.snippet_copied' : 'connect.copy_snippet')
+              | translate
+          }}
         </button>
       </div>
       <small class="hint"
-        >Load immediately:
+        >{{ 'connect.macos_hint' | translate }}
         <code>launchctl load ~/Library/LaunchAgents/com.cadengine.agent.plist</code></small
       >
     </article>
@@ -135,12 +171,14 @@
     <!-- Windows Task Scheduler -->
     <article class="os-guide" data-testid="keep-alive-windows">
       <div class="os-guide-header">
-        <span class="status">Windows</span>
-        <h3>Task Scheduler (PowerShell)</h3>
+        <span class="status">{{ 'connect.windows_badge' | translate }}</span>
+        <h3>{{ 'connect.windows_title' | translate }}</h3>
       </div>
       <p>
-        Run in an <strong>Administrator PowerShell</strong> (replace <code>YOURUSER</code> with the
-        account that paired):
+        {{ 'connect.windows_desc_prefix' | translate
+        }}<strong>{{ 'connect.windows_desc_strong' | translate }}</strong
+        >{{ 'connect.windows_desc_mid' | translate }}<code>YOURUSER</code
+        >{{ 'connect.windows_desc_suffix' | translate }}
       </p>
       <div class="snippet-box">
         <pre><code>{{ windowsSnippet() }}</code></pre>
@@ -148,9 +186,12 @@
           type="button"
           class="quiet"
           (click)="copySnippet(windowsSnippet(), 'windows')"
-          [attr.aria-label]="'Copy Windows PowerShell snippet'"
+          [attr.aria-label]="'connect.windows_copy_aria' | translate"
         >
-          {{ copiedSnippet() === 'windows' ? 'Copied!' : 'Copy snippet' }}
+          {{
+            (copiedSnippet() === 'windows' ? 'connect.snippet_copied' : 'connect.copy_snippet')
+              | translate
+          }}
         </button>
       </div>
     </article>
@@ -158,15 +199,14 @@
 </section>
 
 <section class="panel">
-  <h2>Try it — Mechanical &amp; Parametric CAD</h2>
+  <h2>{{ 'connect.try_title' | translate }}</h2>
   <p>
-    Once connected, ask your assistant to run <code>list_devices</code>, or ask it to model
-    mechanical components: <em>"Create a mounting bracket with 4 counterbore holes"</em> or
-    <em>"Model an extruded enclosure profile"</em>.
+    {{ 'connect.try_desc_prefix' | translate }}<code>list_devices</code
+    >{{ 'connect.try_desc_mid' | translate }}<em>{{ 'connect.try_prompt1' | translate }}</em
+    >{{ 'connect.try_desc_or' | translate }}<em>{{ 'connect.try_prompt2' | translate }}</em
+    >.
   </p>
   <small class="hint">
-    Note: CAD Agent Designer specializes in precision parametric and mechanical CAD modeling
-    (primitives, transforms, booleans, and extrusions), rather than organic sculpting or freeform
-    meshes.
+    {{ 'connect.try_hint' | translate }}
   </small>
 </section>

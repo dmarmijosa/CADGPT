@@ -4,90 +4,145 @@
 </section>
 
 <section class="panel">
-  <h2>Status</h2>
-  <p>
-    CAD Engine is an <strong>experimental alpha</strong>, not a hosted service. Installers are
-    unsigned and macOS builds are not notarized; you deploy and operate your own backend.
-  </p>
+  <h2>{{ 'about.status_title' | translate }}</h2>
+  <p>{{ 'about.status_desc' | translate }}</p>
 </section>
 
-<section class="panel">
-  <h2>Compatibility</h2>
+<section class="panel" data-testid="tri-engine-architecture">
+  <h2>{{ 'about.arch_title' | translate }}</h2>
+  <p>{{ 'about.arch_desc' | translate }}</p>
+  <div class="tri-engine-grid">
+    <div class="tri-engine-card">
+      <div class="engine-badge freecad">FreeCAD</div>
+      <h3>{{ 'about.arch_freecad_title' | translate }}</h3>
+      <p>{{ 'about.arch_freecad_desc' | translate }}</p>
+    </div>
+    <div class="tri-engine-card">
+      <div class="engine-badge autocad">AutoCAD</div>
+      <h3>{{ 'about.arch_autocad_title' | translate }}</h3>
+      <p>{{ 'about.arch_autocad_desc' | translate }}</p>
+    </div>
+    <div class="tri-engine-card">
+      <div class="engine-badge blender">Blender 4.x</div>
+      <h3>{{ 'about.arch_blender_title' | translate }}</h3>
+      <p>{{ 'about.arch_blender_desc' | translate }}</p>
+    </div>
+  </div>
+</section>
+
+<section class="panel" data-testid="compatibility-section">
+  <h2>{{ 'about.compat_title' | translate }}</h2>
   <table class="data">
     <thead>
       <tr>
-        <th>CAD / platform</th>
-        <th>Alpha behavior</th>
+        <th>{{ 'about.compat_th_cad' | translate }}</th>
+        <th>{{ 'about.compat_th_behavior' | translate }}</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td>FreeCAD, working <code>FreeCADCmd</code> / <code>freecadcmd</code></td>
-        <td>
-          Headless create, modify, read, and export; an STL preview mesh uploads for the dashboard.
-        </td>
+        <td>{{ 'about.compat_freecad_cmd' | translate }}</td>
+        <td>{{ 'about.compat_freecad_cmd_desc' | translate }}</td>
       </tr>
       <tr>
-        <td>FreeCAD GUI-only, AppImage, Flatpak or Snap</td>
-        <td>May need a manual path or a separate command-line install.</td>
+        <td>{{ 'about.compat_freecad_gui' | translate }}</td>
+        <td>{{ 'about.compat_freecad_gui_desc' | translate }}</td>
       </tr>
       <tr>
-        <td>AutoCAD 2026 Core Console (<code>accoreconsole.exe</code>), Windows</td>
-        <td>
-          Full 13-operation headless execution (3D primitives, booleans, transforms, MASSPROP
-          volumetric validation) producing native DWG/DXF artifacts and binary STL preview via
-          headless STLOUT. Enabled with <code>--enable-autocad</code>.
-        </td>
+        <td>{{ 'about.compat_autocad_core' | translate }}</td>
+        <td>{{ 'about.compat_autocad_core_desc' | translate }}</td>
       </tr>
       <tr>
-        <td>AutoCAD LT, or AutoCAD without <code>accoreconsole.exe</code></td>
-        <td>
-          Installation detection only; execution disabled (AutoCAD LT lacks Core Console, 3D solid
-          modeling, and STLOUT support).
-        </td>
+        <td>{{ 'about.compat_autocad_lt' | translate }}</td>
+        <td>{{ 'about.compat_autocad_lt_desc' | translate }}</td>
       </tr>
       <tr>
-        <td>AutoCAD on Linux</td>
-        <td>Not a supported target.</td>
+        <td>{{ 'about.compat_autocad_linux' | translate }}</td>
+        <td>{{ 'about.compat_autocad_linux_desc' | translate }}</td>
+      </tr>
+      <tr>
+        <td>{{ 'about.compat_blender' | translate }}</td>
+        <td>{{ 'about.compat_blender_desc' | translate }}</td>
       </tr>
     </tbody>
   </table>
 </section>
 
 <section class="panel">
-  <h2>Security and limitations</h2>
+  <h2>{{ 'about.security_title' | translate }}</h2>
   <ul class="security-list">
-    <li>Identity comes from a validated OIDC token; a request cannot choose its own owner.</li>
-    <li>
-      Device pairing codes are one-use and expire in
-      <span class="tabular-nums">10</span> minutes.
-    </li>
-    <li>
-      Revoking a device blocks new requests and cancels queued jobs, but cannot stop one already
-      running locally.
-    </li>
-    <li>
-      Native CAD files stay on the linked computer. The STL preview mesh is the exception: capped at
-      <span class="tabular-nums">25</span> MiB per file, with a
-      <span class="tabular-nums">500</span> MiB per-device quota.
-    </li>
-    <li>The store supports one backend instance; this alpha is not built to scale horizontally.</li>
+    <li>{{ 'about.security_oidc' | translate }}</li>
+    <li>{{ 'about.security_pairing' | translate }}</li>
+    <li>{{ 'about.security_revocation' | translate }}</li>
+    <li>{{ 'about.security_cad_files' | translate }}</li>
+    <li>{{ 'about.security_store' | translate }}</li>
   </ul>
   <p>
-    <a [href]="readmeUrl">Read the full README ↗</a> or <a [href]="securityUrl">SECURITY.md ↗</a> on
-    GitHub.
+    <a [href]="readmeUrl">{{ 'about.security_readme' | translate }}</a
+    >{{ 'about.security_or' | translate
+    }}<a [href]="securityUrl">{{ 'about.security_policy' | translate }}</a>
+    {{ 'about.security_github' | translate }}
   </p>
 </section>
 
+<section class="panel panel-author" data-testid="author-profile-card">
+  <h2>{{ 'about.author_title' | translate }}</h2>
+  <div class="author-card">
+    <div class="author-meta">
+      <h3 class="author-name">{{ 'about.author_name' | translate }}</h3>
+      <p class="author-role">{{ 'about.author_role' | translate }}</p>
+      <p class="author-bio">{{ 'about.author_bio' | translate }}</p>
+    </div>
+    <div class="author-actions">
+      <a
+        href="https://www.linkedin.com/in/dmarmijosa/"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="btn-author-link"
+        [attr.aria-label]="'footer.author_linkedin_aria' | translate"
+      >
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+          <path
+            d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.45a1.64 1.64 0 1 0 0 3.28 1.64 1.64 0 0 0 0-3.28z"
+          />
+        </svg>
+        {{ 'about.author_linkedin_btn' | translate }}
+      </a>
+      <a
+        href="https://www.danny-armijos.com/"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="btn-author-link"
+        [attr.aria-label]="'footer.author_website_aria' | translate"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <line x1="2" y1="12" x2="22" y2="12" />
+          <path
+            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+          />
+        </svg>
+        {{ 'about.author_website_btn' | translate }}
+      </a>
+    </div>
+  </div>
+</section>
+
 <section class="panel panel-governance">
-  <h2>Account Governance / Right to Erasure</h2>
-  <p>
-    Exercise your Right to Erasure ("Derecho al olvido" under GDPR &amp; CCPA). Deleting your
-    account permanently purges all CAD documents, 3D preview meshes, linked devices, API keys, and
-    job history.
-  </p>
+  <h2>{{ 'about.gov_title' | translate }}</h2>
+  <p>{{ 'about.gov_desc' | translate }}</p>
   <button type="button" class="btn-destructive" (click)="openDeleteDialog()">
-    Eliminar cuenta
+    {{ 'about.gov_delete_btn' | translate }}
   </button>
 </section>
 
@@ -101,23 +156,22 @@
       aria-labelledby="delete-dialog-title"
     >
       <div class="modal-header">
-        <div class="modal-alert-badge">PELIGRO / IRREVERSIBLE</div>
-        <h3 id="delete-dialog-title">¿Eliminar cuenta permanentemente?</h3>
+        <div class="modal-alert-badge">{{ 'about.gov_dialog_badge' | translate }}</div>
+        <h3 id="delete-dialog-title">{{ 'about.gov_dialog_title' | translate }}</h3>
       </div>
       <div class="modal-body">
         <p class="modal-warning-lead">
-          Esta acción es destructiva e irreversible. Una vez confirmada:
+          {{ 'about.gov_dialog_lead' | translate }}
         </p>
         <ul class="modal-warning-list">
-          <li>Se eliminarán todos tus archivos y documentos CAD de la nube.</li>
-          <li>Se purgarán físicamente todas las mallas de previsualización 3D (.stl).</li>
-          <li>Se revocarán todas tus máquinas y dispositivos vinculados.</li>
-          <li>Se destruirán todas tus claves de API y el historial de trabajos.</li>
-          <li>Se cerrará tu sesión y se eliminará tu identidad en Keycloak.</li>
+          <li>{{ 'about.gov_dialog_item1' | translate }}</li>
+          <li>{{ 'about.gov_dialog_item2' | translate }}</li>
+          <li>{{ 'about.gov_dialog_item3' | translate }}</li>
+          <li>{{ 'about.gov_dialog_item4' | translate }}</li>
+          <li>{{ 'about.gov_dialog_item5' | translate }}</li>
         </ul>
         <p class="modal-input-instruction">
-          Para confirmar la eliminación permanente, escribe exactamente <strong>ELIMINAR</strong> en
-          el siguiente campo:
+          {{ 'about.gov_dialog_instruction' | translate }}
         </p>
         <input
           type="text"
@@ -141,7 +195,7 @@
           (click)="closeDeleteDialog()"
           [disabled]="isDeleting()"
         >
-          Cancelar
+          {{ 'about.gov_dialog_cancel' | translate }}
         </button>
         <button
           type="button"
@@ -150,9 +204,9 @@
           [disabled]="!canDelete()"
         >
           @if (isDeleting()) {
-            Eliminando...
+            {{ 'about.gov_dialog_deleting' | translate }}
           } @else {
-            Eliminar permanentemente
+            {{ 'about.gov_dialog_confirm' | translate }}
           }
         </button>
       </div>
