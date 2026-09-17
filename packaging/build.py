@@ -90,6 +90,10 @@ def validate_packaging_assets():
     if not iss_file.is_file():
         raise FileNotFoundError(f"Inno Setup script not found: {iss_file}")
 
+    favicon = ROOT / "apps" / "web" / "public" / "favicon.ico"
+    if not favicon.is_file():
+        raise FileNotFoundError(f"Favicon asset not found: {favicon}")
+
     return True
 
 

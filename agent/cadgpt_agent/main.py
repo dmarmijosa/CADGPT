@@ -40,6 +40,7 @@ VERSION = "0.2.0-alpha.1"
 # to look up credentials already stored by previously paired devices. Renaming
 # it would orphan every existing device's saved credential.
 SERVICE = "CADGPT"
+DEFAULT_SERVER = "https://cadengine.danny-armijos.com"
 MAX_RESPONSE = 65536
 GITHUB_RELEASES_URL = (
     "https://api.github.com/repos/dmarmijosa/CADGPT/releases"
@@ -452,17 +453,7 @@ def cmd_pair(args):
     config_file = root / "config.json"
     config = json.loads(config_file.read_text()) if config_file.is_file() else {}
 
-    value = getattr(args, "server", None) or config.get("server")
-    if not value:
-        try:
-            value = input(
-                "CAD Engine server URL (https://…): "
-            ).strip()
-        except Exception:
-            value = None
-    if not value:
-        print("Error: Server URL is required for pairing.", file=sys.stderr)
-        return 1
+    value = getattr(args, "server", None) or config.get("server") or DEFAULT_SERVER
 
     server = server_url(value)
     manual = getattr(args, "cad_path", None) or config.get("cadPath")
@@ -1171,25 +1162,7 @@ def run_foreground_loop(args):
     setup_logging(root)
     config_file = root / "config.json"
     config = json.loads(config_file.read_text()) if config_file.exists() else {}
-    value = getattr(args, "server", None) or config.get("server")
-    if not value:
-        try:
-            import tkinter as tk
-            from tkinter.simpledialog import askstring
-
-            window = tk.Tk()
-            window.withdraw()
-            value = askstring(
-                "Connect CAD Engine",
-                "Your CAD Engine server URL (https://…):",
-            )
-            window.destroy()
-        except Exception:
-            value = input(
-                "CAD Engine server URL (https://…): "
-            ).strip()
-    if not value:
-        return 0
+    value = getattr(args, "server", None) or config.get("server") or DEFAULT_SERVER
     server = server_url(value)
     manual = getattr(args, "cad_path", None) or config.get("cadPath")
     blender_manual = getattr(args, "blender_path", None) or config.get("blenderPath")

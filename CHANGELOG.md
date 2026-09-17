@@ -51,6 +51,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0-alpha.1] - 2026-09-14
 
 ### Added
-- Initial alpha release of CAD Agent Designer.
+- Initial alpha release of CAD Engine.
 - Headless FreeCAD worker executing primitives (`box`, `cylinder`, `sphere`, `cone`) and boolean operations (`cut`, `union`, `intersect`).
 - Model Context Protocol (MCP) server endpoints and device pairing workflow.

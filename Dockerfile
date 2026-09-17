@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #
-# Multi-stage build for the CAD Agent Designer server (Express/Nest API + static Angular dashboard).
+# Multi-stage build for the CAD Engine server (Express/Nest API + static Angular dashboard).
 # No native npm dependencies are used (SQLite access goes through the Node 24 built-in
 # `node:sqlite` module), so a plain Alpine base is sufficient.
 

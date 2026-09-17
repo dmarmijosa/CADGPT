@@ -959,6 +959,67 @@ class ServiceSubcommandTests(unittest.TestCase):
             m_uninst.assert_called_once()
 
 
+class DefaultServerResolutionTests(unittest.TestCase):
+    """Verify cmd_pair and run_foreground_loop default directly to DEFAULT_SERVER without prompts."""
+
+    def test_cmd_pair_defaults_to_production_server_without_stdin(self):
+        from cadgpt_agent.main import main, DEFAULT_SERVER
+        with tempfile.TemporaryDirectory() as td:
+            with patch("cadgpt_agent.main.user_data_dir", return_value=td), \
+                 patch("cadgpt_agent.main.discover", return_value=[]), \
+                 patch("cadgpt_agent.main.request") as mock_req, \
+                 patch("cadgpt_agent.main.open_connect_step") as mock_connect, \
+                 patch("keyring.get_password", return_value=None), \
+                 patch("keyring.delete_password"), \
+                 patch("keyring.set_password") as mock_set_pw, \
+                 patch("builtins.input") as mock_input:
+                mock_req.side_effect = [
+                    {"userCode": "PROD-1234", "deviceSecret": "prod-secret"},
+                    {"pending": False, "credential": "prod-cred-123", "deviceId": "prod-dev-456"},
+                ]
+                with patch("cadgpt_agent.main.time.sleep"):
+                    ret = main(["pair", "--headless"])
+                self.assertEqual(ret, 0)
+                mock_input.assert_not_called()
+                mock_req.assert_any_call(
+                    DEFAULT_SERVER,
+                    "/api/pairings",
+                    {"name": platform.node()[:80] or "CAD computer", "cads": []},
+                )
+                mock_set_pw.assert_called_with("CADGPT", DEFAULT_SERVER, "prod-cred-123")
+                cfg = json.loads((Path(td) / "config.json").read_text())
+                self.assertEqual(cfg["server"], DEFAULT_SERVER)
+                self.assertEqual(cfg["deviceId"], "prod-dev-456")
+
+    def test_foreground_loop_defaults_to_production_server_without_prompts(self):
+        from cadgpt_agent.main import run_foreground_loop, DEFAULT_SERVER
+        with tempfile.TemporaryDirectory() as td:
+            with patch("cadgpt_agent.main.user_data_dir", return_value=td), \
+                 patch("cadgpt_agent.main.discover", return_value=[]), \
+                 patch("keyring.get_password", return_value="existing_token"), \
+                 patch("cadgpt_agent.main.request") as mock_req, \
+                 patch("builtins.input") as mock_input:
+                mock_req.side_effect = KeyboardInterrupt()
+                args = SimpleNamespace(
+                    server=None,
+                    cad_path=None,
+                    blender_path=None,
+                    enable_autocad=False,
+                    headless=True,
+                    pair=False,
+                    allow_file_credentials=False,
+                )
+                try:
+                    run_foreground_loop(args)
+                except KeyboardInterrupt:
+                    pass
+                mock_input.assert_not_called()
+                mock_req.assert_called_once()
+                self.assertEqual(mock_req.call_args[0][0], DEFAULT_SERVER)
+                cfg = json.loads((Path(td) / "config.json").read_text())
+                self.assertEqual(cfg["server"], DEFAULT_SERVER)
+
+
 if __name__ == "__main__":
     unittest.main()
 

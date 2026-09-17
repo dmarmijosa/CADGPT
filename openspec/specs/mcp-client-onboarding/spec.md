@@ -6,7 +6,7 @@ Purpose: Guide the user from pairing to a connected Claude/ChatGPT MCP client, e
 After a device completes pairing (or when navigating to the Connect route `/connect`), the web application (`apps/web/src/app/pages/connect/`) MUST present a guided "connect your MCP client" step displaying connection instructions, device health states, and system keep-alive configuration snippets updated for `cad-engine` and release `0.2.0-alpha.1`, with full bilingual internationalization:
 1. **Bilingual Onboarding Guides**:
    - The Connect view MUST render all headers, eyebrow text (`connect.eyebrow`), subtitles, and step-by-step instructions for Claude (`connect.claude_*`) and ChatGPT (`connect.chatgpt_*`) through `TranslatePipe`.
-   - Claude instructions MUST detail: navigating to Settings → Connectors, adding custom connector, pasting the MCP resource URL, and signing in with CAD Agent Designer credentials.
+   - Claude instructions MUST detail: navigating to Settings → Connectors, adding custom connector, pasting the MCP resource URL, and signing in with CAD Engine credentials.
    - ChatGPT instructions MUST detail: navigating to Settings → Connectors, enabling Developer mode, adding connector, and pasting the MCP resource URL.
 2. **Localized Copy Actions & Accessibility**:
    - All interactive copy buttons (`connect.copy_url`, `connect.copy_snippet`) and temporary feedback states (`connect.copied`, `connect.snippet_copied`) MUST use localized dictionary keys.

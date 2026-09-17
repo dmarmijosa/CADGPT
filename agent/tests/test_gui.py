@@ -4,11 +4,14 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import sys
 import tempfile
 import unittest
+import urllib.error
 from unittest.mock import MagicMock, patch
 
 from agent.cadgpt_agent.gui import (
+    DEFAULT_SERVER,
     INSTALL_COMMANDS,
     VERSION,
     OnboardingController,
@@ -310,6 +313,55 @@ class OnboardingPairingEnrollmentTests(unittest.TestCase):
         cfg = json.loads(self.cfg_path.read_text(encoding="utf-8"))
         self.assertEqual(cfg.get("deviceId"), "dev_987")
 
+    def test_default_server_constant(self):
+        self.assertEqual(DEFAULT_SERVER, "https://cadengine.danny-armijos.com")
+        controller = OnboardingController(config_path=self.cfg_path)
+        self.assertEqual(controller.server_url, DEFAULT_SERVER)
+
+        with patch("agent.cadgpt_agent.gui.discover", return_value=[]):
+            daemon = SystemTrayDaemon(config_path=self.cfg_path)
+            self.assertEqual(daemon.server, DEFAULT_SERVER)
+
+    @patch("urllib.request.urlopen")
+    def test_request_pairing_code_offline_fallback(self, mock_urlopen):
+        import re
+        mock_urlopen.side_effect = urllib.error.URLError("Connection refused")
+        controller = OnboardingController(config_path=self.cfg_path)
+        data = controller.request_pairing_code()
+
+        self.assertTrue(data.get("offline"))
+        self.assertIsNone(data.get("deviceSecret"))
+        self.assertIsNotNone(data.get("userCode"))
+        code = data["userCode"]
+        self.assertEqual(controller.pairing_code, code)
+        self.assertTrue(controller.pairing_pending)
+        # Verify 12-character uppercase hexadecimal formatted as XXXX-XXXX-XXXX
+        self.assertTrue(bool(re.match(r"^[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}$", code)))
+
+    @patch("agent.cadgpt_agent.service.install_service")
+    def test_step4_auto_enrolls_native_service(self, mock_install):
+        controller = OnboardingController(config_path=self.cfg_path)
+        mock_master = MagicMock()
+        with patch("agent.cadgpt_agent.gui.ttk") as mock_ttk, \
+             patch("agent.cadgpt_agent.gui.tk") as mock_tk, \
+             patch("agent.cadgpt_agent.gui.messagebox") as mock_msgbox:
+            wizard = OnboardingWizard(master=mock_master, controller=controller)
+            wizard.pair_status_lbl = MagicMock()
+            wizard._on_pairing_success()
+            mock_install.assert_called_once()
+
+    def test_step4_renders_no_url_entry(self):
+        controller = OnboardingController(config_path=self.cfg_path)
+        mock_master = MagicMock()
+        with patch("agent.cadgpt_agent.gui.ttk") as mock_ttk, \
+             patch("agent.cadgpt_agent.gui.tk") as mock_tk, \
+             patch("agent.cadgpt_agent.gui.messagebox") as mock_msgbox:
+            wizard = OnboardingWizard(master=mock_master, controller=controller)
+            wizard.show_step(4)
+            self.assertFalse(hasattr(wizard, "server_entry"))
+            self.assertTrue(hasattr(wizard, "copy_btn"))
+            self.assertTrue(hasattr(wizard, "code_container"))
+
 
 class SystemTrayDaemonUnitTests(unittest.TestCase):
     """Verify system tray status HUD, unpair action, and menu construction."""
@@ -420,6 +472,30 @@ class VisualAssetAndRegistrationTests(unittest.TestCase):
         img = get_tray_icon_image(32)
         self.assertIsNotNone(img)
         self.assertEqual(img.size, (32, 32))
+
+    def test_get_tray_icon_image_from_meipass(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            meipass_path = Path(tmp_dir) / "meipass"
+            assets_dir = meipass_path / "cadgpt_agent" / "assets"
+            assets_dir.mkdir(parents=True, exist_ok=True)
+            icon_file = assets_dir / "favicon.ico"
+
+            from PIL import Image
+            test_img = Image.new("RGBA", (16, 16), color="blue")
+            test_img.save(str(icon_file), format="ICO")
+
+            with patch.object(sys, "frozen", True, create=True), \
+                 patch.object(sys, "_MEIPASS", str(meipass_path), create=True):
+                img = get_tray_icon_image(32)
+                self.assertIsNotNone(img)
+                self.assertEqual(img.size, (32, 32))
+
+    def test_get_tray_icon_image_fallback_to_cube(self):
+        with patch("pathlib.Path.is_file", return_value=False), \
+             patch("agent.cadgpt_agent.gui.create_cube_icon_image") as mock_cube:
+            mock_cube.return_value = MagicMock()
+            img = get_tray_icon_image(32)
+            mock_cube.assert_called_once_with(32)
 
     def test_register_user_blender_path_saves_config(self):
         with tempfile.TemporaryDirectory() as tmp_dir:

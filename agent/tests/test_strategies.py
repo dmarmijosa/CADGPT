@@ -769,7 +769,7 @@ class AutoCadWindowsPathRenderingTests(unittest.TestCase):
         return render_script(
             "create_box",
             {"length": 40.0, "width": 25.0, "height": 10.0},
-            PureWindowsPath(r"C:\Program Files\CAD Agent Designer\autocad\cadgpt.lsp"),
+            PureWindowsPath(r"C:\Program Files\CAD Engine\autocad\cadgpt.lsp"),
             PureWindowsPath(r"C:\Users\u\AppData\Local\CADGPT\documents\d1\design.dwg"),
             PureWindowsPath(r"C:\Users\u\AppData\Local\CADGPT\jobs\j1\preview.stl"),
         )
@@ -779,7 +779,7 @@ class AutoCadWindowsPathRenderingTests(unittest.TestCase):
         # No path line may contain a backslash — that would break `(load ...)`.
         for line in script.splitlines():
             self.assertNotIn("\\", line)
-        self.assertIn('(load "C:/Program Files/CAD Agent Designer/autocad/cadgpt.lsp")', script)
+        self.assertIn('(load "C:/Program Files/CAD Engine/autocad/cadgpt.lsp")', script)
         self.assertIn("C:/Users/u/AppData/Local/CADGPT/jobs/j1/preview.stl", script)
         self.assertIn("C:/Users/u/AppData/Local/CADGPT/documents/d1/design.dwg", script)
 

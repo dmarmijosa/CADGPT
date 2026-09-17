@@ -74,6 +74,7 @@ else:
 
 VERSION = "0.2.0-alpha.1"
 SERVICE = "CADGPT"
+DEFAULT_SERVER = "https://cadengine.danny-armijos.com"
 
 INSTALL_COMMANDS = {
     "Windows": {
@@ -190,11 +191,21 @@ def create_cube_icon_image(size: int = 64) -> Any:
 
 def get_tray_icon_image(size: int = 64) -> Any:
     """Return tray icon image, attempting to load from disk or generating isometric cube."""
-    # Check candidate image paths
-    candidates = [
-        Path(__file__).resolve().parent.parent.parent / "apps/web/public/favicon.ico",
-        Path(__file__).resolve().parent / "icon.png",
-    ]
+    candidates: list[Path] = []
+
+    # 1. PyInstaller frozen executable bundle
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        candidates.append(Path(sys._MEIPASS) / "cadgpt_agent" / "assets" / "favicon.ico")
+
+    # 2. Local module assets directory
+    candidates.append(Path(__file__).resolve().parent / "assets" / "favicon.ico")
+
+    # 3. Source repository web assets
+    candidates.append(Path(__file__).resolve().parent.parent.parent / "apps" / "web" / "public" / "favicon.ico")
+
+    # 4. Fallback local PNG icon
+    candidates.append(Path(__file__).resolve().parent / "icon.png")
+
     for cand in candidates:
         if cand.is_file() and PILLOW_AVAILABLE:
             try:
@@ -233,7 +244,7 @@ class OnboardingController:
         self.blender_enabled = False
 
         # Server Pairing state
-        self.server_url = self._load_saved_server() or "http://localhost:3000"
+        self.server_url = self._load_saved_server() or DEFAULT_SERVER
         self.device_id: Optional[str] = None
         self.pairing_code: Optional[str] = None
         self.device_secret: Optional[str] = None
@@ -251,6 +262,20 @@ class OnboardingController:
             except Exception:
                 pass
         return None
+
+    def _save_config_server(self) -> None:
+        try:
+            self.config_path.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
+            cfg = {}
+            if self.config_path.is_file():
+                try:
+                    cfg = json.loads(self.config_path.read_text(encoding="utf-8"))
+                except Exception:
+                    cfg = {}
+            cfg["server"] = self.server_url
+            self.config_path.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
+        except Exception:
+            pass
 
     def set_language(self, lang: str) -> str:
         self.language = set_language(lang, self.config_path)
@@ -327,24 +352,13 @@ class OnboardingController:
         return True, ""
 
     def request_pairing_code(self, server: Optional[str] = None) -> dict[str, Any]:
-        """Request an ephemeral pairing code from API server."""
+        """Request ephemeral pairing code from server with offline fallback."""
+        import secrets
         if server:
             self.server_url = server.rstrip("/")
         name = platform.node()[:80] or "CAD computer"
 
-        # Persist server to config.json
-        try:
-            self.config_path.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
-            cfg = {}
-            if self.config_path.is_file():
-                try:
-                    cfg = json.loads(self.config_path.read_text(encoding="utf-8"))
-                except Exception:
-                    cfg = {}
-            cfg["server"] = self.server_url
-            self.config_path.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
-        except Exception:
-            pass
+        self._save_config_server()
 
         url = f"{self.server_url}/api/pairings"
         payload = json.dumps({"name": name, "cads": self.cads}).encode("utf-8")
@@ -354,13 +368,21 @@ class OnboardingController:
             headers={"Content-Type": "application/json", "Accept": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-
-        self.pairing_code = data.get("userCode")
-        self.device_secret = data.get("deviceSecret")
-        self.pairing_pending = True
-        return data
+        try:
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            self.pairing_code = data.get("userCode")
+            self.device_secret = data.get("deviceSecret")
+            self.pairing_pending = True
+            return data
+        except Exception:
+            # Offline / unreachable fallback: Generate 12-char uppercase alphanumeric code
+            raw_hex = secrets.token_hex(6).upper()
+            formatted_code = f"{raw_hex[:4]}-{raw_hex[4:8]}-{raw_hex[8:12]}"
+            self.pairing_code = formatted_code
+            self.device_secret = None
+            self.pairing_pending = True
+            return {"userCode": formatted_code, "deviceSecret": None, "offline": True}
 
     def poll_pairing_status(self) -> dict[str, Any]:
         """Poll API server to check if pairing code was approved by user in dashboard."""
@@ -784,22 +806,6 @@ class OnboardingWizard:
         card = ttk.Frame(self.content_container, style="Card.TFrame", padding=18)
         card.pack(fill="both", expand=True)
 
-        # Server URL input
-        url_frame = ttk.Frame(card)
-        url_frame.pack(fill="x", pady=(0, 12))
-
-        ttk.Label(url_frame, text=t("step4_server_url_label", lang), font=("Helvetica", 9, "bold")).pack(anchor="w")
-        self.server_entry = ttk.Entry(url_frame, width=45)
-        self.server_entry.insert(0, self.controller.server_url)
-        self.server_entry.pack(side="left", fill="x", expand=True, pady=(4, 0))
-
-        pair_init_btn = ttk.Button(
-            url_frame,
-            text="Generate Code",
-            command=self._on_start_pairing,
-        )
-        pair_init_btn.pack(side="right", padx=(8, 0), pady=(4, 0))
-
         # Pairing Code Container
         self.code_container = ttk.Frame(card)
         self.code_container.pack(fill="x", pady=12)
@@ -807,7 +813,6 @@ class OnboardingWizard:
         if self.controller.pairing_code:
             self._render_pairing_code_box(lang)
         else:
-            # Auto-request pairing code if server is specified
             self._on_start_pairing()
 
     def _render_pairing_code_box(self, lang: str) -> None:
@@ -849,13 +854,18 @@ class OnboardingWizard:
     def _on_copy_code(self) -> None:
         code = self.controller.pairing_code or ""
         if self.master and code:
-            self.master.clipboard_clear()
-            self.master.clipboard_append(code)
-            self.copy_btn.config(text=t("btn_copied", self.controller.language))
-            self.master.after(2000, lambda: self.copy_btn.config(text=t("btn_copy", self.controller.language)))
+            try:
+                self.master.clipboard_clear()
+                self.master.clipboard_append(code)
+                self.master.update()
+            except Exception:
+                pass
+            if hasattr(self, "copy_btn"):
+                self.copy_btn.config(text=t("btn_copied", self.controller.language))
+                self.master.after(2000, lambda: self.copy_btn.config(text=t("btn_copy", self.controller.language)) if hasattr(self, "copy_btn") else None)
 
     def _on_start_pairing(self) -> None:
-        server = self.server_entry.get().strip() if hasattr(self, "server_entry") else self.controller.server_url
+        server = self.controller.server_url
         if not server:
             return
         try:
@@ -878,6 +888,14 @@ class OnboardingWizard:
                     break
                 time.sleep(3)
                 try:
+                    if not self.controller.device_secret:
+                        # Offline fallback was used; attempt handshake retry
+                        res = self.controller.request_pairing_code()
+                        if res.get("deviceSecret"):
+                            if self.master:
+                                self.master.after(0, lambda: self._render_pairing_code_box(self.controller.language))
+                        continue
+
                     res = self.controller.poll_pairing_status()
                     if not res.get("pending"):
                         # Dispatched to main thread
@@ -898,6 +916,12 @@ class OnboardingWizard:
                 text=f"{t('step4_success', lang)}\n{t('step4_keyring_saved', lang)}",
                 foreground="#15803d",
             )
+        try:
+            from .service import install_service
+            install_service()
+        except Exception as exc:
+            import logging
+            logging.warning("Auto-install background service skipped: %s", exc)
         self.update_nav_buttons()
 
     # -----------------------------------------------------------------------
@@ -967,10 +991,10 @@ class SystemTrayDaemon:
         if self.config_path.is_file():
             try:
                 cfg = json.loads(self.config_path.read_text(encoding="utf-8"))
-                return cfg.get("server", "http://localhost:3000")
+                return cfg.get("server", DEFAULT_SERVER)
             except Exception:
                 pass
-        return "http://localhost:3000"
+        return DEFAULT_SERVER
 
     def _read_device_id(self) -> Optional[str]:
         if self.config_path.is_file():

@@ -1,4 +1,4 @@
-# CAD Agent Designer dashboard
+# CAD Engine dashboard
 
 Angular workspace for account sign-in, explicit device pairing and controlled FreeCAD jobs.
 
