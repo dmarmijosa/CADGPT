@@ -26,6 +26,7 @@ import { registerGuidance, SERVER_INSTRUCTIONS } from './guidance.js';
 import { authenticator, combinedAuthenticator } from './auth.js';
 import { browserSecurityPolicy } from './security.js';
 import { envs } from './config/envs.js';
+import { APP_VERSION, SERVER_NAME } from './version.js';
 
 @Module({})
 class AppModule {}
@@ -83,7 +84,7 @@ http.get('/api/config', (_: Request, r: Response) =>
   }),
 );
 http.get('/api/health', (_: Request, r: Response) =>
-  r.json({ status: 'ok', version: '0.1.0-alpha' }),
+  r.json({ status: 'ok', version: APP_VERSION }),
 );
 http.post(
   '/api/pairings',
@@ -218,7 +219,7 @@ http.post(
   wrap(async (q, r) => {
     const owner = await authAny(q.headers.authorization);
     const server = new McpServer(
-      { name: 'cad-agent-designer', version: '0.1.0' },
+      { name: SERVER_NAME, version: APP_VERSION },
       { instructions: SERVER_INSTRUCTIONS },
     );
     registerTools(server, store, owner, () => authAny(q.headers.authorization, 'cad:write'));

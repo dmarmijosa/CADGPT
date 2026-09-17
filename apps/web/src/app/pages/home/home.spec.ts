@@ -76,4 +76,31 @@ describe('HomePage (spec dashboard-routing: public route)', () => {
     );
     expect(download).toBeTruthy();
   });
+
+  it('renders AutoCAD 2026 Core Console 13-op parity and LT detection-only capabilities', async () => {
+    const fakeAuth = { user: () => null, login: vi.fn() };
+    const sceneFactory = vi.fn().mockResolvedValue({ setProgress: vi.fn(), dispose: vi.fn() });
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: fakeAuth },
+        { provide: PLUG_SCENE_FACTORY, useValue: sceneFactory },
+        provideRouter([]),
+      ],
+    });
+
+    const fixture = TestBed.createComponent(HomePage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const root: HTMLElement = fixture.nativeElement;
+    const autocadPanel = root.querySelector('.capability-panel--autocad');
+    expect(autocadPanel).toBeTruthy();
+    expect(autocadPanel?.textContent).toContain(
+      'Full 13-operation headless execution with AutoCAD 2026 Core Console',
+    );
+    expect(autocadPanel?.textContent).toContain('3D booleans');
+    expect(autocadPanel?.textContent).toContain('binary STL preview via STLOUT');
+    expect(autocadPanel?.textContent).toContain('MASSPROP');
+    expect(autocadPanel?.textContent).toContain('AutoCAD LT — detected only; execution disabled');
+  });
 });

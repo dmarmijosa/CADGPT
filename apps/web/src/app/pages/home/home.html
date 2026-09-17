@@ -11,10 +11,10 @@
   <div class="manifesto__statement">
     <h2>An assistant that reaches your CAD software — not the other way around.</h2>
     <p>
-      CAD Agent Designer runs as a small agent on the same computer as FreeCAD or AutoCAD. Claude or
-      ChatGPT talks to that agent through a fixed set of operations, never a shell and never a
-      free-form script, so the model can create and edit real designs without ever holding a copy of
-      your files.
+      CAD Engine runs as a small agent on the same computer as FreeCAD or AutoCAD. Claude or ChatGPT
+      talks to that agent through a fixed set of operations, never a shell and never a free-form
+      script, so the model can create and edit real designs without ever holding a copy of your
+      files.
     </p>
   </div>
   <dl class="specsheet">
@@ -65,8 +65,8 @@
         </span>
         <strong>Install the connector</strong>
         <p>
-          Run the CAD Agent Designer agent on the computer with FreeCAD, or AutoCAD for detection
-          only.
+          Run the CAD Engine agent on the computer with FreeCAD, or AutoCAD 2026 Core Console
+          (AutoCAD LT is detection-only).
         </p>
       </li>
       <li class="flow__node flow__node--offset">
@@ -103,7 +103,7 @@
           </svg>
         </span>
         <strong>Connect Claude or ChatGPT</strong>
-        <p>Add the CAD Agent Designer connector in your assistant's settings and sign in.</p>
+        <p>Add the CAD Engine connector in your assistant's settings and sign in.</p>
       </li>
     </ol>
   </div>
@@ -139,20 +139,25 @@
     <article class="capability-panel capability-panel--autocad">
       <h3>AutoCAD</h3>
       <p class="capability-panel__note">
-        Create jobs on full editions with a Core Console install; AutoCAD LT is detected only.
+        Full 13-operation headless execution with AutoCAD 2026 Core Console on Windows; AutoCAD LT
+        is detected only.
       </p>
       <ul class="capability-list">
         <li>
-          <span class="dot dot--full" aria-hidden="true"></span> Create — always produces a
-          downloadable DWG
+          <span class="dot dot--full" aria-hidden="true"></span> Create — 3D primitives (box,
+          cylinder, sphere, cone, extrude)
         </li>
         <li>
-          <span class="dot dot--partial" aria-hidden="true"></span> STL preview — full editions with
-          Core Console
+          <span class="dot dot--full" aria-hidden="true"></span> Modify — 3D booleans (cut, union,
+          intersect) &amp; transforms
         </li>
         <li>
-          <span class="dot dot--none" aria-hidden="true"></span> AutoCAD LT — installation detected,
-          not executed
+          <span class="dot dot--full" aria-hidden="true"></span> Verify &amp; Export — native
+          DWG/DXF, MASSPROP volumetric checks &amp; binary STL preview via STLOUT
+        </li>
+        <li>
+          <span class="dot dot--none" aria-hidden="true"></span> AutoCAD LT — detected only;
+          execution disabled (lacks accoreconsole.exe &amp; 3D/STLOUT)
         </li>
       </ul>
     </article>

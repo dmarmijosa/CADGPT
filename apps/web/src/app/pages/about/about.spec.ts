@@ -45,6 +45,27 @@ describe('AboutPage (spec user-account-lifecycle & dashboard-routing)', () => {
     expect(root.querySelector('.btn-destructive')).toBeTruthy();
   });
 
+  it('renders AutoCAD 2026 Core Console 13-op parity and LT detection-only disclaimer in compatibility table', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: { user: () => null, token: () => '' } },
+        { provide: ApiClient, useValue: fakeApi },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(AboutPage);
+    fixture.detectChanges();
+
+    const root: HTMLElement = fixture.nativeElement;
+    const tableText = root.querySelector('table.data')?.textContent ?? '';
+    expect(tableText).toContain('AutoCAD 2026 Core Console');
+    expect(tableText).toContain('Full 13-operation headless execution');
+    expect(tableText).toContain('MASSPROP');
+    expect(tableText).toContain('binary STL preview via headless STLOUT');
+    expect(tableText).toContain('AutoCAD LT');
+    expect(tableText).toContain('Installation detection only; execution disabled');
+  });
+
   it('opens confirmation dialog warning about CAD documents, meshes, and devices', () => {
     TestBed.configureTestingModule({
       providers: [

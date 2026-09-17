@@ -1,4 +1,4 @@
-## autocad-execution-adapter
+## autocad-execution-adapter (MODIFIED)
 
 Purpose: Headless execution of 13 canonical CAD operations on AutoCAD 2026 Core Console (`accoreconsole.exe`) on Windows with non-interactive binary STL preview, native DWG/DXF artifact delivery, and volumetric MASSPROP validation, with AutoCAD LT designated strictly as detection-only.
 
@@ -9,6 +9,7 @@ The agent MUST execute AutoCAD jobs via `accoreconsole.exe /i <dwg> /s <script.s
 - Transforms: `translate_object`, `rotate_object`, `scale_object`
 - Read & Verification: `read_scene` (via AutoLISP entity enumeration) and volumetric validation via `MASSPROP`
 - Export: `export_design` (supporting DWG, DXF via `_DXFOUT ... 16`, SAT via `_ACISOUT`, and binary STL preview via non-interactive `_STLOUT`)
+(Previously: The agent MUST execute AutoCAD jobs via `accoreconsole.exe /i <dwg> /s <script.scr>`, loading only allowlisted `.lsp` files, with `shell=False` and fixed argv, without specifying the full 13-operation parity suite or MASSPROP validation.)
 
 #### Scenario: Fixed invocation of 13-op suite
 - GIVEN a dispatched AutoCAD job executing any operation in the 13-op suite
@@ -24,6 +25,7 @@ The agent MUST execute AutoCAD jobs via `accoreconsole.exe /i <dwg> /s <script.s
 
 ### Requirement: DWG Artifact Required
 Every successful AutoCAD job MUST produce a downloadable native DWG artifact (`_SAVEAS 2018`). When an `export_design` job requests DXF or SAT formats, the adapter MUST produce valid 16-decimal DXF (`_DXFOUT <path> 16`) or ACIS solid (`_ACISOUT`) artifacts alongside the DWG.
+(Previously: Every successful AutoCAD job MUST produce a downloadable DWG artifact.)
 
 #### Scenario: Job succeeds with DWG only
 - GIVEN a completed AutoCAD create or modify job
@@ -39,6 +41,7 @@ Every successful AutoCAD job MUST produce a downloadable native DWG artifact (`_
 
 ### Requirement: STL Preview via STLOUT (spike-proven)
 The slice-14 live spike (docs/autocad-stl-spike.md) proved `STLOUT` exports a valid binary STL headless from Core Console on full AutoCAD, refuting research A4. AutoCAD STL preview MUST use headless, non-interactive `_STLOUT _ALL "" _Y <path>` on AutoCAD 2026 Core Console; `EXPORT`/`3DPRINT` MUST NOT be used (they hang headless). `STLOUT` is absent in AutoCAD LT, but discovery gates AutoCAD execution to full editions only, so `capabilities.mesh` is true only for full editions.
+(Previously: The slice-14 live spike (docs/autocad-stl-spike.md) proved `STLOUT` exports a valid binary STL headless from Core Console on full AutoCAD, refuting research A4. AutoCAD STL preview MUST use `_STLOUT`; `EXPORT`/`3DPRINT` MUST NOT be used (they hang headless). `STLOUT` is absent in AutoCAD LT, but discovery gates AutoCAD execution to full editions only, so `capabilities.mesh` is true only for full editions.)
 
 #### Scenario: STL export on full AutoCAD
 - GIVEN AutoCAD full with a console (capabilities.mesh true)
@@ -54,6 +57,7 @@ The slice-14 live spike (docs/autocad-stl-spike.md) proved `STLOUT` exports a va
 
 ### Requirement: Edition and Availability Discovery
 The system MUST report a CAD as executable only for full AutoCAD with `accoreconsole.exe` present, and non-executable for LT or when `accoreconsole.exe` is missing. AutoCAD LT MUST be classified strictly as detection-only (`executable=false`, `edition="lt"`), because AutoCAD LT does not ship `accoreconsole.exe` and lacks 3D modeling and STLOUT capabilities.
+(Previously: The system MUST report a CAD as executable only for full AutoCAD with `accoreconsole.exe` present, and non-executable for LT or when `accoreconsole.exe` is missing.)
 
 #### Scenario: Full AutoCAD detected
 - GIVEN a Windows host with `accoreconsole.exe` present
@@ -69,6 +73,7 @@ The system MUST report a CAD as executable only for full AutoCAD with `accorecon
 
 ### Requirement: AutoCAD Parity Documentation and UI Representation
 User-facing documentation (`README.md`, `docs/deployment.md`) and web interface views (`home.html`, `about.html`) MUST accurately represent AutoCAD 2026 Core Console as supporting 13-operation parity (primitives, booleans, transforms, binary STL preview, DWG/DXF, and MASSPROP), and MUST explicitly document AutoCAD LT as detection-only without execution support.
+(Previously: User documentation and web UI described AutoCAD as "detected only / partial" or "create-only without preview", failing to reflect live 13-operation Core Console capabilities.)
 
 #### Scenario: Web dashboard capability matrix rendering
 - GIVEN a user viewing the web dashboard capabilities panel or about page

@@ -3,7 +3,7 @@
     <!-- CAD Engine Elevated MSI Installer with System PATH and ONLOGON Scheduled Task -->
     <Package Name="CAD Engine"
              Manufacturer="CAD Engine"
-             Version="0.1.0"
+             Version="0.2.0"
              UpgradeCode="8E9B6A15-9E62-4C7D-9A92-F1C6DF064F22"
              Scope="perMachine"
              InstallerVersion="500">

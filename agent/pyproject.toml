@@ -3,7 +3,7 @@ requires = ["setuptools>=80"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "cadgpt-agent"
-version = "0.2.0"
+version = "0.2.0a1"
 requires-python = ">=3.11"
 dependencies = [
     "keyring>=25.6,<26",

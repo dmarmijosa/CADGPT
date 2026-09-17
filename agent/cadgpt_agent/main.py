@@ -35,14 +35,14 @@ from .service import (
 )
 from .upload import upload_mesh
 
-VERSION = "0.2.0"
+VERSION = "0.2.0-alpha.1"
 # Kept as "CADGPT" for compatibility: this is the OS keyring service name used
 # to look up credentials already stored by previously paired devices. Renaming
 # it would orphan every existing device's saved credential.
 SERVICE = "CADGPT"
 MAX_RESPONSE = 65536
 GITHUB_RELEASES_URL = (
-    "https://api.github.com/repos/dmarmijosa/CADGPT/releases/latest"
+    "https://api.github.com/repos/dmarmijosa/CADGPT/releases"
 )
 
 
@@ -240,9 +240,12 @@ def tail_file(file_path, n=50, follow=False, stop_event=None):
 
 
 def parse_semver(v: str):
-    """Parse version string into a comparable 3-tuple (major, minor, patch)."""
+    """Parse version string into a comparable tuple supporting prereleases."""
     v = v.lstrip("v").strip()
-    base = v.split("-")[0]
+    if "-" in v:
+        base, prerelease = v.split("-", 1)
+    else:
+        base, prerelease = v, None
     parts = []
     for part in base.split("."):
         try:
@@ -251,11 +254,20 @@ def parse_semver(v: str):
             parts.append(0)
     while len(parts) < 3:
         parts.append(0)
-    return tuple(parts[:3])
+    major, minor, patch = parts[:3]
+    if prerelease is None:
+        return (major, minor, patch, 1, ())
+    pre_tokens = []
+    for t in prerelease.split("."):
+        if t.isdigit():
+            pre_tokens.append((0, int(t)))
+        else:
+            pre_tokens.append((1, t))
+    return (major, minor, patch, 0, tuple(pre_tokens))
 
 
 def check_latest_release(timeout=2.5):
-    """Fetch latest release tag from GitHub Releases API."""
+    """Fetch latest non-draft release tag from GitHub Releases API."""
     try:
         req = urllib.request.Request(
             GITHUB_RELEASES_URL,
@@ -266,7 +278,18 @@ def check_latest_release(timeout=2.5):
         )
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             data = json.loads(resp.read().decode())
-            return data.get("tag_name", "").lstrip("v").strip()
+            if isinstance(data, list):
+                for rel in data:
+                    if not rel.get("draft", False):
+                        tag = rel.get("tag_name", "").lstrip("v").strip()
+                        return tag if tag else None
+                return None
+            elif isinstance(data, dict):
+                if not data.get("draft", False):
+                    tag = data.get("tag_name", "").lstrip("v").strip()
+                    return tag if tag else None
+                return None
+            return None
     except Exception:
         return None
 
@@ -951,13 +974,31 @@ def cmd_update(args):
             },
         )
         with urllib.request.urlopen(req, timeout=10) as resp:
-            release = json.loads(resp.read().decode())
+            data = json.loads(resp.read().decode())
     except Exception as exc:
         print(f"Failed to check for updates: {exc}", file=sys.stderr)
         return 1
 
+    if isinstance(data, list):
+        release = None
+        for rel in data:
+            if not rel.get("draft", False):
+                release = rel
+                break
+        if not release:
+            print("No published releases found.", file=sys.stderr)
+            return 1
+    elif isinstance(data, dict):
+        if data.get("draft", False):
+            print("No published releases found.", file=sys.stderr)
+            return 1
+        release = data
+    else:
+        print("Invalid release data received.", file=sys.stderr)
+        return 1
+
     remote_tag = release.get("tag_name", "").lstrip("v").strip()
-    if parse_semver(remote_tag) <= parse_semver(VERSION):
+    if not remote_tag or parse_semver(remote_tag) <= parse_semver(VERSION):
         print(f"cadengine is already up to date (v{VERSION}).")
         return 0
 

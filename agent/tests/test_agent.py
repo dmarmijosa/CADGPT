@@ -465,6 +465,52 @@ class CliDispatchTests(unittest.TestCase):
         self.assertIn(f"cadengine v{VERSION}", out.getvalue())
         self.assertNotIn("An update is available", out.getvalue())
 
+    def test_check_latest_release_selects_first_nondraft_prerelease(self):
+        from cadgpt_agent.main import check_latest_release
+        mock_payload = [
+            {"tag_name": "v0.3.0-draft", "draft": True, "prerelease": True},
+            {"tag_name": "v0.2.0-alpha.2", "draft": False, "prerelease": True},
+            {"tag_name": "v0.1.0", "draft": False, "prerelease": False},
+        ]
+        mock_resp = io.BytesIO(json.dumps(mock_payload).encode())
+        with patch("urllib.request.urlopen", return_value=mock_resp):
+            latest = check_latest_release()
+        self.assertEqual(latest, "0.2.0-alpha.2")
+
+    def test_check_latest_release_returns_none_when_only_drafts_or_empty(self):
+        from cadgpt_agent.main import check_latest_release
+        mock_resp = io.BytesIO(json.dumps([{"tag_name": "v0.3.0", "draft": True}]).encode())
+        with patch("urllib.request.urlopen", return_value=mock_resp):
+            self.assertIsNone(check_latest_release())
+
+        mock_resp_empty = io.BytesIO(json.dumps([]).encode())
+        with patch("urllib.request.urlopen", return_value=mock_resp_empty):
+            self.assertIsNone(check_latest_release())
+
+    def test_check_latest_release_handles_network_error(self):
+        from cadgpt_agent.main import check_latest_release
+        with patch("urllib.request.urlopen", side_effect=TimeoutError("Connection timed out")):
+            self.assertIsNone(check_latest_release())
+
+    def test_version_check_with_newer_prerelease_notifies_upgrade(self):
+        from cadgpt_agent.main import main, VERSION
+        out = io.StringIO()
+        with patch("sys.stdout", out), patch("cadgpt_agent.main.check_latest_release", return_value="0.2.0-alpha.2"):
+            ret = main(["version", "--check"])
+        self.assertEqual(ret, 0)
+        output = out.getvalue()
+        self.assertIn(f"cadengine v{VERSION}", output)
+        self.assertIn(f"An update is available: v0.2.0-alpha.2 (current: v{VERSION}). Run 'cadengine update' to upgrade.", output)
+
+    def test_parse_semver_prerelease_precedence(self):
+        from cadgpt_agent.main import parse_semver
+        self.assertTrue(parse_semver("0.2.0-alpha.1") < parse_semver("0.2.0-alpha.2"))
+        self.assertTrue(parse_semver("0.2.0-alpha.2") < parse_semver("0.2.0-beta.1"))
+        self.assertTrue(parse_semver("0.2.0-beta.1") < parse_semver("0.2.0-rc.1"))
+        self.assertTrue(parse_semver("0.2.0-rc.1") < parse_semver("0.2.0"))
+        self.assertTrue(parse_semver("0.2.0") < parse_semver("0.2.1"))
+        self.assertTrue(parse_semver("0.2.0-alpha.1") == parse_semver("v0.2.0-alpha.1"))
+
 
 class StatusSubcommandTests(unittest.TestCase):
     def test_status_healthy_returns_0(self):
@@ -740,7 +786,7 @@ class UpdateSubcommandTests(unittest.TestCase):
 
             def fake_urlopen(req, timeout=10):
                 url = req.full_url if hasattr(req, "full_url") else str(req)
-                if "releases/latest" in url:
+                if "releases" in url:
                     return io.BytesIO(json.dumps(release_payload).encode())
                 elif "download/sums" in url:
                     return io.BytesIO(sums_content)
@@ -776,7 +822,7 @@ class UpdateSubcommandTests(unittest.TestCase):
 
             def fake_urlopen(req, timeout=10):
                 url = req.full_url if hasattr(req, "full_url") else str(req)
-                if "releases/latest" in url:
+                if "releases" in url:
                     return io.BytesIO(json.dumps(release_payload).encode())
                 elif "download/sums" in url:
                     return io.BytesIO(sums_content)
@@ -792,6 +838,85 @@ class UpdateSubcommandTests(unittest.TestCase):
                 self.assertEqual(ret, 1)
                 self.assertEqual(binary.read_bytes(), b"old-binary")
                 self.assertIn("SHA-256 verification failed", err.getvalue())
+
+    def test_update_from_prereleases_skips_draft_and_applies(self):
+        import hashlib
+        from cadgpt_agent.main import main
+        with tempfile.TemporaryDirectory() as td:
+            binary = Path(td) / "cadengine"
+            binary.write_bytes(b"old-binary-0.2.0-alpha.1")
+
+            new_bytes = b"brand-new-binary-0.2.0-alpha.2"
+            sha = hashlib.sha256(new_bytes).hexdigest()
+            asset_name = "cadengine-darwin" if platform.system() == "Darwin" else ("cadengine-windows.exe" if platform.system() == "Windows" else "cadengine-linux")
+            sums_content = f"{sha}  {asset_name}\n".encode()
+
+            releases_list = [
+                {
+                    "tag_name": "v0.3.0-draft",
+                    "draft": True,
+                    "prerelease": True,
+                    "assets": []
+                },
+                {
+                    "tag_name": "v0.2.0-alpha.2",
+                    "draft": False,
+                    "prerelease": True,
+                    "assets": [
+                        {"name": "SHA256SUMS.txt", "browser_download_url": "https://download/sums"},
+                        {"name": asset_name, "browser_download_url": "https://download/bin"},
+                    ]
+                }
+            ]
+
+            def fake_urlopen(req, timeout=10):
+                url = req.full_url if hasattr(req, "full_url") else str(req)
+                if "releases" in url:
+                    return io.BytesIO(json.dumps(releases_list).encode())
+                elif "download/sums" in url:
+                    return io.BytesIO(sums_content)
+                elif "download/bin" in url:
+                    return io.BytesIO(new_bytes)
+                raise ValueError("Unexpected URL: " + url)
+
+            out = io.StringIO()
+            with patch("sys.stdout", out), \
+                 patch("urllib.request.urlopen", side_effect=fake_urlopen), \
+                 patch("cadgpt_agent.main.get_agent_executable", return_value=str(binary)), \
+                 patch("cadgpt_agent.main.restart_service") as mock_restart:
+                ret = main(["update"])
+                self.assertEqual(ret, 0)
+                self.assertEqual(binary.read_bytes(), new_bytes)
+                mock_restart.assert_called_once()
+                output = out.getvalue()
+                self.assertIn("Found new release v0.2.0-alpha.2", output)
+                self.assertIn("Successfully updated to v0.2.0-alpha.2", output)
+
+    def test_update_all_drafts_reports_error(self):
+        from cadgpt_agent.main import main
+        releases_list = [
+            {"tag_name": "v0.3.0-draft", "draft": True, "prerelease": True},
+            {"tag_name": "v0.2.0-draft", "draft": True, "prerelease": True},
+        ]
+        mock_resp = io.BytesIO(json.dumps(releases_list).encode())
+        err = io.StringIO()
+        with patch("sys.stderr", err), patch("urllib.request.urlopen", return_value=mock_resp):
+            ret = main(["update"])
+        self.assertEqual(ret, 1)
+        self.assertIn("No published releases found.", err.getvalue())
+
+    def test_update_list_response_already_up_to_date(self):
+        from cadgpt_agent.main import main, VERSION
+        releases_list = [
+            {"tag_name": "v9.9.9-draft", "draft": True, "prerelease": True},
+            {"tag_name": f"v{VERSION}", "draft": False, "prerelease": True},
+        ]
+        mock_resp = io.BytesIO(json.dumps(releases_list).encode())
+        out = io.StringIO()
+        with patch("sys.stdout", out), patch("urllib.request.urlopen", return_value=mock_resp):
+            ret = main(["update"])
+        self.assertEqual(ret, 0)
+        self.assertIn(f"cadengine is already up to date (v{VERSION}).", out.getvalue())
 
 
 class ServiceSubcommandTests(unittest.TestCase):

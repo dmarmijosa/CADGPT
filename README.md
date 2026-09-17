@@ -1,8 +1,8 @@
-# CAD Agent Designer Bridge
+# CAD Engine
 
-**One Angular dashboard for your CAD computers, a NestJS API, and a self-contained Python agent.** Link your own computer to your account, discover CAD installations, and submit controlled FreeCAD jobs remotely.
+**One Angular dashboard for your CAD computers, a NestJS API, and a self-contained Python agent.** Link your own computer to your account, discover CAD installations, and submit controlled CAD jobs remotely.
 
-> **Experimental alpha — not a hosted service.** Deploy the backend before linking an agent. Installers are unsigned; macOS builds are not notarized. AutoCAD is detected only. No claim of compatibility with every CAD version.
+> **Experimental alpha — not a hosted service.** Deploy the backend before linking an agent. Installers are unsigned; macOS builds are not notarized. Full AutoCAD with Core Console supports 13 headless operations on Windows (AutoCAD LT is detected only). No claim of compatibility with every CAD version.
 
 ## Download
 
@@ -16,11 +16,11 @@ Latest prerelease: **[v0.1.0-alpha.2 →](https://github.com/dmarmijosa/CADGPT/r
 | Linux x64 | [`CADGPT-linux-x64.tar.gz`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.1.0-alpha.2/CADGPT-linux-x64.tar.gz) | Portable application archive, Python included |
 | All | [`SHA256SUMS.txt`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.1.0-alpha.2/SHA256SUMS.txt) | Integrity checksums |
 
-Verify a download against `SHA256SUMS.txt` before running it (the builds are unsigned). Newer releases, when published, appear at the releases page above. CAD Agent Designer does **not** install AutoCAD or FreeCAD and does not modify your existing Python installation.
+Verify a download against `SHA256SUMS.txt` before running it (the builds are unsigned). Newer releases, when published, appear at the releases page above. CAD Engine does **not** install AutoCAD or FreeCAD and does not modify your existing Python installation.
 
 ## Install and link your computer
 
-Have a compatible CAD installation and your administrator's **CAD Agent Designer HTTPS server URL** ready.
+Have a compatible CAD installation and your administrator's **CAD Engine HTTPS server URL** ready.
 
 ### Windows
 
@@ -201,21 +201,30 @@ Native CAD files (`design.FCStd`) remain on that computer. Only the STL preview 
 |---|---|
 | FreeCAD with working `FreeCADCmd` / `freecadcmd`, Windows/macOS/Linux | Headless create/modify/export operations on named designs; an STL preview mesh uploads for the dashboard viewer; installation-specific testing required |
 | FreeCAD GUI-only installation, AppImage, Flatpak or Snap | May need manual path or a separate command-line installation; no wrapper support promised |
-| Full AutoCAD with `accoreconsole.exe`, Windows | Opt-in only (`--enable-autocad`); create-only primitives (box/cylinder/sphere/cone/extrude) via an allowlisted `.lsp`/`.scr` script; produces a DWG, no preview yet |
-| AutoCAD LT, or full AutoCAD without `accoreconsole.exe` | Installation discovery only; LT has no Core Console, so no execution adapter is offered regardless of the flag |
+| AutoCAD 2026 Core Console (`accoreconsole.exe`), Windows | Opt-in via `--enable-autocad`; full 13-operation headless execution (3D primitives, booleans, transforms, MASSPROP volumetric validation) producing native DWG/DXF artifacts and binary STL preview via headless `STLOUT` |
+| AutoCAD LT, or AutoCAD without `accoreconsole.exe` | Installation discovery only (detection-only); LT does not ship Core Console and lacks 3D solid modeling and `STLOUT` capabilities, so execution is disabled regardless of the flag |
 | AutoCAD on Linux | Not a supported target |
 
 The agent's private Python runs networking and discovery. **FreeCAD uses its own Python and libraries**, avoiding a dependency on the user's system Python. No arbitrary Python or shell execution tool is exposed; the opt-in AutoCAD adapter loads only its own bundled, allowlisted `.lsp` file (never caller-supplied AutoLISP) through AutoCAD Core Console.
 
 ### AutoCAD (opt-in, experimental)
 
-AutoCAD execution is off by default. A detected full AutoCAD installation with `accoreconsole.exe` is only ever reported executable, and only ever dispatched a job, when you start the agent with `--enable-autocad`:
+AutoCAD execution is off by default. A detected full AutoCAD installation with `accoreconsole.exe` on Windows is only ever reported executable, and only ever dispatched a job, when you start the agent with `--enable-autocad`:
 
 ```bash
 cadgpt-agent --server https://your-cadgpt.example --enable-autocad
 ```
 
-**You are responsible for your own Autodesk license terms.** This flag drives AutoCAD Core Console (`accoreconsole.exe`) unattended, from a script CAD Agent Designer renders and controls; CAD Agent Designer does not interpret, warrant, or provide any Autodesk license, and does not claim this mode of use is permitted under every AutoCAD/AutoCAD LT license. Confirm your own EULA allows unattended, scripted invocation before enabling this flag. See `SECURITY.md` for the trust boundary this adapter operates under.
+When enabled on AutoCAD 2026 Core Console, the agent provides full 13-operation headless parity:
+- **3D Primitives**: `create_box`, `create_cylinder`, `create_sphere`, `create_cone`, `extrude_rect`
+- **3D Booleans**: `boolean_cut`, `boolean_union`, `boolean_intersect`
+- **Transforms**: `translate_object`, `rotate_object`, `scale_object`
+- **Volumetric Validation**: `read_scene` (AutoLISP entity enumeration) and `MASSPROP` volumetric verification
+- **Artifact Delivery & Preview**: Native DWG (`_SAVEAS 2018`), 16-decimal DXF (`_DXFOUT ... 16`), ACIS SAT (`_ACISOUT`), and non-interactive binary STL preview mesh via headless `_STLOUT`
+
+AutoCAD LT is designated strictly as detection-only (`executable=false`) because it does not ship `accoreconsole.exe` and lacks 3D solid modeling and `STLOUT` capabilities.
+
+**You are responsible for your own Autodesk license terms.** This flag drives AutoCAD Core Console (`accoreconsole.exe`) unattended, from a script CAD Engine renders and controls; CAD Engine does not interpret, warrant, or provide any Autodesk license, and does not claim this mode of use is permitted under every AutoCAD/AutoCAD LT license. Confirm your own EULA allows unattended, scripted invocation before enabling this flag. See `SECURITY.md` for the trust boundary this adapter operates under.
 
 ## Run from source
 
@@ -262,7 +271,7 @@ ChatGPT / Claude -- OAuth + MCP HTTPS --> NestJS API
 Angular dashboard -- OIDC/PKCE -------->      |
                                             | outgoing HTTPS polling
                                             v
-                                      CAD Agent Designer agent --> FreeCADCmd
+                                      CAD Engine agent --> FreeCADCmd / accoreconsole.exe
 ```
 
 Registration alone does not connect ChatGPT. A public HTTPS backend, identity-provider deployment and separately registered OAuth client are required. **ChatGPT/Claude end-to-end connection is not yet certified.** See [deployment and MCP setup](docs/deployment.md).
@@ -278,9 +287,9 @@ still needs the public HTTPS deployment and registered OAuth client(s) described
 [Connect an MCP client](docs/deployment.md#connect-an-mcp-client) before a connector actually
 authenticates. Try `list_devices` first to confirm the connection before running a mutating
 operation. As with every other surface, only the device's UUID and the public MCP URL ever appear
-on that page — never a device secret or credential. AutoCAD remains detection-only today (see
-[Compatibility](#compatibility)); only FreeCAD operations run through a connected client until an
-execution adapter ships.
+on that page — never a device secret or credential. AutoCAD 2026 Core Console supports full
+13-operation headless execution on Windows when started with `--enable-autocad`; AutoCAD LT
+remains strictly detection-only (see [Compatibility](#compatibility)).
 
 For the automated VPS deployment via GitHub Actions, see [Production on the VPS via GitHub Actions](docs/deployment.md#production-on-the-vps-via-github-actions).
 

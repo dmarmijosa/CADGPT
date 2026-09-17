@@ -1,4 +1,4 @@
-name: Build draft alpha release
+name: Build alpha release
 on:
   push:
     tags: ['v*']
@@ -76,7 +76,7 @@ jobs:
             dist/*.dmg
             dist/*.tar.gz
           if-no-files-found: error
-  draft:
+  release:
     needs: agent
     runs-on: ubuntu-24.04
     permissions:
@@ -90,7 +90,7 @@ jobs:
           path: artifacts
       - name: Checksums
         run: cd artifacts && sha256sum * > SHA256SUMS.txt
-      - name: Create draft only
+      - name: Publish prerelease
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag || github.ref_name }}

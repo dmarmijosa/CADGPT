@@ -135,8 +135,9 @@ copy-pasteable resource URL and the same Claude/ChatGPT steps summarized above, 
 card for the paired computer. That page is a client-side walkthrough only — it does not replace the
 OAuth client registration steps above, and it never displays a device secret or credential, only
 the device's UUID and the public MCP URL. See the [mesh preview exception](../README.md#security-and-limitations)
-for what a connected client can retrieve today, and note that AutoCAD remains detection-only (no
-execution adapter shipped yet) regardless of which client connects.
+for what a connected client can retrieve today. AutoCAD 2026 Core Console supports full 13-operation
+headless execution on Windows when started with `--enable-autocad`, while AutoCAD LT remains
+strictly detection-only.
 
 ## Operational boundaries
 

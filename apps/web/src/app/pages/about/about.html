@@ -1,13 +1,13 @@
 <section class="page-head">
-  <h1>About CAD Agent Designer</h1>
+  <h1>About CAD Engine</h1>
   <p>Project status, compatibility, and where security and limitations live.</p>
 </section>
 
 <section class="panel">
   <h2>Status</h2>
   <p>
-    CAD Agent Designer is an <strong>experimental alpha</strong>, not a hosted service. Installers
-    are unsigned and macOS builds are not notarized; you deploy and operate your own backend.
+    CAD Engine is an <strong>experimental alpha</strong>, not a hosted service. Installers are
+    unsigned and macOS builds are not notarized; you deploy and operate your own backend.
   </p>
 </section>
 
@@ -32,8 +32,19 @@
         <td>May need a manual path or a separate command-line install.</td>
       </tr>
       <tr>
-        <td>AutoCAD / AutoCAD LT</td>
-        <td>Installation discovery only — no execution adapter shipped.</td>
+        <td>AutoCAD 2026 Core Console (<code>accoreconsole.exe</code>), Windows</td>
+        <td>
+          Full 13-operation headless execution (3D primitives, booleans, transforms, MASSPROP
+          volumetric validation) producing native DWG/DXF artifacts and binary STL preview via
+          headless STLOUT. Enabled with <code>--enable-autocad</code>.
+        </td>
+      </tr>
+      <tr>
+        <td>AutoCAD LT, or AutoCAD without <code>accoreconsole.exe</code></td>
+        <td>
+          Installation detection only; execution disabled (AutoCAD LT lacks Core Console, 3D solid
+          modeling, and STLOUT support).
+        </td>
       </tr>
       <tr>
         <td>AutoCAD on Linux</td>
