@@ -30,4 +30,14 @@ describe('app routes (spec dashboard-routing: Lazy route loads on navigation)', 
 
     designsRoute!.loadComponent = originalLoader;
   });
+
+  it.each(['privacy', 'terms', 'support'])(
+    '"%s" route is public (no canActivate guard)',
+    (path) => {
+      const route = routes.find((r) => r.path === path);
+      expect(route).toBeDefined();
+      expect(route?.canActivate).toBeUndefined();
+      expect(route?.loadComponent).toBeDefined();
+    },
+  );
 });

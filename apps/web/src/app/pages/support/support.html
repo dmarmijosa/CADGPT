@@ -1,0 +1,45 @@
+<section class="page-head">
+  <h1>{{ 'support.title' | translate }}</h1>
+  <p>{{ 'support.subtitle' | translate }}</p>
+</section>
+
+<section class="panel">
+  <h2>{{ 'support.section_channels_title' | translate }}</h2>
+  <div class="support-channels">
+    <div class="support-channel">
+      <h3>{{ 'support.channel_email_title' | translate }}</h3>
+      <p>{{ 'support.channel_email_desc' | translate }}</p>
+      <a [href]="'mailto:' + securityEmail" class="legal-link">{{ securityEmail }}</a>
+    </div>
+
+    <div class="support-channel">
+      <h3>{{ 'support.channel_issues_title' | translate }}</h3>
+      <p>{{ 'support.channel_issues_desc' | translate }}</p>
+      <a [href]="githubIssuesUrl" target="_blank" rel="noopener noreferrer" class="legal-link">
+        GitHub Issues ↗
+      </a>
+    </div>
+
+    <div class="support-channel">
+      <h3>{{ 'support.channel_security_title' | translate }}</h3>
+      <p>{{ 'support.channel_security_desc' | translate }}</p>
+      <a [href]="securityAdvisoryUrl" target="_blank" rel="noopener noreferrer" class="legal-link">
+        GitHub Private Vulnerability Reporting ↗
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>{{ 'support.section_faq_title' | translate }}</h2>
+  <dl class="faq-list">
+    <dt>{{ 'support.faq_q1' | translate }}</dt>
+    <dd>{{ 'support.faq_a1' | translate }}</dd>
+
+    <dt>{{ 'support.faq_q2' | translate }}</dt>
+    <dd>{{ 'support.faq_a2' | translate }}</dd>
+
+    <dt>{{ 'support.faq_q3' | translate }}</dt>
+    <dd>{{ 'support.faq_a3' | translate }}</dd>
+  </dl>
+</section>

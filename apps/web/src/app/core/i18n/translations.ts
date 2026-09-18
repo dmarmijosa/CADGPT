@@ -24,6 +24,84 @@ const EN_TRANSLATIONS = {
   'footer.author_website_aria': "Danny Armijos's Personal Website",
   'footer.author_website': 'danny-armijos.com',
   'footer.data_governance_btn': 'Data Treatment & CAD Governance',
+  'footer.privacy': 'Privacy Policy',
+  'footer.terms': 'Terms of Service',
+  'footer.support': 'Support',
+
+  // Privacy page
+  'privacy.title': 'Privacy Policy',
+  'privacy.subtitle':
+    'How CAD Engine collects, uses, and protects your data. Last reviewed by the maintainer.',
+  'privacy.updated': 'Last updated: September 2026',
+  'privacy.section_identity_title': 'Who We Are',
+  'privacy.section_identity_desc':
+    'CAD Engine is an open-source MCP plugin developed and maintained by Danny Armijos. The production instance is hosted at cadengine.dev.',
+  'privacy.section_local_title': 'Local Execution by Design',
+  'privacy.section_local_desc':
+    'Parametric CAD models and engineering scripts execute exclusively on your own local devices. CAD Engine never transmits native CAD files (DWG, FCStd, BLEND) to any server.',
+  'privacy.section_data_title': 'Data We Process',
+  'privacy.data_account':
+    'Account identity (sub, email, name) from your OIDC provider during authentication.',
+  'privacy.data_devices': 'Device names and scoped tokens you register via the Pair flow.',
+  'privacy.data_stl':
+    'Triangulated 3D preview meshes (STL) temporarily cached server-side to enable browser viewing. Deleted when you delete your account.',
+  'privacy.data_logs':
+    'Job execution logs (command, status, timing) associated with your account. Purged on account deletion.',
+  'privacy.section_not_collected_title': 'What We Never Collect',
+  'privacy.not_collected_ai':
+    'We do not send your CAD files or engineering scripts to any AI model provider.',
+  'privacy.not_collected_sale':
+    'We do not sell, rent, or share personal data with third parties for advertising.',
+  'privacy.section_rights_title': 'Your Rights (GDPR / CCPA)',
+  'privacy.section_rights_desc':
+    'You may request access, correction, or permanent deletion of your data at any time via the Account page or by emailing security@cadengine.dev. Deletion purges all data within 30 days.',
+
+  // Terms of Service page
+  'terms.title': 'Terms of Service',
+  'terms.subtitle': 'By using CAD Engine you agree to these terms. Please read them carefully.',
+  'terms.updated': 'Last updated: September 2026',
+  'terms.section_acceptance_title': 'Acceptance',
+  'terms.section_acceptance_desc':
+    'Access to or use of CAD Engine constitutes acceptance of these Terms. If you disagree, do not use the service.',
+  'terms.section_license_title': 'License',
+  'terms.section_license_desc':
+    'CAD Engine is open-source software released under the MIT License. You may use, copy, modify, and distribute the software subject to that license. The hosted service is provided as-is for personal and professional use.',
+  'terms.section_cad_disclaimer_title': 'CAD Software Disclaimer',
+  'terms.section_cad_disclaimer_desc':
+    'CAD Engine does not grant, warrant, or verify any license for AutoCAD, FreeCAD, or Blender. You are solely responsible for ensuring your use of those applications complies with their respective license agreements.',
+  'terms.section_acceptable_use_title': 'Acceptable Use',
+  'terms.acceptable_use_item1':
+    'Do not use CAD Engine to process confidential or classified design data on hardware you do not own or control.',
+  'terms.acceptable_use_item2':
+    'Do not attempt to circumvent authentication, rate limits, or access controls.',
+  'terms.acceptable_use_item3':
+    'Do not use the service for any activity that violates applicable law.',
+  'terms.section_liability_title': 'Limitation of Liability',
+  'terms.section_liability_desc':
+    'CAD Engine is experimental alpha software. The maintainer provides no warranty and accepts no liability for data loss, engineering errors, or consequential damages arising from use of the service.',
+
+  // Support page
+  'support.title': 'Support',
+  'support.subtitle': 'Get help, report issues, or contact the maintainer.',
+  'support.section_channels_title': 'Support Channels',
+  'support.channel_email_title': 'Email',
+  'support.channel_email_desc': 'For billing, account, or sensitive issues: security@cadengine.dev',
+  'support.channel_issues_title': 'GitHub Issues',
+  'support.channel_issues_desc':
+    'For bugs, feature requests, and general questions open an issue on the public repository.',
+  'support.channel_security_title': 'Security Reports',
+  'support.channel_security_desc':
+    'Use GitHub Private Vulnerability Reporting or email security@cadengine.dev. Do not open public issues for vulnerabilities.',
+  'support.section_faq_title': 'Frequently Asked Questions',
+  'support.faq_q1': 'Which CAD applications are supported?',
+  'support.faq_a1':
+    'FreeCAD (CLI and GUI), AutoCAD Core Console (opt-in, Windows only), and Blender 4.x are supported. AutoCAD LT is not supported.',
+  'support.faq_q2': 'Do my CAD files leave my computer?',
+  'support.faq_a2':
+    'No. Native CAD files (DWG, FCStd, BLEND) never leave your local device. Only triangulated STL preview meshes are temporarily uploaded to the server for browser rendering.',
+  'support.faq_q3': 'How do I delete my account?',
+  'support.faq_a3':
+    'Navigate to the About page, scroll to the Account Governance section, and click "Delete account". This permanently purges all your data.',
 
   // Consent Sheet
   'consent.badge': 'GDPR & ISO/IEC 27001',
@@ -415,6 +493,86 @@ export const TRANSLATIONS: Record<SupportedLanguage, TranslationDictionary> = {
     'footer.author_website_aria': 'Sitio Web Personal de Danny Armijos',
     'footer.author_website': 'danny-armijos.com',
     'footer.data_governance_btn': 'Tratamiento de Datos y Gobernanza CAD',
+    'footer.privacy': 'Política de Privacidad',
+    'footer.terms': 'Términos de Servicio',
+    'footer.support': 'Soporte',
+
+    // Privacy page
+    'privacy.title': 'Política de Privacidad',
+    'privacy.subtitle':
+      'Cómo CAD Engine recopila, usa y protege tus datos. Última revisión del mantenedor.',
+    'privacy.updated': 'Última actualización: septiembre de 2026',
+    'privacy.section_identity_title': 'Quiénes Somos',
+    'privacy.section_identity_desc':
+      'CAD Engine es un plugin MCP de código abierto desarrollado y mantenido por Danny Armijos. La instancia de producción está alojada en cadengine.dev.',
+    'privacy.section_local_title': 'Ejecución Local por Diseño',
+    'privacy.section_local_desc':
+      'Los modelos CAD paramétricos y los scripts de ingeniería se ejecutan exclusivamente en tus dispositivos locales. CAD Engine nunca transmite archivos CAD nativos (DWG, FCStd, BLEND) a ningún servidor.',
+    'privacy.section_data_title': 'Datos que Procesamos',
+    'privacy.data_account':
+      'Identidad de cuenta (sub, email, nombre) de tu proveedor OIDC durante la autenticación.',
+    'privacy.data_devices':
+      'Nombres de dispositivos y tokens con alcance que registrás mediante el flujo de Vinculación.',
+    'privacy.data_stl':
+      'Mallas de previsualización 3D trianguladas (STL) almacenadas temporalmente en el servidor para la vista en el navegador. Se eliminan cuando borrás tu cuenta.',
+    'privacy.data_logs':
+      'Registros de ejecución de trabajos (comando, estado, tiempos) asociados a tu cuenta. Se purgan al eliminar la cuenta.',
+    'privacy.section_not_collected_title': 'Qué Nunca Recopilamos',
+    'privacy.not_collected_ai':
+      'No enviamos tus archivos CAD ni scripts de ingeniería a ningún proveedor de modelos de IA.',
+    'privacy.not_collected_sale':
+      'No vendemos, arrendamos ni compartimos datos personales con terceros con fines publicitarios.',
+    'privacy.section_rights_title': 'Tus Derechos (RGPD / CCPA)',
+    'privacy.section_rights_desc':
+      'Podés solicitar acceso, corrección o eliminación permanente de tus datos en cualquier momento desde la página de Cuenta o enviando un correo a security@cadengine.dev. La eliminación purga todos los datos en 30 días.',
+
+    // Terms of Service page
+    'terms.title': 'Términos de Servicio',
+    'terms.subtitle': 'Al usar CAD Engine aceptás estos términos. Por favor leelos con atención.',
+    'terms.updated': 'Última actualización: septiembre de 2026',
+    'terms.section_acceptance_title': 'Aceptación',
+    'terms.section_acceptance_desc':
+      'El acceso o uso de CAD Engine constituye la aceptación de estos Términos. Si no estás de acuerdo, no uses el servicio.',
+    'terms.section_license_title': 'Licencia',
+    'terms.section_license_desc':
+      'CAD Engine es software de código abierto publicado bajo la Licencia MIT. Podés usar, copiar, modificar y distribuir el software sujeto a esa licencia. El servicio alojado se proporciona tal cual para uso personal y profesional.',
+    'terms.section_cad_disclaimer_title': 'Descargo de Responsabilidad sobre Software CAD',
+    'terms.section_cad_disclaimer_desc':
+      'CAD Engine no otorga, garantiza ni verifica ninguna licencia de AutoCAD, FreeCAD o Blender. Sos el único responsable de asegurarte de que tu uso de esas aplicaciones cumpla con sus respectivos acuerdos de licencia.',
+    'terms.section_acceptable_use_title': 'Uso Aceptable',
+    'terms.acceptable_use_item1':
+      'No uses CAD Engine para procesar datos de diseño confidenciales o clasificados en hardware que no sea de tu propiedad o control.',
+    'terms.acceptable_use_item2':
+      'No intentes eludir la autenticación, los límites de velocidad o los controles de acceso.',
+    'terms.acceptable_use_item3':
+      'No uses el servicio para ninguna actividad que viole la legislación aplicable.',
+    'terms.section_liability_title': 'Limitación de Responsabilidad',
+    'terms.section_liability_desc':
+      'CAD Engine es software alfa experimental. El mantenedor no ofrece garantías y no acepta responsabilidad por pérdida de datos, errores de ingeniería o daños consecuentes derivados del uso del servicio.',
+
+    // Support page
+    'support.title': 'Soporte',
+    'support.subtitle': 'Obtené ayuda, reportá problemas o contactá al mantenedor.',
+    'support.section_channels_title': 'Canales de Soporte',
+    'support.channel_email_title': 'Correo Electrónico',
+    'support.channel_email_desc':
+      'Para problemas de facturación, cuenta o sensibles: security@cadengine.dev',
+    'support.channel_issues_title': 'Issues de GitHub',
+    'support.channel_issues_desc':
+      'Para bugs, solicitudes de funciones y preguntas generales, abrí un issue en el repositorio público.',
+    'support.channel_security_title': 'Reportes de Seguridad',
+    'support.channel_security_desc':
+      'Usá GitHub Private Vulnerability Reporting o enviá un correo a security@cadengine.dev. No abras issues públicos para vulnerabilidades.',
+    'support.section_faq_title': 'Preguntas Frecuentes',
+    'support.faq_q1': '¿Qué aplicaciones CAD son compatibles?',
+    'support.faq_a1':
+      'FreeCAD (CLI y GUI), AutoCAD Core Console (opt-in, solo Windows) y Blender 4.x son compatibles. AutoCAD LT no es compatible.',
+    'support.faq_q2': '¿Mis archivos CAD salen de mi computadora?',
+    'support.faq_a2':
+      'No. Los archivos CAD nativos (DWG, FCStd, BLEND) nunca salen de tu dispositivo local. Solo las mallas de previsualización STL trianguladas se suben temporalmente al servidor para la renderización en el navegador.',
+    'support.faq_q3': '¿Cómo elimino mi cuenta?',
+    'support.faq_a3':
+      'Navegá a la página Acerca de, desplazate hasta la sección de Gobernanza de Cuenta y hacé clic en "Eliminar cuenta". Esto purga permanentemente todos tus datos.',
 
     // Consent Sheet
     'consent.badge': 'GDPR & ISO/IEC 27001',

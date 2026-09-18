@@ -224,6 +224,13 @@
       </a>
     </div>
   </div>
+  <nav class="footer-legal" aria-label="Legal navigation">
+    <a routerLink="/privacy" class="footer-legal-link">{{ 'footer.privacy' | translate }}</a>
+    <span class="footer-separator" aria-hidden="true">·</span>
+    <a routerLink="/terms" class="footer-legal-link">{{ 'footer.terms' | translate }}</a>
+    <span class="footer-separator" aria-hidden="true">·</span>
+    <a routerLink="/support" class="footer-legal-link">{{ 'footer.support' | translate }}</a>
+  </nav>
   <div class="footer-right">
     <button type="button" class="footer-gov-btn" (click)="openConsentReview()">
       {{ 'footer.data_governance_btn' | translate }}

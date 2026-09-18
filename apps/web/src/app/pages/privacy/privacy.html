@@ -1,0 +1,41 @@
+<section class="page-head">
+  <h1>{{ 'privacy.title' | translate }}</h1>
+  <p>{{ 'privacy.subtitle' | translate }}</p>
+  <p class="legal-updated">{{ 'privacy.updated' | translate }}</p>
+</section>
+
+<section class="panel">
+  <h2>{{ 'privacy.section_identity_title' | translate }}</h2>
+  <p>{{ 'privacy.section_identity_desc' | translate }}</p>
+</section>
+
+<section class="panel">
+  <h2>{{ 'privacy.section_local_title' | translate }}</h2>
+  <p>{{ 'privacy.section_local_desc' | translate }}</p>
+</section>
+
+<section class="panel">
+  <h2>{{ 'privacy.section_data_title' | translate }}</h2>
+  <ul class="legal-list">
+    <li>{{ 'privacy.data_account' | translate }}</li>
+    <li>{{ 'privacy.data_devices' | translate }}</li>
+    <li>{{ 'privacy.data_stl' | translate }}</li>
+    <li>{{ 'privacy.data_logs' | translate }}</li>
+  </ul>
+</section>
+
+<section class="panel">
+  <h2>{{ 'privacy.section_not_collected_title' | translate }}</h2>
+  <ul class="legal-list">
+    <li>{{ 'privacy.not_collected_ai' | translate }}</li>
+    <li>{{ 'privacy.not_collected_sale' | translate }}</li>
+  </ul>
+</section>
+
+<section class="panel">
+  <h2>{{ 'privacy.section_rights_title' | translate }}</h2>
+  <p>{{ 'privacy.section_rights_desc' | translate }}</p>
+  <p>
+    <a [href]="'mailto:' + securityEmail" class="legal-link">{{ securityEmail }}</a>
+  </p>
+</section>

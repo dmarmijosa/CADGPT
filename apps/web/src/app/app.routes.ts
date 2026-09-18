@@ -50,5 +50,14 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./pages/jobs/jobs').then((m) => m.JobsPage),
   },
+  {
+    path: 'privacy',
+    loadComponent: () => import('./pages/privacy/privacy').then((m) => m.PrivacyPage),
+  },
+  { path: 'terms', loadComponent: () => import('./pages/terms/terms').then((m) => m.TermsPage) },
+  {
+    path: 'support',
+    loadComponent: () => import('./pages/support/support').then((m) => m.SupportPage),
+  },
   { path: '**', redirectTo: '' },
 ];
