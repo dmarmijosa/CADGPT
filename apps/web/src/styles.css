@@ -975,6 +975,12 @@ table.data tbody tr:hover td {
 .trust__diagram svg {
   width: 100%;
   height: auto;
+  display: block;
+}
+.trust__diagram text {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  letter-spacing: -0.01em;
 }
 .trust__diagram figcaption {
   margin-top: var(--space-3);
