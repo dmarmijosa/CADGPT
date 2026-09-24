@@ -1,17 +1,17 @@
 [build-system]
-requires = ["setuptools>=80"]
+requires = ["setuptools>=84.0.0"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "cadgpt-agent"
 version = "0.2.0a1"
 requires-python = ">=3.11"
 dependencies = [
-    "keyring>=25.6,<26",
-    "platformdirs>=4.3,<5",
-    "opencv-python-headless>=4.8",
-    "numpy>=1.24",
-    "pystray>=0.19",
-    "Pillow>=10.0",
+    "keyring>=25.7.0,<26",
+    "platformdirs>=4.11.11,<5",
+    "opencv-python-headless>=5.0.0.93",
+    "numpy>=2.4.6",
+    "pystray>=0.19.5",
+    "Pillow>=12.3.0",
 ]
 [project.scripts]
 cadengine = "cadgpt_agent.main:main"
