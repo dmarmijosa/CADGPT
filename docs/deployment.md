@@ -136,8 +136,9 @@ card for the paired computer. That page is a client-side walkthrough only — it
 OAuth client registration steps above, and it never displays a device secret or credential, only
 the device's UUID and the public MCP URL. See the [mesh preview exception](../README.md#security-and-limitations)
 for what a connected client can retrieve today. AutoCAD 2026 Core Console supports full 13-operation
-headless execution on Windows when started with `--enable-autocad`, while AutoCAD LT remains
-strictly detection-only.
+headless execution on Windows when started with `--enable-autocad` (the same flag enables Civil 3D,
+which adds `extrude_cross_section`), SOLIDWORKS runs through its COM API on Windows when started
+with `--enable-solidworks`, and AutoCAD LT remains strictly detection-only.
 
 ## Operational boundaries
 

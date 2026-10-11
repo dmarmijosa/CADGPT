@@ -2,7 +2,9 @@
 
 **One Angular dashboard for your CAD computers, a NestJS API, and a self-contained Python agent.** Link your own computer to your account, discover CAD installations, and submit controlled CAD jobs remotely.
 
-> **Experimental alpha — not a hosted service.** Deploy the backend before linking an agent. Installers are unsigned; macOS builds are not notarized. Full AutoCAD with Core Console supports 13 headless operations on Windows (AutoCAD LT is detected only). No claim of compatibility with every CAD version.
+**Supported programs:** AutoCAD · Civil 3D · FreeCAD · SOLIDWORKS · Blender.
+
+> **Experimental alpha — not a hosted service.** Deploy the backend before linking an agent. Installers are unsigned; macOS builds are not notarized. Full AutoCAD with Core Console supports 13 headless operations on Windows (AutoCAD LT is detected only); Civil 3D adds civil cross-sections on the same console; SOLIDWORKS runs through its COM API on Windows. Civil 3D and SOLIDWORKS execution is covered by simulated tests only and has not yet been verified on a live host. No claim of compatibility with every CAD version.
 
 ## Download
 
@@ -16,11 +18,11 @@ Latest prerelease: **[v0.2.0-alpha.1 →](https://github.com/dmarmijosa/CADGPT/r
 | Linux x64 | [`cadengine-linux-x64.tar.gz`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.1/cadengine-linux-x64.tar.gz) | Portable application archive, Python included |
 | All | [`SHA256SUMS.txt`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.1/SHA256SUMS.txt) | Integrity checksums |
 
-Verify a download against `SHA256SUMS.txt` before running it (the builds are unsigned). Newer releases, when published, appear at the releases page above. CAD Engine does **not** install AutoCAD, FreeCAD, or Blender, and does not modify your existing Python installation.
+Verify a download against `SHA256SUMS.txt` before running it (the builds are unsigned). Newer releases, when published, appear at the releases page above. CAD Engine does **not** install AutoCAD, Civil 3D, FreeCAD, SOLIDWORKS, or Blender, and does not modify your existing Python installation.
 
 ## Install and link your computer
 
-Have a compatible CAD installation (FreeCAD or AutoCAD) and your administrator's **CAD Engine HTTPS server URL** ready.
+Have a compatible CAD installation (FreeCAD, AutoCAD, Civil 3D, or SOLIDWORKS; Blender is optional) and your administrator's **CAD Engine HTTPS server URL** ready.
 
 ### Desktop GUI & Onboarding Wizard (Recommended)
 
@@ -28,14 +30,14 @@ CAD Engine includes a native, lightweight (<2 MB) cross-platform Onboarding Wiza
 
 1. **Launch the GUI**: Run the application or execute `cadengine gui` in terminal.
 2. **Step 1 — Language Selection**: Switch dynamically between **English** and **Español**. The interface updates in real time.
-3. **Step 2 — Parametric CAD Prerequisite Gate**: The wizard automatically probes for FreeCAD and AutoCAD.
+3. **Step 2 — Parametric CAD Prerequisite Gate**: The wizard automatically probes for FreeCAD, AutoCAD (including Civil 3D), and SOLIDWORKS.
    - **Hard Gate**: If neither CAD engine is detected, progression is blocked. The wizard provides guided installation commands (`winget install FreeCAD.FreeCAD` on Windows, `brew install --cask freecad` on macOS, `sudo apt install freecad` on Linux) and an instant **Re-check** button.
 4. **Step 3 — Blender 3D Organic Modeling Tool**: Probes for Blender installations. If detected, it enables organic modeling tools. If not detected, you can specify your Blender path (stored safely without UAC administrator elevation) or choose **Continue without Blender**.
 5. **Step 4 — Zero-URL Pairing HUD & Auto-Enrollment**: Automatically connects to the production server (`https://cadengine.danny-armijos.com`) without manual URL entry, displays a prominent 12-character ephemeral pairing code (with offline fallback code generation), provides one-click **Copy Code** and **Open Dashboard** buttons, and upon approval, saves credentials securely to OS keyring (`keyring`) while automatically registering the native background daemon (`schtasks` on Windows, `systemd` user service on Linux, `launchd` on macOS).
 6. **System Tray Daemon (`pystray`)**: Once paired, CAD Engine minimizes to the system tray with a 3D isometric cube icon (macOS Menu Bar Extra / Windows Notification Area):
    - **Status Header**: Displays connection state and version (`v0.2.0-alpha.1`).
    - **View Pairing Code**: Look up active code or device ID.
-   - **View Connection Status**: Real-time HUD showing Server URL, Device ID, Active Engines (FreeCAD, AutoCAD, Blender), and Ping Latency.
+   - **View Connection Status**: Real-time HUD showing Server URL, Device ID, Active Engines (FreeCAD, AutoCAD, Civil 3D, SOLIDWORKS, Blender), and Ping Latency.
    - **Open Web Dashboard**: Quick shortcut to the web application.
    - **Unpair Device...**: Prompts for confirmation, revokes registration with the API, wipes local credentials, and resets state.
    - **Exit / Quit**: Cleanly shuts down background workers and removes tray icon.
@@ -208,7 +210,7 @@ Run it at **log on of the paired user** (not as SYSTEM): the pairing credential 
 stored in that user's Windows Credential Manager, which SYSTEM cannot read. The task
 restarts the agent if it exits and starts it after each login. To remove:
 `Unregister-ScheduledTask -TaskName "CAD Engine" -Confirm:$false`. Add
-`--enable-autocad` to `-Argument` if this host also drives AutoCAD.
+`--enable-autocad` to `-Argument` if this host also drives AutoCAD or Civil 3D, and `--enable-solidworks` if it drives SOLIDWORKS.
 
 ## Try the first operation
 
@@ -228,20 +230,22 @@ CAD Engine bridges external AI clients (ChatGPT, Claude) to local CAD and 3D mod
 | **FreeCAD** (Linux / macOS / Windows) | 20 operations (`create_box`, `create_cylinder`, `create_sphere`, `create_cone`, `extrude_rect`, `create_wedge`, `extrude_polygon`, `boolean_cut`, `boolean_union`, `boolean_intersect`, `fillet`, `chamfer`, `loft`, `translate_object`, `rotate_object`, `scale_object`, `read_scene`, `export_design`, `create_text_3d`, `analyze_image_to_cad`) | Headless mechanical CSG solids, parametric B-Rep modeling, 3D embossed/engraved typography (`Inter-Bold`), metric OpenCV computer vision contour tracing, and STEP/IGES/DXF/STL exports. |
 | **AutoCAD 2026 Core Console** (Windows) | 13 operations (`create_box`, `create_cylinder`, `create_sphere`, `create_cone`, `extrude_rect`, `boolean_cut`, `boolean_union`, `boolean_intersect`, `translate_object`, `rotate_object`, `scale_object`, `read_scene`, `export_design`) | 2D/3D architectural drafting, CSG solid modeling, MASSPROP volumetric verification, native DWG/DXF generation, and non-interactive binary STL preview meshes via headless `_STLOUT`. Opt-in via `--enable-autocad`. |
 | **Blender** (Linux / macOS / Windows) | 5 operations (`create_blender_mesh`, `extrude_subdivide_mesh`, `displace_sculpt_mesh`, `boolean_blender_mesh`, `export_blender_scene`) | Headless organic modeling, quad-dominant meshes (cube, cylinder, sphere, monkey), normal-directed extrusion with Catmull-Clark subdivision, procedural displacement (clouds, voronoi, wood, marble), mesh booleans, and binary STL/OBJ/glTF/blend exports. |
+| **Civil 3D** (Windows, `accoreconsole.exe /product C3D /l en-US`) | 14 operations (the 13 AutoCAD operations + `extrude_cross_section`) | Civil infrastructure on the AutoCAD Core Console launched as Civil 3D: trapezoidal cross-section solids (road embankments, channels, levees) swept along +Y, saved as Civil 3D-compatible DWG with `_STLOUT` preview. Detected from the Civil 3D registry product or the `C3D` folder next to the console. Opt-in via `--enable-autocad`. Simulated tests only. |
+| **SOLIDWORKS** (Windows, COM API) | 4 operations (`create_box`, `create_cylinder`, `extrude_rect`, `export_design` → STEP/STL) | SOLIDWORKS has no headless CLI, so a fixed PowerShell worker (`solidworks/solidworks_worker.ps1`) drives `SldWorks.Application` with the window hidden. Features are sketched on the Front plane and boss-extruded; native `.SLDPRT` plus binary STL preview. Needs a licensed install and a Windows desktop session. Opt-in via `--enable-solidworks`. Simulated tests only. |
 | **AutoCAD LT** (Windows) | Detection-only (`executable=false`) | Discovered in registry for inventory, but execution is disabled because LT does not ship Core Console and lacks 3D solid modeling and `STLOUT`. |
 
 ### Engine Guidance & Selection
 
 The MCP server provides dedicated guidance resources and a deterministic routing tool to guide AI clients to the proper engine without code guessing:
-- `cadgpt://guidance/modeling-engine-selection`: Comprehensive architectural boundaries between FreeCAD (mechanical engineering/tolerances), AutoCAD (architectural/DWG drafting), and Blender (organic meshes/sculpting).
-- `select_modeling_engine`: Informational MCP tool that evaluates domain (`mechanical`, `architectural`, `organic`, `artistic`, `hybrid`), precision (`high_tolerance`, `standard`, `visual_only`), and intended output (`cnc_milling`, `3d_printing`, `rendering`, `drawing_permit`, `animation`) to recommend the optimal toolchain and parameters.
+- `cadgpt://guidance/modeling-engine-selection`: Comprehensive architectural boundaries between FreeCAD (mechanical engineering/tolerances), AutoCAD (architectural/DWG drafting), Civil 3D (roads, channels, earthworks), SOLIDWORKS (feature-based product parts), and Blender (organic meshes/sculpting).
+- `select_modeling_engine`: Informational MCP tool that evaluates domain (`mechanical`, `architectural`, `civil`, `product`, `organic`, `artistic`, `hybrid`), precision (`high_tolerance`, `standard`, `visual_only`), and intended output (`cnc_milling`, `3d_printing`, `rendering`, `drawing_permit`, `animation`) to recommend the optimal toolchain and parameters.
 
 ### Workspace Directory Governance
 
 Every CAD project managed by CAD Engine organizes its assets into a standardized 5-folder hierarchy:
 ```text
 project-root/
-├── cad/         # Native source files (design.FCStd, design.dwg, design.blend)
+├── cad/         # Native source files (design.FCStd, design.dwg, design.SLDPRT, design.blend)
 ├── meshes/      # Tessellated surface geometry (preview.stl, preview.glb)
 ├── exports/     # Manufacturing packages (model.step, layout.dxf, model.obj)
 ├── renders/     # Presentation imagery (thumbnail.png, render.png)
@@ -268,6 +272,20 @@ cadengine --server https://your-cadgpt.example --enable-autocad
 ```
 
 **You are responsible for your own Autodesk license terms.** This flag drives AutoCAD Core Console (`accoreconsole.exe`) unattended, from a script CAD Engine renders and controls; CAD Engine does not interpret, warrant, or provide any Autodesk license, and does not claim this mode of use is permitted under every AutoCAD/AutoCAD LT license. Confirm your own EULA allows unattended, scripted invocation before enabling this flag. See `SECURITY.md` for the trust boundary this adapter operates under.
+
+The same flag enables **Civil 3D** when the console belongs to a Civil 3D install: the agent then reports a separate `Civil3D` CAD and launches `accoreconsole.exe ... /product C3D /l en-US`. Your Civil 3D license terms apply the same way.
+
+### SOLIDWORKS (opt-in, experimental)
+
+SOLIDWORKS execution is off by default and Windows-only. Start the agent with `--enable-solidworks` to let it drive a detected `SLDWORKS.exe` through the SOLIDWORKS COM API:
+
+```bash
+cadengine --server https://your-cadgpt.example --enable-solidworks
+```
+
+All parameters are validated in Python and converted to metres before anything runs; the PowerShell worker only reads that validated `plan.json` and never evaluates caller text. If SOLIDWORKS is already open, the worker reuses that session and leaves it open; otherwise it starts SOLIDWORKS hidden and quits it afterwards. **You are responsible for your own SOLIDWORKS license terms** for unattended, scripted use.
+
+Run a local smoke test for either product with `cadengine test --cad civil3d` or `cadengine test --cad solidworks`.
 
 ## Run from source
 
@@ -314,7 +332,8 @@ ChatGPT / Claude -- OAuth + MCP HTTPS --> NestJS API
 Angular dashboard -- OIDC/PKCE -------->      |
                                             | outgoing HTTPS polling
                                             v
-                                      CAD Engine agent --> FreeCADCmd / accoreconsole.exe
+                                      CAD Engine agent --> FreeCADCmd / accoreconsole.exe (AutoCAD, Civil 3D)
+                                                           blender --background / SOLIDWORKS COM
 ```
 
 Registration alone does not connect ChatGPT. A public HTTPS backend, identity-provider deployment and separately registered OAuth client are required. **ChatGPT/Claude end-to-end connection is not yet certified.** See [deployment and MCP setup](docs/deployment.md).
@@ -331,8 +350,9 @@ still needs the public HTTPS deployment and registered OAuth client(s) described
 authenticates. Try `list_devices` first to confirm the connection before running a mutating
 operation. As with every other surface, only the device's UUID and the public MCP URL ever appear
 on that page — never a device secret or credential. AutoCAD 2026 Core Console supports full
-13-operation headless execution on Windows when started with `--enable-autocad`; AutoCAD LT
-remains strictly detection-only (see [Compatibility](#compatibility)).
+13-operation headless execution on Windows when started with `--enable-autocad` (Civil 3D adds
+`extrude_cross_section`); SOLIDWORKS needs `--enable-solidworks`; AutoCAD LT remains strictly
+detection-only (see [Compatibility](#compatibility--engines)).
 
 For the automated VPS deployment via GitHub Actions, see [Production on the VPS via GitHub Actions](docs/deployment.md#production-on-the-vps-via-github-actions).
 

@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Civil 3D support**: discovery of Civil 3D installs (registry product name or `C3D` folder next to `accoreconsole.exe`), reported as a separate `Civil3D` CAD that runs on the AutoCAD Core Console with `/product C3D /l en-US`. Inherits all 13 AutoCAD operations and adds `extrude_cross_section` (trapezoidal road embankment / channel / levee solid). Opt-in via `--enable-autocad`.
+- **SOLIDWORKS support**: Windows discovery of `SLDWORKS.exe` and a fixed PowerShell worker that drives the SOLIDWORKS COM API for `create_box`, `create_cylinder`, `extrude_rect` and `export_design` (STEP/STL), saving native `.SLDPRT` with a binary STL preview. Opt-in via the new `--enable-solidworks` flag; `cadengine test --cad civil3d|solidworks`.
+- API: `CAD_KINDS` shared list (`FreeCAD`, `AutoCAD`, `Civil3D`, `Blender`, `SolidWorks`), idempotent migration of the `documents.cad_kind` CHECK constraint, the `extrude_cross_section` MCP tool, and `civil` / `product` domains in `select_modeling_engine`.
+- Landing page: "Works with" strip naming all five programs right under the hero, plus capability panels for Civil 3D, SOLIDWORKS and Blender. About page and footer updated to match.
+
+### Notes
+- Civil 3D and SOLIDWORKS execution is covered by simulated (mocked) tests only; it has not yet been verified against a live install.
+
 ## [0.2.0-alpha.1] - 2026-09-16
 
 ### Added
