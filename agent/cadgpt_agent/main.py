@@ -35,7 +35,7 @@ from .service import (
 )
 from .upload import upload_mesh
 
-VERSION = "0.2.0-alpha.1"
+VERSION = "0.2.0-alpha.2"
 # Kept as "CADGPT" for compatibility: this is the OS keyring service name used
 # to look up credentials already stored by previously paired devices. Renaming
 # it would orphan every existing device's saved credential.

@@ -8,11 +8,11 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { APP_VERSION, SERVER_NAME } from '../src/version.js';
 
 test('version.ts exports correct APP_VERSION and SERVER_NAME constants', () => {
-  assert.equal(APP_VERSION, '0.2.0-alpha.1');
+  assert.equal(APP_VERSION, '0.2.0-alpha.2');
   assert.equal(SERVER_NAME, 'cad-engine');
 });
 
-test('GET /api/health responds with HTTP 200 and version 0.2.0-alpha.1', async () => {
+test('GET /api/health responds with HTTP 200 and version 0.2.0-alpha.2', async () => {
   const app = express();
   app.get('/api/health', (_: Request, r: Response) =>
     r.json({ status: 'ok', version: APP_VERSION }),
@@ -28,14 +28,14 @@ test('GET /api/health responds with HTTP 200 and version 0.2.0-alpha.1', async (
     assert.equal(res.status, 200);
     assert.ok(res.headers.get('content-type')?.includes('application/json'));
     const body = (await res.json()) as { status: string; version: string };
-    assert.deepEqual(body, { status: 'ok', version: '0.2.0-alpha.1' });
+    assert.deepEqual(body, { status: 'ok', version: '0.2.0-alpha.2' });
     assert.equal(body.version, APP_VERSION);
   } finally {
     server.close();
   }
 });
 
-test('MCP server initialize handshake advertises cad-engine name and 0.2.0-alpha.1 version', async () => {
+test('MCP server initialize handshake advertises cad-engine name and 0.2.0-alpha.2 version', async () => {
   const server = new McpServer(
     { name: SERVER_NAME, version: APP_VERSION },
     { instructions: 'CAD Engine Test Server' },
@@ -49,7 +49,7 @@ test('MCP server initialize handshake advertises cad-engine name and 0.2.0-alpha
   const serverInfo = client.getServerVersion();
   assert.ok(serverInfo, 'Server info should be available after initialize handshake');
   assert.equal(serverInfo.name, 'cad-engine');
-  assert.equal(serverInfo.version, '0.2.0-alpha.1');
+  assert.equal(serverInfo.version, '0.2.0-alpha.2');
   assert.equal(serverInfo.name, SERVER_NAME);
   assert.equal(serverInfo.version, APP_VERSION);
 
