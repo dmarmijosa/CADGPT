@@ -5,6 +5,16 @@ import { environment } from '../../../environments/environment';
 
 const RETURN_URL_KEY = 'cadgpt:returnUrl';
 const CONSENT_KEY_PREFIX = 'cadgpt:consent:v1:';
+/** Cross-tab auth events. Carries only 'login' / 'logout' — never a token. */
+const AUTH_CHANNEL = 'cadgpt:auth';
+const SILENT_SIGNIN_TIMEOUT_SECONDS = 5;
+/**
+ * Per-tab marker set on sign-out. While present, page loads skip the silent
+ * sign-in, so a tab reloading right after a logout cannot race Keycloak's
+ * session teardown and silently sign back in. Cleared by an explicit login.
+ */
+const SIGNED_OUT_KEY = 'cadgpt:signedOut';
+type AuthEvent = 'login' | 'logout';
 
 const authConfigSchema = z.object({
   issuer: z.string().min(1),
@@ -17,6 +27,15 @@ const authConfigSchema = z.object({
  * bearer token, plus an async `ready()` gate the auth guard awaits before
  * checking a session. OIDC settings always come from the runtime
  * `/api/config` endpoint — never from a compiled environment file.
+ *
+ * Tokens stay in per-tab `sessionStorage` on purpose: they are never written
+ * to disk-backed `localStorage`, where any XSS could lift a long-lived
+ * refresh token. Tabs share the sign-in through Keycloak's own SSO cookie
+ * instead: a tab that starts without tokens runs a silent `prompt=none`
+ * sign-in (hidden same-origin iframe), and a `BroadcastChannel` tells other
+ * tabs when someone signs in or out. Access tokens are renewed automatically
+ * with the refresh token, so a session survives Keycloak's short (5 min)
+ * access-token lifetime.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -40,6 +59,7 @@ export class AuthService {
   }
 
   private manager?: UserManager;
+  private channel?: BroadcastChannel;
   private readonly readyPromise: Promise<void>;
 
   constructor() {
@@ -61,6 +81,7 @@ export class AuthService {
   login(returnUrl: string): void {
     const current = this.user();
     if (current && !current.expired) return;
+    sessionStorage.removeItem(SIGNED_OUT_KEY);
     sessionStorage.setItem(RETURN_URL_KEY, returnUrl);
     void this.manager?.signinRedirect();
   }
@@ -70,6 +91,7 @@ export class AuthService {
     await this.readyPromise;
     const user = await this.manager!.signinRedirectCallback();
     this.user.set(user);
+    this.broadcast('login');
     return this.consumeReturnUrl('/');
   }
 
@@ -99,6 +121,8 @@ export class AuthService {
 
   async logout(): Promise<void> {
     this.user.set(null);
+    sessionStorage.setItem(SIGNED_OUT_KEY, '1');
+    this.broadcast('logout');
     try {
       await this.manager?.signoutRedirect();
     } catch {
@@ -128,6 +152,45 @@ export class AuthService {
     this.consentRevision.update((v) => v + 1);
   }
 
+  /**
+   * Reuses the Keycloak SSO session from another tab without a login screen.
+   * Resolves to null (stay anonymous) when there is no session or the
+   * identity provider does not answer in time.
+   */
+  private async trySilentSignIn(): Promise<User | null> {
+    try {
+      const user = await this.manager!.signinSilent();
+      if (user && !user.expired) {
+        this.user.set(user);
+        return user;
+      }
+    } catch {
+      // login_required, timeout or blocked iframe: the visitor stays signed out.
+    }
+    return null;
+  }
+
+  private broadcast(event: AuthEvent): void {
+    this.channel?.postMessage(event);
+  }
+
+  private listenToOtherTabs(): void {
+    if (typeof BroadcastChannel === 'undefined') return;
+    this.channel = new BroadcastChannel(AUTH_CHANNEL);
+    this.channel.onmessage = (message: MessageEvent<AuthEvent>) => {
+      if (message.data === 'logout') {
+        // Another tab ended the Keycloak session: drop this tab's tokens too.
+        this.user.set(null);
+        sessionStorage.setItem(SIGNED_OUT_KEY, '1');
+        void this.manager?.removeUser();
+        if (location.pathname !== '/') location.assign('/');
+      } else if (message.data === 'login' && !this.user()) {
+        sessionStorage.removeItem(SIGNED_OUT_KEY);
+        void this.trySilentSignIn();
+      }
+    };
+  }
+
   private subOf(user: User | null): string | undefined {
     return user?.profile.sub;
   }
@@ -143,30 +206,36 @@ export class AuthService {
       authority: config.issuer,
       client_id: config.clientId,
       redirect_uri: location.origin + '/callback',
+      // Same, already-registered URI; main.ts answers it inside the iframe.
+      silent_redirect_uri: location.origin + '/callback',
+      silentRequestTimeoutInSeconds: SILENT_SIGNIN_TIMEOUT_SECONDS,
       post_logout_redirect_uri: location.origin,
       response_type: 'code',
       scope: config.scopes,
       userStore: new WebStorageStateStore({ store: window.sessionStorage }),
-      automaticSilentRenew: false,
+      automaticSilentRenew: true,
       loadUserInfo: false,
     });
 
-    // Automatically sign out when token expires or session error occurs
+    // Renewal keeps `user()` current; if it fails, or a token still expires,
+    // the Keycloak session is gone and this tab signs out.
+    this.manager.events.addUserLoaded((user) => this.user.set(user));
     this.manager.events.addAccessTokenExpired(() => {
       void this.logout();
     });
     this.manager.events.addSilentRenewError(() => {
       void this.logout();
     });
+    this.listenToOtherTabs();
 
     if (location.pathname !== '/callback') {
       const user = await this.manager.getUser();
-      if (user) {
-        if (user.expired) {
-          void this.logout();
-        } else {
-          this.user.set(user);
-        }
+      if (user && !user.expired) {
+        this.user.set(user);
+      } else {
+        if (user) await this.manager.removeUser();
+        // New tab (or stale tokens): reuse the SSO session if one exists.
+        if (!sessionStorage.getItem(SIGNED_OUT_KEY)) await this.trySilentSignIn();
       }
     }
   }

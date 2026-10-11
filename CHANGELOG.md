@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Dashboard session across browser tabs**: a new tab now reuses the Keycloak SSO session through a silent `prompt=none` sign-in (hidden same-origin iframe answered by `/callback` without booting the app), access tokens renew automatically with the refresh token instead of signing out every 5 minutes, and sign-in / sign-out are mirrored across tabs with a `BroadcastChannel` that never carries tokens. Tokens deliberately stay in per-tab `sessionStorage` rather than `localStorage`.
+
 ## [0.2.0-alpha.3] - 2026-10-11
 
 ### Added
