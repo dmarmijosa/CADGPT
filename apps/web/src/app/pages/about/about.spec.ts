@@ -77,7 +77,7 @@ describe('AboutPage (spec user-account-lifecycle, dashboard-routing, & web-i18n-
     expect(tableText).toContain('--enable-blender');
   });
 
-  it('renders Tri-Engine Architecture section documenting FreeCAD, AutoCAD, and Blender 4.x', () => {
+  it('renders the engine architecture section documenting all five engines', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: AuthService, useValue: { user: () => null, token: () => '' } },
@@ -93,7 +93,7 @@ describe('AboutPage (spec user-account-lifecycle, dashboard-routing, & web-i18n-
     expect(archSection).toBeTruthy();
 
     const cards = archSection!.querySelectorAll('.tri-engine-card');
-    expect(cards.length).toBe(3);
+    expect(cards.length).toBe(5);
 
     const archText = archSection!.textContent ?? '';
     expect(archText).toContain('FreeCAD');
@@ -102,6 +102,10 @@ describe('AboutPage (spec user-account-lifecycle, dashboard-routing, & web-i18n-
     expect(archText).toContain('Core Console');
     expect(archText).toContain('Blender 4.x');
     expect(archText).toContain('Subsurf');
+    expect(archText).toContain('Civil 3D');
+    expect(archText).toContain('/product C3D');
+    expect(archText).toContain('SOLIDWORKS');
+    expect(archText).toContain('COM API');
   });
 
   it('renders Author profile card for Danny Armijos with secure external links', () => {
@@ -157,7 +161,7 @@ describe('AboutPage (spec user-account-lifecycle, dashboard-routing, & web-i18n-
 
     const root: HTMLElement = fixture.nativeElement;
     expect(root.querySelector('h1')?.textContent).toContain('Acerca de CAD Engine');
-    expect(root.textContent).toContain('Arquitectura de Triple Motor');
+    expect(root.textContent).toContain('Arquitectura Multimotor');
     expect(root.textContent).toContain('Compatibilidad');
     expect(root.textContent).toContain('Seguridad y limitaciones');
     expect(root.textContent).toContain('Autor y Responsable de Ingeniería');

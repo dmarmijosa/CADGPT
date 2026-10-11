@@ -50,7 +50,7 @@ describe('Shell (header, left rail nav, and footer)', () => {
     // Footer
     const footer = shellElement.querySelector('footer');
     expect(footer?.textContent).toContain('CAD Engine');
-    expect(footer?.textContent).toContain('AutoCAD Core Console parity');
+    expect(footer?.textContent).toContain('AutoCAD, Civil 3D, FreeCAD, SOLIDWORKS and Blender');
   });
 
   it('renders sign in button when unauthenticated', async () => {

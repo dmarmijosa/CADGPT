@@ -6,10 +6,13 @@
  * `snake_case` -> camelCase mapping in its own SQL aliases (`store.ts`).
  */
 
+/** `CAD_KINDS` in `apps/api/src/store.ts`. */
+export type CadKind = 'FreeCAD' | 'AutoCAD' | 'Civil3D' | 'Blender' | 'SolidWorks';
+
 /** `cadSchema` in `apps/api/src/store.ts`, embedded in `Device.cads`. */
 export interface Cad {
   id: string;
-  name: 'FreeCAD' | 'AutoCAD';
+  name: CadKind;
   path: string;
   version: string;
   executable: boolean;
@@ -56,7 +59,7 @@ export interface Job {
 export interface Design {
   id: string;
   name: string;
-  cadKind: 'FreeCAD' | 'AutoCAD';
+  cadKind: CadKind;
   deviceId: string;
   created: number;
   updated: number;

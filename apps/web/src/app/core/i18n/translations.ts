@@ -17,7 +17,7 @@ const EN_TRANSLATIONS = {
   // Footer
   'footer.brand': 'CAD Engine',
   'footer.status': '— experimental alpha',
-  'footer.tagline': 'FreeCAD execution, AutoCAD Core Console parity, and remote MCP.',
+  'footer.tagline': 'AutoCAD, Civil 3D, FreeCAD, SOLIDWORKS and Blender — driven from remote MCP.',
   'footer.author_lead': 'Designed & Developed by',
   'footer.author_name': 'Danny Armijos',
   'footer.author_linkedin_aria': "Danny Armijos's LinkedIn Profile",
@@ -129,23 +129,29 @@ const EN_TRANSLATIONS = {
   'home.download_connector': 'Download the connector ↗',
   'home.manifesto_title': 'An assistant that reaches your CAD software — not the other way around.',
   'home.manifesto_p':
-    'CAD Engine runs as a small agent on the same computer as FreeCAD or AutoCAD. Claude or ChatGPT talks to that agent through a fixed set of operations, never a shell and never a free-form script, so the model can create and edit real designs without ever holding a copy of your files.',
+    'CAD Engine runs as a small agent on the same computer as AutoCAD, Civil 3D, FreeCAD, SOLIDWORKS or Blender. Claude or ChatGPT talks to that agent through a fixed set of operations, never a shell and never a free-form script, so the model can create and edit real designs without ever holding a copy of your files.',
   'home.surface_title': 'Execution surface',
   'home.surface_desc':
     'A closed allowlist of CAD operations. Nothing free-form reaches your machine.',
   'home.runs_title': 'Where it runs',
-  'home.runs_desc': 'Your computer. Native .FCStd and .dwg files never leave it.',
+  'home.runs_desc': 'Your computer. Native .dwg, .FCStd, .SLDPRT and .blend files never leave it.',
   'home.setup_title': 'Setup time',
   'home.setup_desc': 'One pairing code, valid for 10 minutes.',
   'home.flow_heading': 'From a bare install to a connected assistant',
   'home.flow_step1_title': 'Install the connector',
   'home.flow_step1_desc':
-    'Run the CAD Engine agent on the computer with FreeCAD, or AutoCAD 2026 Core Console (AutoCAD LT is detection-only).',
+    'Run the CAD Engine agent on the computer with AutoCAD, Civil 3D, FreeCAD, SOLIDWORKS or Blender (AutoCAD LT is detection-only).',
   'home.flow_step2_title': 'Pair the machine',
   'home.flow_step2_desc':
     'Link it to your account with a one-time code that expires in 10 minutes.',
   'home.flow_step3_title': 'Connect Claude or ChatGPT',
   'home.flow_step3_desc': "Add the CAD Engine connector in your assistant's settings and sign in.",
+  'home.engines_heading': 'Works with the software you already design in',
+  'home.engine_autocad_role': 'Drafting, DWG and 3D solids',
+  'home.engine_civil3d_role': 'Roads, channels and earthworks',
+  'home.engine_freecad_role': 'Parametric mechanical parts',
+  'home.engine_solidworks_role': 'Feature-based product parts',
+  'home.engine_blender_role': 'Organic meshes and rendering',
   'home.cap_heading': 'What runs today',
   'home.cap_legend_full': 'executes now',
   'home.cap_legend_partial': 'executes on some installs',
@@ -165,6 +171,26 @@ const EN_TRANSLATIONS = {
     'Verify & Export — native DWG/DXF, MASSPROP volumetric checks & binary STL preview via STLOUT',
   'home.cap_autocad_lt':
     'AutoCAD LT — detected only; execution disabled (lacks accoreconsole.exe & 3D/STLOUT)',
+  'home.cap_civil3d_title': 'Civil 3D',
+  'home.cap_civil3d_note':
+    'Runs on the AutoCAD Core Console launched as Civil 3D (/product C3D) on Windows. Opt in with --enable-autocad.',
+  'home.cap_civil3d_inherits': 'Every AutoCAD operation — primitives, booleans, transforms',
+  'home.cap_civil3d_cross_section':
+    'Civil cross-sections — road embankments, channels and levees swept along an axis',
+  'home.cap_civil3d_export': 'Export — Civil 3D-compatible DWG, DXF, SAT and STL preview',
+  'home.cap_solidworks_title': 'SOLIDWORKS',
+  'home.cap_solidworks_note':
+    'Driven through the SOLIDWORKS COM API on Windows with a licensed install. Opt in with --enable-solidworks.',
+  'home.cap_solidworks_create': 'Create — box, cylinder and extruded rectangle as native .SLDPRT',
+  'home.cap_solidworks_export': 'Export — STEP and binary STL preview',
+  'home.cap_solidworks_modify': 'Booleans, transforms and scene reads — not yet',
+  'home.cap_blender_title': 'Blender',
+  'home.cap_blender_note':
+    'Headless background execution on Windows, macOS and Linux with Blender 4.x.',
+  'home.cap_blender_create': 'Create — base meshes (cube, sphere, torus, grid…) with subdivision',
+  'home.cap_blender_sculpt': 'Sculpt — extrude, Catmull-Clark subdivision, procedural displacement',
+  'home.cap_blender_boolean': 'Booleans — difference, union and intersect between meshes',
+  'home.cap_blender_export': 'Export — STL, OBJ, glTF/GLB and the native .blend file',
   'home.trust_heading': 'What stays yours',
   'home.trust_item1':
     'Every operation runs from a fixed allowlist — nothing free-form ever reaches the machine.',
@@ -392,9 +418,9 @@ const EN_TRANSLATIONS = {
   'about.status_desc':
     'CAD Engine is an experimental alpha, not a hosted service. Installers are unsigned and macOS builds are not notarized; you deploy and operate your own backend.',
   'about.architecture_title': 'System Architecture',
-  'about.arch_title': 'Tri-Engine Architecture',
+  'about.arch_title': 'Multi-Engine Architecture',
   'about.arch_desc':
-    'CAD Engine unifies three specialized engineering engines under a single sandboxed execution surface, dispatching operations to the optimal kernel based on geometric requirements:',
+    'CAD Engine unifies five specialized engineering engines under a single sandboxed execution surface, dispatching operations to the optimal kernel based on geometric requirements:',
   'about.arch_freecad_title': 'FreeCAD (Parametric CSG & B-Rep)',
   'about.arch_freecad_desc':
     'Constructive Solid Geometry (CSG), boundary representation (B-Rep), parametric sketch constraints, feature tree, and STEP/IGES engineering export.',
@@ -423,6 +449,18 @@ const EN_TRANSLATIONS = {
   'about.compat_blender': 'Blender 4.x (headless background execution, Windows / macOS / Linux)',
   'about.compat_blender_desc':
     'Headless 3D polygonal modeling, subdivision surfaces, procedural displacement, quad topology, and binary glTF/OBJ/STL preview export. Enabled with --enable-blender.',
+  'about.arch_civil3d_title': 'Civil 3D (Civil Infrastructure & Earthworks)',
+  'about.arch_civil3d_desc':
+    'AutoCAD Core Console launched as Civil 3D (/product C3D /l en-US): every AutoCAD operation plus trapezoidal cross-section solids for road embankments, channels and levees, saved as Civil 3D-compatible DWG.',
+  'about.arch_solidworks_title': 'SOLIDWORKS (Feature-Based Product Parts)',
+  'about.arch_solidworks_desc':
+    'SOLIDWORKS has no headless command line, so a fixed PowerShell worker drives its COM API (SldWorks.Application) with the window hidden: sketch + boss-extrude features saved as native SLDPRT, with STEP and binary STL export.',
+  'about.compat_civil3d': 'Autodesk Civil 3D (accoreconsole.exe /product C3D), Windows',
+  'about.compat_civil3d_desc':
+    'Detected from the Civil 3D registry product or the C3D folder next to the Core Console. Runs every AutoCAD operation plus extrude_cross_section. Enabled with --enable-autocad.',
+  'about.compat_solidworks': 'SOLIDWORKS (COM API, SLDWORKS.exe), Windows',
+  'about.compat_solidworks_desc':
+    'Licensed install and Windows desktop session required. Create box, cylinder and extruded rectangle; export STEP/STL. Enabled with --enable-solidworks; never executed on macOS or Linux.',
   'about.security_title': 'Security and limitations',
   'about.security_oidc':
     'Identity comes from a validated OIDC token; a request cannot choose its own owner.',
@@ -486,7 +524,8 @@ export const TRANSLATIONS: Record<SupportedLanguage, TranslationDictionary> = {
     // Footer
     'footer.brand': 'CAD Engine',
     'footer.status': '— alfa experimental',
-    'footer.tagline': 'Ejecución FreeCAD, paridad con AutoCAD Core Console y MCP remoto.',
+    'footer.tagline':
+      'AutoCAD, Civil 3D, FreeCAD, SOLIDWORKS y Blender — controlados desde MCP remoto.',
     'footer.author_lead': 'Diseñado y Desarrollado por',
     'footer.author_name': 'Danny Armijos',
     'footer.author_linkedin_aria': 'Perfil de LinkedIn de Danny Armijos',
@@ -600,24 +639,31 @@ export const TRANSLATIONS: Record<SupportedLanguage, TranslationDictionary> = {
     'home.download_connector': 'Descargar el conector ↗',
     'home.manifesto_title': 'Un asistente que se conecta a su software CAD — no al revés.',
     'home.manifesto_p':
-      'CAD Engine se ejecuta como un pequeño agente en la misma computadora que FreeCAD o AutoCAD. Claude o ChatGPT se comunican con ese agente mediante un conjunto cerrado de operaciones, nunca una terminal ni un script libre, de modo que el modelo puede crear y editar diseños reales sin retener copia de sus archivos.',
+      'CAD Engine se ejecuta como un pequeño agente en la misma computadora que AutoCAD, Civil 3D, FreeCAD, SOLIDWORKS o Blender. Claude o ChatGPT se comunican con ese agente mediante un conjunto cerrado de operaciones, nunca una terminal ni un script libre, de modo que el modelo puede crear y editar diseños reales sin retener copia de sus archivos.',
     'home.surface_title': 'Superficie de ejecución',
     'home.surface_desc':
       'Lista cerrada de operaciones CAD permitidas. Nada sin control llega a su equipo.',
     'home.runs_title': 'Dónde se ejecuta',
-    'home.runs_desc': 'Su computadora. Los archivos nativos .FCStd y .dwg nunca salen de ella.',
+    'home.runs_desc':
+      'Su computadora. Los archivos nativos .dwg, .FCStd, .SLDPRT y .blend nunca salen de ella.',
     'home.setup_title': 'Tiempo de configuración',
     'home.setup_desc': 'Un código de vinculación, válido por 10 minutos.',
     'home.flow_heading': 'Desde una instalación limpia hasta un asistente conectado',
     'home.flow_step1_title': 'Instale el conector',
     'home.flow_step1_desc':
-      'Ejecute el agente CAD Engine en el equipo con FreeCAD o AutoCAD 2026 Core Console (AutoCAD LT es solo detección).',
+      'Ejecute el agente CAD Engine en el equipo con AutoCAD, Civil 3D, FreeCAD, SOLIDWORKS o Blender (AutoCAD LT es solo detección).',
     'home.flow_step2_title': 'Vincule el equipo',
     'home.flow_step2_desc':
       'Vincúlelo a su cuenta con un código de un solo uso que caduca a los 10 minutos.',
     'home.flow_step3_title': 'Conecte Claude o ChatGPT',
     'home.flow_step3_desc':
       'Añada el conector CAD Engine en la configuración de su asistente e inicie sesión.',
+    'home.engines_heading': 'Funciona con el software en el que ya diseña',
+    'home.engine_autocad_role': 'Dibujo, DWG y sólidos 3D',
+    'home.engine_civil3d_role': 'Carreteras, canales y movimiento de tierras',
+    'home.engine_freecad_role': 'Piezas mecánicas paramétricas',
+    'home.engine_solidworks_role': 'Piezas de producto basadas en operaciones',
+    'home.engine_blender_role': 'Mallas orgánicas y renderizado',
     'home.cap_heading': 'Qué se ejecuta hoy',
     'home.cap_legend_full': 'se ejecuta ahora',
     'home.cap_legend_partial': 'se ejecuta en algunas instalaciones',
@@ -638,6 +684,30 @@ export const TRANSLATIONS: Record<SupportedLanguage, TranslationDictionary> = {
       'Verificar y exportar — DWG/DXF nativo, comprobaciones volumétricas MASSPROP y vista previa STL binaria vía STLOUT',
     'home.cap_autocad_lt':
       'AutoCAD LT — solo detección; ejecución deshabilitada (carece de accoreconsole.exe y 3D/STLOUT)',
+    'home.cap_civil3d_title': 'Civil 3D',
+    'home.cap_civil3d_note':
+      'Se ejecuta en AutoCAD Core Console iniciado como Civil 3D (/product C3D) en Windows. Actívelo con --enable-autocad.',
+    'home.cap_civil3d_inherits':
+      'Todas las operaciones de AutoCAD — primitivas, booleanas, transformaciones',
+    'home.cap_civil3d_cross_section':
+      'Secciones transversales civiles — terraplenes, canales y diques extruidos a lo largo de un eje',
+    'home.cap_civil3d_export':
+      'Exportar — DWG compatible con Civil 3D, DXF, SAT y vista previa STL',
+    'home.cap_solidworks_title': 'SOLIDWORKS',
+    'home.cap_solidworks_note':
+      'Controlado mediante la API COM de SOLIDWORKS en Windows con una instalación con licencia. Actívelo con --enable-solidworks.',
+    'home.cap_solidworks_create':
+      'Crear — caja, cilindro y rectángulo extruido como .SLDPRT nativo',
+    'home.cap_solidworks_export': 'Exportar — STEP y vista previa STL binaria',
+    'home.cap_solidworks_modify': 'Booleanas, transformaciones y lectura de escena — aún no',
+    'home.cap_blender_title': 'Blender',
+    'home.cap_blender_note':
+      'Ejecución en segundo plano sin interfaz en Windows, macOS y Linux con Blender 4.x.',
+    'home.cap_blender_create': 'Crear — mallas base (cubo, esfera, toro, rejilla…) con subdivisión',
+    'home.cap_blender_sculpt':
+      'Esculpir — extrusión, subdivisión Catmull-Clark, desplazamiento procedural',
+    'home.cap_blender_boolean': 'Booleanas — diferencia, unión e intersección entre mallas',
+    'home.cap_blender_export': 'Exportar — STL, OBJ, glTF/GLB y el archivo nativo .blend',
     'home.trust_heading': 'Lo que permanece bajo su control',
     'home.trust_item1':
       'Cada operación se ejecuta desde una lista permitida cerrada — nada libre llega a la máquina.',
@@ -866,9 +936,9 @@ export const TRANSLATIONS: Record<SupportedLanguage, TranslationDictionary> = {
     'about.status_desc':
       'CAD Engine es una versión alfa experimental, no un servicio alojado. Los instaladores no están firmados y las compilaciones de macOS no están notarizadas; usted despliega y opera su propio backend.',
     'about.architecture_title': 'Arquitectura del Sistema',
-    'about.arch_title': 'Arquitectura de Triple Motor',
+    'about.arch_title': 'Arquitectura Multimotor',
     'about.arch_desc':
-      'CAD Engine unifica tres motores de ingeniería especializados en una única superficie de ejecución restringida, delegando operaciones al kernel óptimo según los requerimientos geométricos:',
+      'CAD Engine unifica cinco motores de ingeniería especializados en una única superficie de ejecución restringida, delegando operaciones al kernel óptimo según los requerimientos geométricos:',
     'about.arch_freecad_title': 'FreeCAD (CSG Paramétrico y B-Rep)',
     'about.arch_freecad_desc':
       'Geometría Sólida Constructiva (CSG), representación por bordes (B-Rep), restricciones de bocetos paramétricos, árbol de operaciones y exportación de ingeniería STEP/IGES.',
@@ -899,6 +969,18 @@ export const TRANSLATIONS: Record<SupportedLanguage, TranslationDictionary> = {
       'Blender 4.x (ejecución desatendida en segundo plano, Windows / macOS / Linux)',
     'about.compat_blender_desc':
       'Modelado poligonal 3D desatendido, superficies de subdivisión, desplazamiento procedimental, topología de quads y exportación de previsualización binaria glTF/OBJ/STL. Habilitado con --enable-blender.',
+    'about.arch_civil3d_title': 'Civil 3D (Infraestructura Civil y Movimiento de Tierras)',
+    'about.arch_civil3d_desc':
+      'AutoCAD Core Console iniciado como Civil 3D (/product C3D /l en-US): todas las operaciones de AutoCAD más sólidos de sección transversal trapezoidal para terraplenes, canales y diques, guardados como DWG compatible con Civil 3D.',
+    'about.arch_solidworks_title': 'SOLIDWORKS (Piezas de Producto Basadas en Operaciones)',
+    'about.arch_solidworks_desc':
+      'SOLIDWORKS no tiene línea de comandos desatendida, así que un worker PowerShell fijo controla su API COM (SldWorks.Application) con la ventana oculta: croquis + extrusión guardados como SLDPRT nativo, con exportación STEP y STL binario.',
+    'about.compat_civil3d': 'Autodesk Civil 3D (accoreconsole.exe /product C3D), Windows',
+    'about.compat_civil3d_desc':
+      'Se detecta por el producto Civil 3D en el registro o la carpeta C3D junto al Core Console. Ejecuta todas las operaciones de AutoCAD más extrude_cross_section. Se habilita con --enable-autocad.',
+    'about.compat_solidworks': 'SOLIDWORKS (API COM, SLDWORKS.exe), Windows',
+    'about.compat_solidworks_desc':
+      'Requiere instalación con licencia y sesión de escritorio de Windows. Crea caja, cilindro y rectángulo extruido; exporta STEP/STL. Se habilita con --enable-solidworks; nunca se ejecuta en macOS ni Linux.',
     'about.security_title': 'Seguridad y limitaciones',
     'about.security_oidc':
       'La identidad proviene de un token OIDC validado; una solicitud no puede definir su propio propietario.',

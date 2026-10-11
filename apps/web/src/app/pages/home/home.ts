@@ -7,11 +7,21 @@ import { TranslatePipe } from '../../core/i18n';
 
 const RELEASES_URL = 'https://github.com/dmarmijosa/CADGPT/releases';
 
+/** Every CAD/3D program the connector drives, in the order the landing lists them. */
+export const ENGINES = [
+  { key: 'autocad', name: 'AutoCAD' },
+  { key: 'civil3d', name: 'Civil 3D' },
+  { key: 'freecad', name: 'FreeCAD' },
+  { key: 'solidworks', name: 'SOLIDWORKS' },
+  { key: 'blender', name: 'Blender' },
+] as const;
+
 /**
  * Public landing page (spec dashboard-routing: public route). Leads with a
  * scroll-driven exploded view of a spark plug (`ExplodedPlug`) as the hero,
  * then makes the case for the product editorially: what it is, the
- * install → pair → connect path, what each CAD backend can do today, and
+ * install → pair → connect path, which CAD/3D programs it drives (AutoCAD,
+ * Civil 3D, FreeCAD, SOLIDWORKS, Blender), what each one can do today, and
  * what never leaves the visitor's machine.
  *
  * Every call to action here is auth-reactive: a visitor with no session gets
@@ -27,6 +37,7 @@ const RELEASES_URL = 'https://github.com/dmarmijosa/CADGPT/releases';
 export class HomePage {
   readonly auth = inject(AuthService);
   readonly releasesUrl = RELEASES_URL;
+  readonly engines = ENGINES;
 
   signIn(): void {
     this.auth.login('/designs');

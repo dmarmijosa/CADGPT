@@ -7,6 +7,18 @@
   <a class="quiet" [href]="releasesUrl">{{ 'home.download_connector' | translate }}</a>
 </app-exploded-plug>
 
+<section class="engines" aria-labelledby="engines-heading" appRevealOnScroll>
+  <h2 id="engines-heading">{{ 'home.engines_heading' | translate }}</h2>
+  <ul class="engines__list">
+    @for (engine of engines; track engine.key) {
+      <li [class]="'engine-chip engine-chip--' + engine.key">
+        <strong>{{ engine.name }}</strong>
+        <span>{{ 'home.engine_' + engine.key + '_role' | translate }}</span>
+      </li>
+    }
+  </ul>
+</section>
+
 <section class="manifesto" appRevealOnScroll>
   <div class="manifesto__statement">
     <h2>{{ 'home.manifesto_title' | translate }}</h2>
@@ -160,6 +172,64 @@
         </li>
       </ul>
     </article>
+    <article class="capability-panel capability-panel--civil3d">
+      <h3>{{ 'home.cap_civil3d_title' | translate }}</h3>
+      <p class="capability-panel__note">{{ 'home.cap_civil3d_note' | translate }}</p>
+      <ul class="capability-list">
+        <li>
+          <span class="dot dot--partial" aria-hidden="true"></span>
+          {{ 'home.cap_civil3d_inherits' | translate }}
+        </li>
+        <li>
+          <span class="dot dot--partial" aria-hidden="true"></span>
+          {{ 'home.cap_civil3d_cross_section' | translate }}
+        </li>
+        <li>
+          <span class="dot dot--partial" aria-hidden="true"></span>
+          {{ 'home.cap_civil3d_export' | translate }}
+        </li>
+      </ul>
+    </article>
+    <article class="capability-panel capability-panel--solidworks">
+      <h3>{{ 'home.cap_solidworks_title' | translate }}</h3>
+      <p class="capability-panel__note">{{ 'home.cap_solidworks_note' | translate }}</p>
+      <ul class="capability-list">
+        <li>
+          <span class="dot dot--partial" aria-hidden="true"></span>
+          {{ 'home.cap_solidworks_create' | translate }}
+        </li>
+        <li>
+          <span class="dot dot--partial" aria-hidden="true"></span>
+          {{ 'home.cap_solidworks_export' | translate }}
+        </li>
+        <li>
+          <span class="dot dot--none" aria-hidden="true"></span>
+          {{ 'home.cap_solidworks_modify' | translate }}
+        </li>
+      </ul>
+    </article>
+    <article class="capability-panel capability-panel--blender">
+      <h3>{{ 'home.cap_blender_title' | translate }}</h3>
+      <p class="capability-panel__note">{{ 'home.cap_blender_note' | translate }}</p>
+      <ul class="capability-list">
+        <li>
+          <span class="dot dot--full" aria-hidden="true"></span>
+          {{ 'home.cap_blender_create' | translate }}
+        </li>
+        <li>
+          <span class="dot dot--full" aria-hidden="true"></span>
+          {{ 'home.cap_blender_sculpt' | translate }}
+        </li>
+        <li>
+          <span class="dot dot--full" aria-hidden="true"></span>
+          {{ 'home.cap_blender_boolean' | translate }}
+        </li>
+        <li>
+          <span class="dot dot--full" aria-hidden="true"></span>
+          {{ 'home.cap_blender_export' | translate }}
+        </li>
+      </ul>
+    </article>
   </div>
 </section>
 
@@ -171,8 +241,8 @@
         {{ 'home.trust_item1' | translate }}
       </li>
       <li>
-        {{ 'home.trust_item2_prefix' | translate }}<code>.FCStd</code>, <code>.dwg</code
-        >{{ 'home.trust_item2_mid' | translate }}
+        {{ 'home.trust_item2_prefix' | translate }}<code>.FCStd</code>, <code>.dwg</code>,
+        <code>.SLDPRT</code>, <code>.blend</code>{{ 'home.trust_item2_mid' | translate }}
       </li>
       <li>{{ 'home.trust_item3' | translate }}</li>
     </ul>
@@ -198,7 +268,7 @@
         stroke="var(--color-blue)"
       />
       <text x="100" y="40" text-anchor="middle" font-size="9" fill="var(--color-blue-strong)">
-        .FCStd / .dwg
+        .FCStd · .dwg · .SLDPRT · .blend
       </text>
       <rect
         x="16"

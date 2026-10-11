@@ -108,6 +108,78 @@ describe('HomePage (spec dashboard-routing: public route)', () => {
     expect(autocadPanel?.textContent).toContain('AutoCAD LT — detected only; execution disabled');
   });
 
+  it('names all five supported programs right under the hero', async () => {
+    const fakeAuth = { user: () => null, login: vi.fn() };
+    const sceneFactory = vi.fn().mockResolvedValue({ setProgress: vi.fn(), dispose: vi.fn() });
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: fakeAuth },
+        { provide: PLUG_SCENE_FACTORY, useValue: sceneFactory },
+        provideRouter([]),
+      ],
+    });
+
+    const fixture = TestBed.createComponent(HomePage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const root: HTMLElement = fixture.nativeElement;
+    const strip = root.querySelector('section.engines');
+    expect(strip).toBeTruthy();
+    // The strip sits directly after the hero, before the manifesto.
+    expect(strip?.previousElementSibling?.tagName.toLowerCase()).toBe('app-exploded-plug');
+    const chips = Array.from(strip!.querySelectorAll('.engine-chip strong')).map((el) =>
+      el.textContent?.trim(),
+    );
+    expect(chips).toEqual(['AutoCAD', 'Civil 3D', 'FreeCAD', 'SOLIDWORKS', 'Blender']);
+    expect(strip!.textContent).toContain('Roads, channels and earthworks');
+    expect(strip!.textContent).toContain('Organic meshes and rendering');
+    expect(root.querySelector('.engine-chip--blender')).toBeTruthy();
+
+    expect(root.querySelector('.manifesto')?.textContent).toContain(
+      'AutoCAD, Civil 3D, FreeCAD, SOLIDWORKS or Blender',
+    );
+    expect(root.querySelector('.trust')?.textContent).toContain('.SLDPRT');
+    expect(root.querySelector('.trust')?.textContent).toContain('.blend');
+  });
+
+  it('renders capability panels for Civil 3D, SOLIDWORKS and Blender', async () => {
+    const fakeAuth = { user: () => null, login: vi.fn() };
+    const sceneFactory = vi.fn().mockResolvedValue({ setProgress: vi.fn(), dispose: vi.fn() });
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: fakeAuth },
+        { provide: PLUG_SCENE_FACTORY, useValue: sceneFactory },
+        provideRouter([]),
+      ],
+    });
+
+    const fixture = TestBed.createComponent(HomePage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const root: HTMLElement = fixture.nativeElement;
+    expect(root.querySelectorAll('.capability-panel').length).toBe(5);
+
+    const civil = root.querySelector('.capability-panel--civil3d');
+    expect(civil?.querySelector('h3')?.textContent).toContain('Civil 3D');
+    expect(civil?.textContent).toContain('/product C3D');
+    expect(civil?.textContent).toContain('road embankments, channels and levees');
+
+    const solidworks = root.querySelector('.capability-panel--solidworks');
+    expect(solidworks?.querySelector('h3')?.textContent).toContain('SOLIDWORKS');
+    expect(solidworks?.textContent).toContain('--enable-solidworks');
+    expect(solidworks?.textContent).toContain('.SLDPRT');
+    // Not-yet-supported SOLIDWORKS ops are marked as such, never as running.
+    expect(solidworks?.querySelectorAll('.dot--none').length).toBe(1);
+    expect(solidworks?.querySelectorAll('.dot--full').length).toBe(0);
+
+    const blender = root.querySelector('.capability-panel--blender');
+    expect(blender?.querySelector('h3')?.textContent).toContain('Blender');
+    expect(blender?.textContent).toContain('glTF/GLB');
+    expect(blender?.querySelectorAll('.dot--full').length).toBe(4);
+  });
+
   it('reactively updates all Home page literals when switching language to Spanish', async () => {
     const fakeAuth = { user: () => null, login: vi.fn() };
     const sceneFactory = vi.fn().mockResolvedValue({ setProgress: vi.fn(), dispose: vi.fn() });
@@ -145,6 +217,16 @@ describe('HomePage (spec dashboard-routing: public route)', () => {
     expect(root.textContent).toContain(
       'Ejecución desatendida completa de 13 operaciones con AutoCAD 2026 Core Console',
     );
+
+    // Engines strip and new capability panels
+    expect(root.querySelector('#engines-heading')?.textContent).toContain(
+      'Funciona con el software en el que ya diseña',
+    );
+    expect(root.textContent).toContain('Carreteras, canales y movimiento de tierras');
+    expect(root.textContent).toContain('Mallas orgánicas y renderizado');
+    expect(root.textContent).toContain('Secciones transversales civiles');
+    expect(root.textContent).toContain('Controlado mediante la API COM de SOLIDWORKS');
+    expect(root.textContent).toContain('Ejecución en segundo plano sin interfaz');
 
     // Trust section
     expect(root.querySelector('#trust-heading')?.textContent).toContain(

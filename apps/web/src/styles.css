@@ -770,6 +770,7 @@ table.data tbody tr:hover td {
  * and one shared reveal treatment (`.reveal-pending` / `.is-visible`,
  * applied to whole sections by `RevealOnScrollDirective`, never per-card).
  */
+.engines,
 .manifesto,
 .flow,
 .capability-sheet,
@@ -792,6 +793,55 @@ table.data tbody tr:hover td {
 .reveal-pending.is-visible {
   opacity: 1;
   transform: none;
+}
+
+/* Engines: the five programs the connector drives, as a title-block strip
+ * right under the hero so a visitor sees Blender, Civil 3D and SOLIDWORKS
+ * before reading anything else. */
+.engines {
+  padding-top: var(--space-6);
+}
+.engines h2 {
+  font-size: 1.1rem;
+  margin-bottom: var(--space-4);
+  color: var(--color-ink-muted);
+}
+.engines__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  border: 1px solid var(--color-rule-strong);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.engine-chip {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-rule);
+  border-top: 3px solid var(--color-blue);
+  margin-left: -1px;
+}
+.engine-chip strong {
+  font-size: 1rem;
+  color: var(--color-ink);
+}
+.engine-chip span {
+  font-size: 0.82rem;
+  color: var(--color-ink-muted);
+}
+.engine-chip--autocad,
+.engine-chip--civil3d {
+  border-top-color: var(--color-brass);
+}
+.engine-chip--solidworks {
+  border-top-color: var(--color-primary);
+}
+.engine-chip--blender {
+  border-top-color: var(--color-tertiary);
 }
 
 /* Manifesto: an editorial statement beside a title-block-style spec list. */
@@ -903,8 +953,9 @@ table.data tbody tr:hover td {
   }
 }
 
-/* Capabilities: two datasheet panels, blue for the mature backend, brass
- * for the newer / partial one — the same accent code used on trust. */
+/* Capabilities: one datasheet panel per engine, accent-coded like the
+ * engines strip (blue FreeCAD, brass Autodesk, teal SOLIDWORKS, indigo
+ * Blender). */
 .capability-sheet__legend {
   display: flex;
   flex-wrap: wrap;
@@ -915,7 +966,7 @@ table.data tbody tr:hover td {
 }
 .capability-sheet__panels {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: var(--space-5);
 }
 .capability-panel {
@@ -925,8 +976,15 @@ table.data tbody tr:hover td {
   border-radius: var(--radius-md);
   padding: var(--space-5);
 }
-.capability-panel--autocad {
+.capability-panel--autocad,
+.capability-panel--civil3d {
   border-top-color: var(--color-brass);
+}
+.capability-panel--solidworks {
+  border-top-color: var(--color-primary);
+}
+.capability-panel--blender {
+  border-top-color: var(--color-tertiary);
 }
 .capability-panel__note {
   font-size: 0.85rem;
@@ -951,8 +1009,12 @@ table.data tbody tr:hover td {
 .dot--full {
   background: var(--color-blue);
 }
-.capability-panel--autocad .dot--full {
+.capability-panel--autocad .dot--full,
+.capability-panel--civil3d .dot--full {
   background: var(--color-brass);
+}
+.capability-panel--blender .dot--full {
+  background: var(--color-tertiary);
 }
 .dot--partial {
   background: var(--color-brass);
@@ -1004,6 +1066,7 @@ table.data tbody tr:hover td {
 }
 
 @media (max-width: 800px) {
+  .engines,
   .manifesto,
   .flow,
   .capability-sheet,
@@ -1027,6 +1090,9 @@ table.data tbody tr:hover td {
   }
   .capability-sheet__panels {
     grid-template-columns: 1fr;
+  }
+  .engines__list {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
