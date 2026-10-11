@@ -4,38 +4,34 @@
       #container
       class="exploded-hero__canvas"
       role="img"
-      aria-label="An architectural citadel masterplan separating into five urban strata and reassembling as the page scrolls"
+      [attr.aria-label]="'hero.canvas_label' | translate"
       [hidden]="unavailable()"
     ></div>
 
     <div class="exploded-hero__copy">
-      <h1>Run CAD operations from the AI client you already use.</h1>
-      <p class="lead">
-        CAD Engine links a computer you control to a fixed, allowlisted set of CAD operations, so an
-        MCP-connected assistant can create, modify, and read named designs — drawn here, live, as an
-        architectural citadel masterplan assembled from five strata.
-      </p>
+      <h1>{{ 'hero.title' | translate }}</h1>
+      <p class="lead">{{ 'hero.lead' | translate }}</p>
       <div class="hero-actions">
         <ng-content></ng-content>
       </div>
       @if (unavailable()) {
         <p class="exploded-hero__note" role="status">
-          3D preview is unavailable in this browser. The connector still works without it.
+          {{ 'hero.unavailable' | translate }}
         </p>
       } @else if (reducedMotion()) {
         <p class="exploded-hero__note">
-          Motion reduced — showing the architectural citadel assembled.
+          {{ 'hero.reduced_motion' | translate }}
         </p>
       }
     </div>
 
     @if (!unavailable() && !reducedMotion()) {
       <ul class="exploded-hero__labels" [class.is-visible]="labelsVisible()" aria-hidden="true">
-        <li>Terrain &amp; Roads</li>
-        <li>Residential Villas</li>
-        <li>Commercial Towers</li>
-        <li>Signals &amp; Infrastructure</li>
-        <li>Roofs &amp; Landmarks</li>
+        <li>{{ 'hero.label_terrain' | translate }}</li>
+        <li>{{ 'hero.label_villas' | translate }}</li>
+        <li>{{ 'hero.label_towers' | translate }}</li>
+        <li>{{ 'hero.label_signals' | translate }}</li>
+        <li>{{ 'hero.label_roofs' | translate }}</li>
       </ul>
     }
   </div>

@@ -74,7 +74,8 @@ describe('AboutPage (spec user-account-lifecycle, dashboard-routing, & web-i18n-
     // Blender 4.x
     expect(tableText).toContain('Blender 4.x');
     expect(tableText).toContain('subdivision surfaces');
-    expect(tableText).toContain('--enable-blender');
+    expect(tableText).toContain('--blender-path');
+    expect(tableText).not.toContain('--enable-blender');
   });
 
   it('renders the engine architecture section documenting all five engines', () => {

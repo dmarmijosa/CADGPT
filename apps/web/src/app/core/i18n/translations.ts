@@ -12,7 +12,7 @@ const EN_TRANSLATIONS = {
   'nav.sign_in': 'Sign in',
   'nav.sign_out': 'Sign out',
   'nav.daemon_online': 'Daemon Online',
-  'nav.version_tag': 'v0.2.0-alpha.1',
+  'nav.version_tag': 'v0.2.0-alpha.2',
 
   // Footer
   'footer.brand': 'CAD Engine',
@@ -122,6 +122,21 @@ const EN_TRANSLATIONS = {
   'consent.accept_btn': 'Accept and Continue',
   'consent.status_active': 'Active Data Processing Consent Verified',
   'consent.close_btn': 'Close',
+
+  // Home hero
+  'hero.title': 'Run CAD operations from the AI client you already use.',
+  'hero.lead':
+    'CAD Engine links a computer you control to a fixed, allowlisted set of CAD operations, so an MCP-connected assistant can create, modify, and read named designs in AutoCAD, Civil 3D, FreeCAD, SOLIDWORKS or Blender — drawn here, live, as an architectural citadel masterplan assembled from five strata.',
+  'hero.canvas_label':
+    'An architectural citadel masterplan separating into five urban strata and reassembling as the page scrolls',
+  'hero.unavailable':
+    '3D preview is unavailable in this browser. The connector still works without it.',
+  'hero.reduced_motion': 'Motion reduced — showing the architectural citadel assembled.',
+  'hero.label_terrain': 'Terrain & Roads',
+  'hero.label_villas': 'Residential Villas',
+  'hero.label_towers': 'Commercial Towers',
+  'hero.label_signals': 'Signals & Infrastructure',
+  'hero.label_roofs': 'Roofs & Landmarks',
 
   // Home Page
   'home.open_dashboard': 'Open your dashboard',
@@ -448,7 +463,7 @@ const EN_TRANSLATIONS = {
   'about.compat_autocad_linux_desc': 'Not a supported target.',
   'about.compat_blender': 'Blender 4.x (headless background execution, Windows / macOS / Linux)',
   'about.compat_blender_desc':
-    'Headless 3D polygonal modeling, subdivision surfaces, procedural displacement, quad topology, and binary glTF/OBJ/STL preview export. Enabled with --enable-blender.',
+    'Headless 3D polygonal modeling, subdivision surfaces, procedural displacement, quad topology, and binary glTF/OBJ/STL preview export. Enabled automatically when Blender is detected; point to a custom install with --blender-path.',
   'about.arch_civil3d_title': 'Civil 3D (Civil Infrastructure & Earthworks)',
   'about.arch_civil3d_desc':
     'AutoCAD Core Console launched as Civil 3D (/product C3D /l en-US): every AutoCAD operation plus trapezoidal cross-section solids for road embankments, channels and levees, saved as Civil 3D-compatible DWG.',
@@ -519,7 +534,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, TranslationDictionary> = {
     'nav.sign_in': 'Iniciar sesión',
     'nav.sign_out': 'Cerrar sesión',
     'nav.daemon_online': 'Demonio en Línea',
-    'nav.version_tag': 'v0.2.0-alpha.1',
+    'nav.version_tag': 'v0.2.0-alpha.2',
 
     // Footer
     'footer.brand': 'CAD Engine',
@@ -632,6 +647,22 @@ export const TRANSLATIONS: Record<SupportedLanguage, TranslationDictionary> = {
     'consent.accept_btn': 'Aceptar y Continuar',
     'consent.status_active': 'Consentimiento Activo de Tratamiento de Datos Verificado',
     'consent.close_btn': 'Cerrar',
+
+    // Home hero
+    'hero.title': 'Ejecute operaciones CAD desde el cliente de IA que ya usa.',
+    'hero.lead':
+      'CAD Engine conecta una computadora que usted controla con un conjunto cerrado y permitido de operaciones CAD, para que un asistente conectado por MCP pueda crear, modificar y leer diseños con nombre en AutoCAD, Civil 3D, FreeCAD, SOLIDWORKS o Blender — dibujado aquí, en vivo, como el plan maestro de una ciudadela arquitectónica ensamblada en cinco estratos.',
+    'hero.canvas_label':
+      'El plan maestro de una ciudadela arquitectónica que se separa en cinco estratos urbanos y se vuelve a ensamblar al desplazar la página',
+    'hero.unavailable':
+      'La vista previa 3D no está disponible en este navegador. El conector funciona igualmente sin ella.',
+    'hero.reduced_motion':
+      'Movimiento reducido — se muestra la ciudadela arquitectónica ensamblada.',
+    'hero.label_terrain': 'Terreno y vías',
+    'hero.label_villas': 'Viviendas residenciales',
+    'hero.label_towers': 'Torres comerciales',
+    'hero.label_signals': 'Señales e infraestructura',
+    'hero.label_roofs': 'Cubiertas y monumentos',
 
     // Home Page
     'home.open_dashboard': 'Abrir panel de control',
@@ -968,7 +999,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, TranslationDictionary> = {
     'about.compat_blender':
       'Blender 4.x (ejecución desatendida en segundo plano, Windows / macOS / Linux)',
     'about.compat_blender_desc':
-      'Modelado poligonal 3D desatendido, superficies de subdivisión, desplazamiento procedimental, topología de quads y exportación de previsualización binaria glTF/OBJ/STL. Habilitado con --enable-blender.',
+      'Modelado poligonal 3D desatendido, superficies de subdivisión, desplazamiento procedimental, topología de quads y exportación de previsualización binaria glTF/OBJ/STL. Se habilita automáticamente al detectar Blender; indique una instalación personalizada con --blender-path.',
     'about.arch_civil3d_title': 'Civil 3D (Infraestructura Civil y Movimiento de Tierras)',
     'about.arch_civil3d_desc':
       'AutoCAD Core Console iniciado como Civil 3D (/product C3D /l en-US): todas las operaciones de AutoCAD más sólidos de sección transversal trapezoidal para terraplenes, canales y diques, guardados como DWG compatible con Civil 3D.',

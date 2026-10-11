@@ -12,6 +12,7 @@ import {
 import { isPlatformBrowser } from '@angular/common';
 import { computeExplodeProgress } from './explode-progress';
 import { PLUG_SCENE_FACTORY, RenderedPlugScene } from './exploded-scene';
+import { TranslatePipe } from '../../core/i18n';
 
 /** Lerp factor applied per animation frame while progress chases its scroll target. */
 const LERP_FACTOR = 0.15;
@@ -33,6 +34,7 @@ const LABELS_VISIBLE_AT = 0.35;
  */
 @Component({
   selector: 'app-exploded-plug',
+  imports: [TranslatePipe],
   templateUrl: './exploded-plug.html',
 })
 export class ExplodedPlug {

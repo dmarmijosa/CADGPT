@@ -37,7 +37,7 @@ describe('Shell (header, left rail nav, and footer)', () => {
     const brand = shellElement.querySelector('.brand');
     expect(brand?.textContent?.trim()).toContain('CAD Engine');
     const versionTag = shellElement.querySelector('.version-tag');
-    expect(versionTag?.textContent?.trim()).toBe('v0.2.0-alpha.1');
+    expect(versionTag?.textContent?.trim()).toBe('v0.2.0-alpha.2');
 
     // Daemon status indicator
     const statusIndicator = shellElement.querySelector('.status-indicator');

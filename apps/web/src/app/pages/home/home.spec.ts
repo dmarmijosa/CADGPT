@@ -218,6 +218,14 @@ describe('HomePage (spec dashboard-routing: public route)', () => {
       'Ejecución desatendida completa de 13 operaciones con AutoCAD 2026 Core Console',
     );
 
+    // Hero
+    expect(root.querySelector('h1')?.textContent).toContain(
+      'Ejecute operaciones CAD desde el cliente de IA que ya usa.',
+    );
+    expect(root.querySelector('.exploded-hero__copy .lead')?.textContent).toContain(
+      'AutoCAD, Civil 3D, FreeCAD, SOLIDWORKS o Blender',
+    );
+
     // Engines strip and new capability panels
     expect(root.querySelector('#engines-heading')?.textContent).toContain(
       'Funciona con el software en el que ya diseña',
@@ -255,6 +263,9 @@ describe('HomePage (spec dashboard-routing: public route)', () => {
     fixture.detectChanges();
     expect(root.querySelector('#flow-heading')?.textContent).toContain(
       'From a bare install to a connected assistant',
+    );
+    expect(root.querySelector('h1')?.textContent).toContain(
+      'Run CAD operations from the AI client you already use.',
     );
   });
 });
