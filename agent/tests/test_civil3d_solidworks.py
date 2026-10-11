@@ -163,7 +163,7 @@ class Civil3DStrategyTests(unittest.TestCase):
 
             call, message = _run_execute(root, job, cad, writes)
             argv = call.args[0]
-            self.assertEqual(argv[0], "C:/AutoCAD 2026/accoreconsole.exe")
+            self.assertEqual(argv[0], str(Path("C:/AutoCAD 2026/accoreconsole.exe")))
             self.assertEqual(argv[-4:], ["/product", "C3D", "/l", "en-US"])
             self.assertIn("/isolate", argv)
             self.assertFalse(call.kwargs["shell"])
