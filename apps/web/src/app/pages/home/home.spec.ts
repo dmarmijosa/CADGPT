@@ -172,6 +172,12 @@ describe('HomePage (spec dashboard-routing: public route)', () => {
     expect(solidworks?.textContent).toContain('.SLDPRT');
     // Not-yet-supported SOLIDWORKS ops are marked as such, never as running.
     expect(solidworks?.querySelectorAll('.dot--none').length).toBe(1);
+    expect(solidworks?.textContent).toContain('Open existing parts');
+    expect(solidworks?.textContent).toContain('Editing existing feature dimensions — not yet');
+
+    const autocad = root.querySelector('.capability-panel--autocad');
+    expect(autocad?.textContent).toContain('2D drafting');
+    expect(autocad?.textContent).toContain('existing DWGs');
     expect(solidworks?.querySelectorAll('.dot--full').length).toBe(0);
 
     const blender = root.querySelector('.capability-panel--blender');

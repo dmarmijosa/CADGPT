@@ -184,12 +184,15 @@ const EN_TRANSLATIONS = {
   'home.cap_autocad_modify': 'Modify — 3D booleans (cut, union, intersect) & transforms',
   'home.cap_autocad_verify_export':
     'Verify & Export — native DWG/DXF, MASSPROP volumetric checks & binary STL preview via STLOUT',
+  'home.cap_autocad_2d':
+    '2D drafting — draw polylines and circles; list, move, rotate, scale or delete lines, arcs, text and solids in existing DWGs',
   'home.cap_autocad_lt':
     'AutoCAD LT — detected only; execution disabled (lacks accoreconsole.exe & 3D/STLOUT)',
   'home.cap_civil3d_title': 'Civil 3D',
   'home.cap_civil3d_note':
     'Runs on the AutoCAD Core Console launched as Civil 3D (/product C3D) on Windows. Opt in with --enable-autocad.',
-  'home.cap_civil3d_inherits': 'Every AutoCAD operation — primitives, booleans, transforms',
+  'home.cap_civil3d_inherits':
+    'Every AutoCAD operation — 3D solids, booleans, transforms and 2D drafting on existing drawings',
   'home.cap_civil3d_cross_section':
     'Civil cross-sections — road embankments, channels and levees swept along an axis',
   'home.cap_civil3d_export': 'Export — Civil 3D-compatible DWG, DXF, SAT and STL preview',
@@ -197,8 +200,10 @@ const EN_TRANSLATIONS = {
   'home.cap_solidworks_note':
     'Driven through the SOLIDWORKS COM API on Windows with a licensed install. Opt in with --enable-solidworks.',
   'home.cap_solidworks_create': 'Create — box, cylinder and extruded rectangle as native .SLDPRT',
+  'home.cap_solidworks_edit':
+    'Open existing parts — list bodies, move, rotate, cut, union and intersect them',
   'home.cap_solidworks_export': 'Export — STEP and binary STL preview',
-  'home.cap_solidworks_modify': 'Booleans, transforms and scene reads — not yet',
+  'home.cap_solidworks_modify': 'Editing existing feature dimensions — not yet',
   'home.cap_blender_title': 'Blender',
   'home.cap_blender_note':
     'Headless background execution on Windows, macOS and Linux with Blender 4.x.',
@@ -455,7 +460,7 @@ const EN_TRANSLATIONS = {
   'about.compat_freecad_gui_desc': 'May need a manual path or a separate command-line install.',
   'about.compat_autocad_core': 'AutoCAD 2026 Core Console (accoreconsole.exe), Windows',
   'about.compat_autocad_core_desc':
-    'Full 13-operation headless execution (3D primitives, booleans, transforms, MASSPROP volumetric validation) producing native DWG/DXF artifacts and binary STL preview via headless STLOUT. Enabled with --enable-autocad.',
+    'Full 13-operation headless execution (3D primitives, booleans, transforms, MASSPROP volumetric validation) producing native DWG/DXF artifacts and binary STL preview via headless STLOUT, plus 2D drafting (polylines, circles, deletion) and listing of 2D entities by handle in existing drawings. Enabled with --enable-autocad.',
   'about.compat_autocad_lt': 'AutoCAD LT, or AutoCAD without accoreconsole.exe',
   'about.compat_autocad_lt_desc':
     'Installation detection only; execution disabled (AutoCAD LT lacks Core Console, 3D solid modeling, and STLOUT support).',
@@ -469,13 +474,13 @@ const EN_TRANSLATIONS = {
     'AutoCAD Core Console launched as Civil 3D (/product C3D /l en-US): every AutoCAD operation plus trapezoidal cross-section solids for road embankments, channels and levees, saved as Civil 3D-compatible DWG.',
   'about.arch_solidworks_title': 'SOLIDWORKS (Feature-Based Product Parts)',
   'about.arch_solidworks_desc':
-    'SOLIDWORKS has no headless command line, so a fixed PowerShell worker drives its COM API (SldWorks.Application) with the window hidden: sketch + boss-extrude features saved as native SLDPRT, with STEP and binary STL export.',
+    'SOLIDWORKS has no headless command line, so a fixed PowerShell worker drives its COM API (SldWorks.Application) with the window hidden: sketch + boss-extrude features saved as native SLDPRT, existing parts opened to list, move, rotate and combine their bodies, with STEP and binary STL export.',
   'about.compat_civil3d': 'Autodesk Civil 3D (accoreconsole.exe /product C3D), Windows',
   'about.compat_civil3d_desc':
-    'Detected from the Civil 3D registry product or the C3D folder next to the Core Console. Runs every AutoCAD operation plus extrude_cross_section. Enabled with --enable-autocad.',
+    'Detected from the Civil 3D registry product or the C3D folder next to the Core Console. Runs every AutoCAD operation (including 2D drafting) plus extrude_cross_section. Enabled with --enable-autocad.',
   'about.compat_solidworks': 'SOLIDWORKS (COM API, SLDWORKS.exe), Windows',
   'about.compat_solidworks_desc':
-    'Licensed install and Windows desktop session required. Create box, cylinder and extruded rectangle; export STEP/STL. Enabled with --enable-solidworks; never executed on macOS or Linux.',
+    'Licensed install and Windows desktop session required. Create box, cylinder and extruded rectangle; open existing .SLDPRT parts to list bodies, move, rotate and run booleans; export STEP/STL. Enabled with --enable-solidworks; never executed on macOS or Linux.',
   'about.security_title': 'Security and limitations',
   'about.security_oidc':
     'Identity comes from a validated OIDC token; a request cannot choose its own owner.',
@@ -713,13 +718,15 @@ export const TRANSLATIONS: Record<SupportedLanguage, TranslationDictionary> = {
       'Modificar — booleanas 3D (corte, unión, intersección) y transformaciones',
     'home.cap_autocad_verify_export':
       'Verificar y exportar — DWG/DXF nativo, comprobaciones volumétricas MASSPROP y vista previa STL binaria vía STLOUT',
+    'home.cap_autocad_2d':
+      'Dibujo 2D — trazar polilíneas y círculos; listar, mover, rotar, escalar o borrar líneas, arcos, textos y sólidos en DWG existentes',
     'home.cap_autocad_lt':
       'AutoCAD LT — solo detección; ejecución deshabilitada (carece de accoreconsole.exe y 3D/STLOUT)',
     'home.cap_civil3d_title': 'Civil 3D',
     'home.cap_civil3d_note':
       'Se ejecuta en AutoCAD Core Console iniciado como Civil 3D (/product C3D) en Windows. Actívelo con --enable-autocad.',
     'home.cap_civil3d_inherits':
-      'Todas las operaciones de AutoCAD — primitivas, booleanas, transformaciones',
+      'Todas las operaciones de AutoCAD — sólidos 3D, booleanas, transformaciones y dibujo 2D en planos existentes',
     'home.cap_civil3d_cross_section':
       'Secciones transversales civiles — terraplenes, canales y diques extruidos a lo largo de un eje',
     'home.cap_civil3d_export':
@@ -729,8 +736,10 @@ export const TRANSLATIONS: Record<SupportedLanguage, TranslationDictionary> = {
       'Controlado mediante la API COM de SOLIDWORKS en Windows con una instalación con licencia. Actívelo con --enable-solidworks.',
     'home.cap_solidworks_create':
       'Crear — caja, cilindro y rectángulo extruido como .SLDPRT nativo',
+    'home.cap_solidworks_edit':
+      'Abrir piezas existentes — listar cuerpos, moverlos, rotarlos, restarlos, unirlos e intersecarlos',
     'home.cap_solidworks_export': 'Exportar — STEP y vista previa STL binaria',
-    'home.cap_solidworks_modify': 'Booleanas, transformaciones y lectura de escena — aún no',
+    'home.cap_solidworks_modify': 'Editar cotas de operaciones existentes — aún no',
     'home.cap_blender_title': 'Blender',
     'home.cap_blender_note':
       'Ejecución en segundo plano sin interfaz en Windows, macOS y Linux con Blender 4.x.',
@@ -990,7 +999,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, TranslationDictionary> = {
       'Puede requerir una ruta manual o una instalación de línea de comandos independiente.',
     'about.compat_autocad_core': 'AutoCAD 2026 Core Console (accoreconsole.exe), Windows',
     'about.compat_autocad_core_desc':
-      'Ejecución desatendida completa de 13 operaciones (primitivas 3D, booleanas, transformaciones, validación volumétrica MASSPROP) produciendo artefactos nativos DWG/DXF y previsualización STL binaria mediante STLOUT headless. Habilitado con --enable-autocad.',
+      'Ejecución desatendida completa de 13 operaciones (primitivas 3D, booleanas, transformaciones, validación volumétrica MASSPROP) produciendo artefactos nativos DWG/DXF y previsualización STL binaria mediante STLOUT headless, además de dibujo 2D (polilíneas, círculos, borrado) y listado de entidades 2D por handle en planos existentes. Habilitado con --enable-autocad.',
     'about.compat_autocad_lt': 'AutoCAD LT o AutoCAD sin accoreconsole.exe',
     'about.compat_autocad_lt_desc':
       'Solo detección de instalación; ejecución deshabilitada (AutoCAD LT carece de Core Console, modelado de sólidos 3D y soporte para STLOUT).',
@@ -1005,13 +1014,13 @@ export const TRANSLATIONS: Record<SupportedLanguage, TranslationDictionary> = {
       'AutoCAD Core Console iniciado como Civil 3D (/product C3D /l en-US): todas las operaciones de AutoCAD más sólidos de sección transversal trapezoidal para terraplenes, canales y diques, guardados como DWG compatible con Civil 3D.',
     'about.arch_solidworks_title': 'SOLIDWORKS (Piezas de Producto Basadas en Operaciones)',
     'about.arch_solidworks_desc':
-      'SOLIDWORKS no tiene línea de comandos desatendida, así que un worker PowerShell fijo controla su API COM (SldWorks.Application) con la ventana oculta: croquis + extrusión guardados como SLDPRT nativo, con exportación STEP y STL binario.',
+      'SOLIDWORKS no tiene línea de comandos desatendida, así que un worker PowerShell fijo controla su API COM (SldWorks.Application) con la ventana oculta: croquis + extrusión guardados como SLDPRT nativo, apertura de piezas existentes para listar, mover, rotar y combinar sus cuerpos, con exportación STEP y STL binario.',
     'about.compat_civil3d': 'Autodesk Civil 3D (accoreconsole.exe /product C3D), Windows',
     'about.compat_civil3d_desc':
-      'Se detecta por el producto Civil 3D en el registro o la carpeta C3D junto al Core Console. Ejecuta todas las operaciones de AutoCAD más extrude_cross_section. Se habilita con --enable-autocad.',
+      'Se detecta por el producto Civil 3D en el registro o la carpeta C3D junto al Core Console. Ejecuta todas las operaciones de AutoCAD (incluido el dibujo 2D) más extrude_cross_section. Se habilita con --enable-autocad.',
     'about.compat_solidworks': 'SOLIDWORKS (API COM, SLDWORKS.exe), Windows',
     'about.compat_solidworks_desc':
-      'Requiere instalación con licencia y sesión de escritorio de Windows. Crea caja, cilindro y rectángulo extruido; exporta STEP/STL. Se habilita con --enable-solidworks; nunca se ejecuta en macOS ni Linux.',
+      'Requiere instalación con licencia y sesión de escritorio de Windows. Crea caja, cilindro y rectángulo extruido; abre piezas .SLDPRT existentes para listar cuerpos, moverlos, rotarlos y aplicar booleanas; exporta STEP/STL. Se habilita con --enable-solidworks; nunca se ejecuta en macOS ni Linux.',
     'about.security_title': 'Seguridad y limitaciones',
     'about.security_oidc':
       'La identidad proviene de un token OIDC validado; una solicitud no puede definir su propio propietario.',
