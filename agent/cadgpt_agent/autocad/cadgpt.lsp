@@ -66,6 +66,24 @@
   (cadgpt-create-box l w h x y z)
 )
 
+;; Civil 3D cross-section solid (road embankment, channel, levee): a
+;; trapezoid centred on X with `bw` bottom width, `tw` top width and `h`
+;; height, swept `len` along +Y from the base point. The profile is drawn in
+;; the XY plane, extruded along +Z, rotated +90 degrees about the X axis
+;; through the base point (profile height -> +Z, extrusion -> -Y), then moved
+;; `len` along +Y so the solid spans [y, y + len].
+(defun cadgpt-extrude-cross-section (bw tw h len x y z)
+  (command "_PLINE"
+           (cadgpt-pt (- x (/ bw 2.0)) y z)
+           (cadgpt-pt (+ x (/ bw 2.0)) y z)
+           (cadgpt-pt (+ x (/ tw 2.0)) (+ y h) z)
+           (cadgpt-pt (- x (/ tw 2.0)) (+ y h) z)
+           "_C")
+  (command "_EXTRUDE" (entlast) "" (rtos len 2 8))
+  (command "_ROTATE3D" (entlast) "" "_X" (cadgpt-pt x y z) "90")
+  (command "_MOVE" (entlast) "" "0,0,0" (cadgpt-pt 0.0 len 0.0))
+)
+
 ;; Boolean operations: entity handles are hex strings validated by the caller.
 ;; Uses global _.SUBTRACT / _.UNION / _.INTERSECT with explicit selection
 ;; termination ("", proven in live Spike A).

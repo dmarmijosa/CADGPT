@@ -316,6 +316,7 @@ class OnboardingController:
 
         self.freecad_found = False
         self.autocad_found = False
+        self.solidworks_found = False
         self.blender_found = False
         self.freecad_path = None
         self.autocad_path = None
@@ -328,16 +329,18 @@ class OnboardingController:
                 self.freecad_found = True
                 if not self.freecad_path:
                     self.freecad_path = p
-            elif name == "AutoCAD":
+            elif name in ("AutoCAD", "Civil3D"):
                 self.autocad_found = True
                 if not self.autocad_path:
                     self.autocad_path = p
+            elif name == "SolidWorks":
+                self.solidworks_found = True
             elif name == "Blender":
                 self.blender_found = True
                 if not self.blender_path:
                     self.blender_path = p
 
-        self.cad_prerequisite_met = bool(self.freecad_found or self.autocad_found)
+        self.cad_prerequisite_met = bool(self.freecad_found or self.autocad_found or self.solidworks_found)
         if self.blender_found:
             self.blender_enabled = True
 

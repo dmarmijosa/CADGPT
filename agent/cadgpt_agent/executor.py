@@ -11,10 +11,18 @@ import uuid
 
 from .strategies.autocad import AutoCadStrategy
 from .strategies.blender import BlenderStrategy
+from .strategies.civil3d import Civil3DStrategy
 from .strategies.freecad import FreeCadStrategy
+from .strategies.solidworks import SolidWorksStrategy
 
 # Keyed by cad["name"].
-STRATEGIES = {"FreeCAD": FreeCadStrategy(), "AutoCAD": AutoCadStrategy(), "Blender": BlenderStrategy()}
+STRATEGIES = {
+    "FreeCAD": FreeCadStrategy(),
+    "AutoCAD": AutoCadStrategy(),
+    "Civil3D": Civil3DStrategy(),
+    "Blender": BlenderStrategy(),
+    "SolidWorks": SolidWorksStrategy(),
+}
 
 # Mirrors the server-side re-enforcement in `apps/api/src/tools.ts`.
 SCENE_CAP_BYTES = 12_000
@@ -35,11 +43,12 @@ def _cap_scene(scene):
 def _decode_tail(tail, cad_kind):
     """Decode a captured stdout/stderr tail for inclusion in an error message.
 
-    AutoCAD Core Console emits UTF-16LE on stdout (a documented quirk); every
-    other CAD strategy in this codebase emits plain UTF-8/ASCII. `errors`
+    AutoCAD Core Console emits UTF-16LE on stdout (a documented quirk), and
+    Civil 3D runs on that same console; every other CAD strategy in this
+    codebase emits plain UTF-8/ASCII. `errors`
     stays `"replace"` either way so a decode mismatch never raises.
     """
-    encoding = "utf-16-le" if cad_kind == "AutoCAD" else "utf-8"
+    encoding = "utf-16-le" if cad_kind in ("AutoCAD", "Civil3D") else "utf-8"
     return bytes(tail).decode(encoding, errors="replace").strip()
 
 def validate(job):

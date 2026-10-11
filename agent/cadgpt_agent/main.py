@@ -393,7 +393,9 @@ def cmd_status(args):
     cad_path = getattr(args, "cad_path", None) or cfg.get("cadPath")
     blender_path = getattr(args, "blender_path", None) or cfg.get("blenderPath")
     enable_autocad = getattr(args, "enable_autocad", False)
-    cads = discover(cad_path, enable_autocad=enable_autocad, blender_path=blender_path)
+    enable_solidworks = getattr(args, "enable_solidworks", False)
+    cads = discover(cad_path, enable_autocad=enable_autocad, blender_path=blender_path,
+                    enable_solidworks=enable_solidworks)
     service_info = get_service_status()
 
     is_json = getattr(args, "json", False)
@@ -465,7 +467,8 @@ def cmd_pair(args):
         config["blenderPath"] = blender_manual
     config_file.write_text(json.dumps(config))
 
-    cads = discover(manual, enable_autocad=getattr(args, "enable_autocad", False), blender_path=blender_manual)
+    cads = discover(manual, enable_autocad=getattr(args, "enable_autocad", False), blender_path=blender_manual,
+                    enable_solidworks=getattr(args, "enable_solidworks", False))
     file = root / "credential.json"
     use_file = False
 
@@ -683,7 +686,8 @@ def cmd_test(args):
     cfg = json.loads(config_file.read_text()) if config_file.is_file() else {}
 
     target_cad = getattr(args, "cad", None)
-    cads = discover(cfg.get("cadPath"), enable_autocad=True, blender_path=cfg.get("blenderPath"))
+    cads = discover(cfg.get("cadPath"), enable_autocad=True, blender_path=cfg.get("blenderPath"),
+                    enable_solidworks=True)
 
     candidates = [c for c in cads if c.get("executable")]
     if target_cad:
@@ -729,10 +733,11 @@ def cmd_test(args):
                 "confirmed": True,
                 "expires": time.time() * 1000 + 60000,
             }
-            native_ext = ".dwg" if cad["name"] == "AutoCAD" else ".FCStd"
+            native_ext = {"AutoCAD": ".dwg", "Civil3D": ".dwg", "SolidWorks": ".SLDPRT"}.get(cad["name"], ".FCStd")
         with tempfile.TemporaryDirectory() as d:
             try:
-                execute(job, [cad], d, timeout=30)
+                # SOLIDWORKS needs a full application start before the COM call.
+                execute(job, [cad], d, timeout=120 if cad["name"] == "SolidWorks" else 30)
                 native_candidates = list(Path(d).glob(f"**/*{native_ext}"))
                 if not native_candidates:
                     raise RuntimeError(
@@ -909,7 +914,8 @@ def run_doctor_checks(args, root, config_file, cfg):
 
     # 4. CAD Engine Discovery
     print("4. Checking CAD Backends...")
-    cads = discover(cfg.get("cadPath"), enable_autocad=True, blender_path=cfg.get("blenderPath"))
+    cads = discover(cfg.get("cadPath"), enable_autocad=True, blender_path=cfg.get("blenderPath"),
+                    enable_solidworks=True)
     exec_cads = [c for c in cads if c.get("executable")]
     if exec_cads:
         for c in exec_cads:
@@ -1173,7 +1179,8 @@ def run_foreground_loop(args):
         config["blenderPath"] = blender_manual
     config_file.write_text(json.dumps(config))
     cads = discover(
-        manual, enable_autocad=getattr(args, "enable_autocad", False), blender_path=blender_manual
+        manual, enable_autocad=getattr(args, "enable_autocad", False), blender_path=blender_manual,
+        enable_solidworks=getattr(args, "enable_solidworks", False),
     )
     file = root / "credential.json"
     credential = None
@@ -1323,7 +1330,9 @@ def create_parser():
     parent_parser.add_argument("--cad-path", default=argparse.SUPPRESS, help="Manual FreeCADCmd or AutoCAD executable path")
     parent_parser.add_argument("--blender-path", default=argparse.SUPPRESS, help="Manual Blender executable path")
     parent_parser.add_argument("--enable-autocad", action="store_true", default=argparse.SUPPRESS,
-                               help="Opt in to running full AutoCAD via Core Console (accoreconsole.exe)")
+                               help="Opt in to running full AutoCAD and Civil 3D via Core Console (accoreconsole.exe)")
+    parent_parser.add_argument("--enable-solidworks", action="store_true", default=argparse.SUPPRESS,
+                               help="Opt in to running SOLIDWORKS through its COM API (Windows only)")
 
     parser = argparse.ArgumentParser(
         prog="cadengine",
@@ -1368,7 +1377,7 @@ def create_parser():
 
     # test
     p_test = subparsers.add_parser("test", help="Run local offline CAD smoke test")
-    p_test.add_argument("--cad", choices=["freecad", "autocad", "blender"], type=str.lower, help="Specific CAD/3D engine to test")
+    p_test.add_argument("--cad", choices=["freecad", "autocad", "civil3d", "blender", "solidworks"], type=str.lower, help="Specific CAD/3D engine to test")
 
     # doctor
     p_doctor = subparsers.add_parser("doctor", parents=[parent_parser], help="Run end-to-end diagnostic roadmap")

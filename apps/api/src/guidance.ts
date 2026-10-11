@@ -118,7 +118,7 @@ const UNITS_TOLERANCES_GUIDANCE = `# Units and Tolerances Reference
 const MODELING_ENGINE_SELECTION_GUIDANCE = `# Modeling Engine Selection Guidance
 
 ## Overview
-CAD Engine supports three distinct modeling engines: AutoCAD, FreeCAD, and Blender. Each engine serves a specialized geometric paradigm and manufacturing pipeline. Select the engine that matches your design domain and output requirements.
+CAD Engine supports five modeling engines: AutoCAD, Civil 3D, FreeCAD, SOLIDWORKS, and Blender. Each engine serves a specialized geometric paradigm and manufacturing pipeline. Select the engine that matches your design domain and output requirements.
 
 ## AutoCAD
 - Recommended for: 2D and 3D architectural drafting, building permit drawings, architectural floor plans, standard DWG layering, and coordinate-aligned line work.
@@ -126,11 +126,23 @@ CAD Engine supports three distinct modeling engines: AutoCAD, FreeCAD, and Blend
 - Suggested tools: create_box, extrude_rect, boolean_cut, read_scene, export_design.
 - Deliverables: DWG construction documentation and coordinate-aligned layout plans.
 
+## Civil 3D
+- Recommended for: Civil and infrastructure work — road embankments, channels, levees, earthworks, and corridor-style solids that must live in DWG alongside survey data.
+- Geometric paradigm: AutoCAD Core Console launched as Civil 3D (/product C3D); every AutoCAD operation plus trapezoidal cross-section solids swept along an axis.
+- Suggested tools: extrude_cross_section, create_box, extrude_rect, boolean_cut, boolean_union, read_scene, export_design.
+- Deliverables: Civil 3D-compatible DWG drawings, DXF/SAT exchange files, and binary STL previews.
+
 ## FreeCAD
 - Recommended for: Precision mechanical engineering, parametric B-Rep solid modeling, exact CSG booleans, fastener assemblies, and parts destined for CNC milling or functional FDM/SLA 3D printing.
 - Geometric paradigm: Parametric boundary representation (B-Rep) solid geometry with exact analytical surfaces and strict mechanical tolerances (+/-0.02 mm to +/-0.1 mm).
 - Suggested tools: create_box, create_cylinder, create_sphere, create_cone, extrude_rect, create_wedge, extrude_polygon, boolean_cut, boolean_union, boolean_intersect, fillet, chamfer, loft, create_text_3d, analyze_image_to_cad.
 - Deliverables: Parametric solid models, STEP/IGES exchange files, and high-precision binary STL meshes.
+
+## SOLIDWORKS
+- Recommended for: Industrial and product design teams that already standardize on SOLIDWORKS parts (.SLDPRT) for manufacturing hand-off.
+- Geometric paradigm: Feature-based parametric solids (sketch + boss extrude) driven through the SOLIDWORKS COM API on Windows.
+- Suggested tools: create_box, create_cylinder, extrude_rect, export_design (step or stl).
+- Deliverables: Native SLDPRT part files, STEP exchange files, and binary STL meshes.
 
 ## Blender
 - Recommended for: Organic forms, ergonomic curvatures, characters, figurines, subdivision surfaces (Catmull-Clark), procedural displacement texturing, mesh sculpting, and visual CGI assets.
@@ -141,6 +153,8 @@ CAD Engine supports three distinct modeling engines: AutoCAD, FreeCAD, and Blend
 ## Selection Workflow
 - Confirm part intent, domain, and manufacturing process with the user.
 - For architectural permit drawings, choose AutoCAD.
+- For roads, channels, earthworks, and other civil infrastructure, choose Civil 3D.
+- For product design that must be delivered as native SOLIDWORKS parts, choose SOLIDWORKS.
 - For mechanical engineering, CNC milling, or functional 3D printing, choose FreeCAD.
 - For organic, artistic, ergonomic, or rendering/animation assets, choose Blender.
 - Call select_modeling_engine tool to obtain automated routing recommendations.
@@ -175,7 +189,15 @@ const RESOURCES = [
 
 export const selectModelingEngineSchema = z
   .object({
-    domain: z.enum(['mechanical', 'architectural', 'organic', 'artistic', 'hybrid']),
+    domain: z.enum([
+      'mechanical',
+      'architectural',
+      'civil',
+      'product',
+      'organic',
+      'artistic',
+      'hybrid',
+    ]),
     precision_required: z.enum(['high_tolerance', 'standard', 'visual_only']),
     intended_output: z.enum([
       'cnc_milling',
@@ -189,16 +211,33 @@ export const selectModelingEngineSchema = z
   .strict();
 
 export function determineModelingEngine(input: {
-  domain: 'mechanical' | 'architectural' | 'organic' | 'artistic' | 'hybrid';
+  domain: 'mechanical' | 'architectural' | 'civil' | 'product' | 'organic' | 'artistic' | 'hybrid';
   precision_required: 'high_tolerance' | 'standard' | 'visual_only';
   intended_output: 'cnc_milling' | '3d_printing' | 'rendering' | 'drawing_permit' | 'animation';
   description?: string;
 }): {
-  recommended_engine: 'FreeCAD' | 'AutoCAD' | 'Blender';
+  recommended_engine: 'FreeCAD' | 'AutoCAD' | 'Civil3D' | 'SolidWorks' | 'Blender';
   rationale: string;
   suggested_tools: string[];
 } {
   const { domain, precision_required, intended_output } = input;
+
+  if (domain === 'civil') {
+    return {
+      recommended_engine: 'Civil3D',
+      rationale:
+        'Civil infrastructure (roads, channels, levees, earthworks) belongs in Civil 3D DWG drawings, where cross-section solids sit alongside survey and corridor data.',
+      suggested_tools: ['extrude_cross_section', 'extrude_rect', 'boolean_cut'],
+    };
+  }
+  if (domain === 'product' && precision_required !== 'visual_only') {
+    return {
+      recommended_engine: 'SolidWorks',
+      rationale:
+        'Product design destined for a SOLIDWORKS-based manufacturing workflow is best delivered as native feature-based SLDPRT parts with STEP exchange files.',
+      suggested_tools: ['create_box', 'create_cylinder', 'extrude_rect', 'export_design'],
+    };
+  }
 
   if (
     domain === 'organic' ||
@@ -278,7 +317,7 @@ export function registerGuidance(server: McpServer) {
     'select_modeling_engine',
     {
       description:
-        'Select the optimal CAD or 3D modeling engine (FreeCAD, AutoCAD, or Blender) based on domain, precision, and intended manufacturing output.',
+        'Select the optimal CAD or 3D modeling engine (FreeCAD, AutoCAD, Civil 3D, SOLIDWORKS, or Blender) based on domain, precision, and intended manufacturing output.',
       inputSchema: selectModelingEngineSchema,
       annotations: { readOnlyHint: true },
     },

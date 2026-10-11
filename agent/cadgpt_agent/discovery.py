@@ -46,6 +46,14 @@ AUTOCAD_OPS = [
     "read_scene", "export_design",
 ]
 
+# Civil 3D runs on the same accoreconsole.exe (`/product C3D`), so it
+# inherits every proven AutoCAD op plus its own civil cross-section solid
+# (`strategies.civil3d`).
+CIVIL3D_OPS = [*AUTOCAD_OPS, "extrude_cross_section"]
+
+# Kept in lockstep with `strategies.solidworks.SOLIDWORKS_OPS`.
+SOLIDWORKS_OPS = ["create_box", "create_cylinder", "extrude_rect", "export_design"]
+
 BLENDER_OPS = [
     "create_blender_mesh",
     "extrude_subdivide_mesh",
@@ -118,14 +126,22 @@ def _autocad_registry_installs():
                 continue
             product_name = _autocad_product_name(product_key) or ""
             edition = "lt" if "lt" in product_name.lower() else "full"
-            installs.append({"console": console, "edition": edition})
+            # Civil 3D registers as an ACAD-* product of its own ("Autodesk
+            # Civil 3D 2026") and adds a `C3D` folder next to the console.
+            civil3d = "civil 3d" in product_name.lower() or (Path(location) / "C3D").is_dir()
+            installs.append({"console": console, "edition": edition, "civil3d": civil3d})
     return installs
 
 
-def discover(manual=None, enable_autocad=False, blender_path=None):
+def _is_solidworks(path):
+    return path.name.lower() == "sldworks.exe"
+
+
+def discover(manual=None, enable_autocad=False, blender_path=None, enable_solidworks=False):
     system = platform.system()
     paths = []
     console_editions = {}  # str(path) -> 'full' | 'lt', for accoreconsole.exe candidates
+    civil3d_consoles = set()  # str(path) of consoles that also run Civil 3D
 
     for binary in ("FreeCADCmd", "freecadcmd", "freecad", "FreeCAD", "acad", "acadlt", "blender", "blender.exe"):
         found = shutil.which(binary)
@@ -139,6 +155,7 @@ def discover(manual=None, enable_autocad=False, blender_path=None):
             paths.extend(root.glob("Blender Foundation/Blender*/blender.exe"))
             paths.extend(root.glob("Blender Foundation/Blender*/blender"))
             paths.extend(root.glob("Blender*/blender.exe"))
+            paths.extend(root.glob("SOLIDWORKS Corp*/SOLIDWORKS*/SLDWORKS.exe"))
         try:
             with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\acad.exe") as key:
                 paths.append(Path(winreg.QueryValue(key, None)))
@@ -149,15 +166,24 @@ def discover(manual=None, enable_autocad=False, blender_path=None):
                 paths.append(Path(winreg.QueryValue(key, None)))
         except (ImportError, OSError, AttributeError):
             pass
+        try:
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\SLDWORKS.exe") as key:
+                paths.append(Path(winreg.QueryValue(key, None)))
+        except (ImportError, OSError, AttributeError):
+            pass
         for install in _autocad_registry_installs():
             paths.append(install["console"])
             console_editions[str(install["console"])] = install["edition"]
+            if install.get("civil3d"):
+                civil3d_consoles.add(str(install["console"]))
         # Glob fallback (D14): only matches full-edition folder names
         # ("AutoCAD 20*"), never "AutoCAD LT 20*" — LT never ships
         # accoreconsole.exe (spec cad-discovery "Full-vs-LT Signal").
         for console in program_files.glob("Autodesk/AutoCAD 20*/accoreconsole.exe"):
             paths.append(console)
             console_editions.setdefault(str(console), "full")
+            if (console.parent / "C3D").is_dir():
+                civil3d_consoles.add(str(console))
     elif system == "Darwin":
         for root in (Path("/Applications"), Path.home() / "Applications"):
             paths.extend(root.glob("FreeCAD*.app/Contents/Resources/bin/FreeCADCmd"))
@@ -208,14 +234,22 @@ def discover(manual=None, enable_autocad=False, blender_path=None):
             continue
         p = str(path.resolve())
         is_console = path.name.lower() == "accoreconsole.exe"
-        if is_console or "autocad" in p.lower() or path.name.lower().startswith("acad"):
+        if _is_solidworks(path):
+            name = "SolidWorks"
+        elif is_console or "autocad" in p.lower() or path.name.lower().startswith("acad"):
             name = "AutoCAD"
         elif "blender" in p.lower() or path.name.lower().startswith("blender"):
             name = "Blender"
         else:
             name = "FreeCAD"
         identity = hashlib.sha256(p.encode()).hexdigest()[:24]
-        if name == "Blender":
+        if name == "SolidWorks":
+            # SOLIDWORKS is driven through its COM API by a PowerShell worker
+            # (`strategies.solidworks`), so it only runs on Windows and only
+            # when the user opts in with `--enable-solidworks`.
+            executable = bool(enable_solidworks and system == "Windows")
+            capabilities = dict(execute=executable, edition=None, console=None, ops=SOLIDWORKS_OPS, mesh=True)
+        elif name == "Blender":
             executable = True
             capabilities = dict(execute=True, edition="standard", console=None, ops=BLENDER_OPS, mesh=True)
         elif name == "FreeCAD":
@@ -236,4 +270,12 @@ def discover(manual=None, enable_autocad=False, blender_path=None):
             mesh = edition == "full"
             capabilities = dict(execute=executable, edition=edition, console=console, ops=AUTOCAD_OPS, mesh=mesh)
         result[identity] = dict(id=identity, name=name, path=p, version="Not verified", executable=executable, capabilities=capabilities)
+        if name == "AutoCAD" and is_console and str(path) in civil3d_consoles:
+            # The same console also runs Civil 3D (`/product C3D`): report it
+            # as its own CAD so jobs and documents stay Civil 3D-scoped.
+            civil_identity = hashlib.sha256((p + "#civil3d").encode()).hexdigest()[:24]
+            result[civil_identity] = dict(
+                id=civil_identity, name="Civil3D", path=p, version="Not verified", executable=executable,
+                capabilities=dict(execute=executable, edition="full", console=p, ops=CIVIL3D_OPS, mesh=True),
+            )
     return list(result.values())[:30]

@@ -158,6 +158,27 @@ class OnboardingCadPrerequisiteGateTests(unittest.TestCase):
         self.assertTrue(allowed)
 
     @patch("agent.cadgpt_agent.gui.discover")
+    def test_passes_gate_when_only_solidworks_detected(self, mock_discover):
+        mock_discover.return_value = [
+            {"name": "SolidWorks", "path": "C:\\SOLIDWORKS\\SLDWORKS.exe", "executable": False}
+        ]
+        controller = OnboardingController(config_path=self.cfg_path)
+
+        self.assertTrue(controller.solidworks_found)
+        self.assertTrue(controller.cad_prerequisite_met)
+        self.assertTrue(controller.can_advance_from_step(2)[0])
+
+    @patch("agent.cadgpt_agent.gui.discover")
+    def test_civil3d_counts_as_autocad_for_the_gate(self, mock_discover):
+        mock_discover.return_value = [
+            {"name": "Civil3D", "path": "C:\\AutoCAD 2026\\accoreconsole.exe", "executable": True}
+        ]
+        controller = OnboardingController(config_path=self.cfg_path)
+
+        self.assertTrue(controller.autocad_found)
+        self.assertTrue(controller.cad_prerequisite_met)
+
+    @patch("agent.cadgpt_agent.gui.discover")
     def test_recheck_unblocks_gate_after_installation(self, mock_discover):
         # Initial probe: missing
         mock_discover.return_value = []

@@ -11,6 +11,12 @@ import { z } from 'zod';
 export const API_KEY_SCOPES = ['cad:read', 'cad:write'] as const;
 export type ApiKeyScope = (typeof API_KEY_SCOPES)[number];
 
+// Every CAD the agent can report. `Civil3D` runs on AutoCAD's Core Console
+// (`/product C3D`); `SolidWorks` is driven through its COM API on Windows.
+export const CAD_KINDS = ['FreeCAD', 'AutoCAD', 'Civil3D', 'Blender', 'SolidWorks'] as const;
+export type CadKind = (typeof CAD_KINDS)[number];
+const CAD_KIND_CHECK = `CHECK (cad_kind IN (${CAD_KINDS.map((k) => `'${k}'`).join(',')}))`;
+
 // D11: additive capability object. Optional throughout so a phase-1/2a agent
 // that never sends `capabilities` still validates (falls back to
 // `FREECAD_OPS` in `tools.ts::enqueueOp`). Plain `z.object()` here (not
@@ -25,7 +31,7 @@ export const cadCapabilitiesSchema = z.object({
 });
 export const cadSchema = z.object({
   id: z.string().min(1).max(64),
-  name: z.enum(['FreeCAD', 'AutoCAD', 'Blender']),
+  name: z.enum(CAD_KINDS),
   path: z.string().min(1).max(1024),
   version: z.string().max(120),
   executable: z.boolean(),
@@ -127,7 +133,7 @@ export class Store {
         expires INTEGER, created INTEGER, result TEXT);
       CREATE TABLE IF NOT EXISTS documents (
         id TEXT PRIMARY KEY, owner TEXT NOT NULL, device_id TEXT NOT NULL,
-        cad_kind TEXT NOT NULL CHECK (cad_kind IN ('FreeCAD','AutoCAD','Blender')),
+        cad_kind TEXT NOT NULL ${CAD_KIND_CHECK},
         name TEXT NOT NULL, native_path TEXT, created INTEGER NOT NULL,
         updated INTEGER NOT NULL, latest_job_id TEXT);
       CREATE INDEX IF NOT EXISTS documents_owner ON documents(owner, updated DESC);
@@ -158,12 +164,14 @@ export class Store {
     const docRow = this.db
       .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='documents'")
       .get() as Row | undefined;
-    if (docRow?.sql && !docRow.sql.includes("'Blender'")) {
+    // Rebuild `documents` whenever its CHECK predates a CAD kind in
+    // `CAD_KINDS` (SQLite cannot ALTER a CHECK constraint in place).
+    if (docRow?.sql && CAD_KINDS.some((k) => !docRow.sql.includes(`'${k}'`))) {
       this.db.exec(`
         PRAGMA foreign_keys=OFF;
         CREATE TABLE documents_migrated (
           id TEXT PRIMARY KEY, owner TEXT NOT NULL, device_id TEXT NOT NULL,
-          cad_kind TEXT NOT NULL CHECK (cad_kind IN ('FreeCAD','AutoCAD','Blender')),
+          cad_kind TEXT NOT NULL ${CAD_KIND_CHECK},
           name TEXT NOT NULL, native_path TEXT, created INTEGER NOT NULL,
           updated INTEGER NOT NULL, latest_job_id TEXT
         );
@@ -446,7 +454,7 @@ export class Store {
   createDocument(
     owner: string,
     deviceId: string,
-    cadKind: 'FreeCAD' | 'AutoCAD' | 'Blender',
+    cadKind: CadKind,
     name: string,
     nativePath?: string | null,
   ) {

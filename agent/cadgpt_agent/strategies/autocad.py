@@ -180,7 +180,8 @@ _TRANSFORM_OPS = {
 _EXPORT_FORMATS = ("dxf", "sat", "stl")
 
 
-def render_script(op, data, lisp_path, design_path, stl_path, scene_path=None, export_path=None):
+def render_script(op, data, lisp_path, design_path, stl_path, scene_path=None, export_path=None,
+                  create_ops=None):
     """Build the exact CRLF `run.scr` body for one allowlisted AutoCAD op.
 
     Only fixed command tokens, the `(load ...)` path, the rendered
@@ -192,9 +193,13 @@ def render_script(op, data, lisp_path, design_path, stl_path, scene_path=None, e
     Order: create or modify the solid first, then `_STLOUT` it (the solid must already
     exist in the drawing), then save (SAVEAS 2018 for creates, QSAVE for booleans and transforms),
     then `_QUIT` — matching the spike's proven sequences.
+
+    `create_ops` lets a product variant running on the same Core Console
+    (Civil 3D) add its own create builders on top of `_CREATE_OPS`.
     """
-    if op in _CREATE_OPS:
-        builder = _CREATE_OPS[op]
+    create_ops = _CREATE_OPS if create_ops is None else create_ops
+    if op in create_ops:
+        builder = create_ops[op]
         call = builder(data)
         save_block = ["_SAVEAS", "2018", design_path.as_posix()]
         stl_block = ["_STLOUT", "_ALL", "", "_Y", stl_path.as_posix()]
@@ -247,10 +252,14 @@ def render_script(op, data, lisp_path, design_path, stl_path, scene_path=None, e
 
 class AutoCadStrategy:
     kind = "AutoCAD"
+    # Overridden by product variants that share accoreconsole.exe.
+    create_ops = _CREATE_OPS
+    # Extra fixed tokens appended after the base Core Console argv.
+    product_argv: tuple[str, ...] = ()
 
     def supports(self, op: str) -> bool:
         return (
-            op in _CREATE_OPS
+            op in self.create_ops
             or op in _BOOLEAN_OPS
             or op in _TRANSFORM_OPS
             or op in ("read_scene", "export_design", "export")
@@ -274,7 +283,8 @@ class AutoCadStrategy:
         export_path = export_dir / f"export.{fmt}"
         script = render_script(
             op, request, _LSP_PATH, design_path, stl_path,
-            scene_path=scene_path, export_path=export_path
+            scene_path=scene_path, export_path=export_path,
+            create_ops=self.create_ops,
         )
         script_path = job_dir / "run.scr"
         # `newline=""` is required: the string already carries literal CRLF,
@@ -282,7 +292,8 @@ class AutoCadStrategy:
         # embedded "\n" into the platform line separator.
         script_path.write_text(script, encoding="utf-8", newline="")
         input_dwg = design_path if design_path.is_file() else _BLANK_DWG
-        return [str(cad_path), "/i", str(input_dwg), "/s", str(script_path), "/isolate"]
+        return [str(cad_path), "/i", str(input_dwg), "/s", str(script_path), "/isolate",
+                *self.product_argv]
 
     def env(self, base: dict[str, str]) -> dict[str, str]:
         return dict(base)

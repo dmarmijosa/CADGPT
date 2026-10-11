@@ -137,6 +137,8 @@ def get_pyinstaller_command(dist_dir: Path) -> list[str]:
         "--add-data",
         f"{ROOT / 'agent/cadgpt_agent/autocad'}{sep}cadgpt_agent/autocad",
         "--add-data",
+        f"{ROOT / 'agent/cadgpt_agent/solidworks'}{sep}cadgpt_agent/solidworks",
+        "--add-data",
         f"{ROOT / 'agent/cadgpt_agent/fonts'}{sep}cadgpt_agent/fonts",
         "--add-data",
         f"{ROOT / 'apps/web/public/favicon.ico'}{sep}cadgpt_agent/assets",

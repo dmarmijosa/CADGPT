@@ -24,7 +24,7 @@ export const STANDARD_DIRECTORIES: readonly StandardCategory[] = [
   'references',
 ] as const;
 
-export const VALID_ENGINES = ['FreeCAD', 'AutoCAD', 'Blender'] as const;
+export const VALID_ENGINES = ['FreeCAD', 'AutoCAD', 'Civil3D', 'Blender', 'SolidWorks'] as const;
 export type ValidEngine = (typeof VALID_ENGINES)[number];
 
 const CAD_EXTENSIONS = new Set(['.fcstd', '.blend', '.dwg']);

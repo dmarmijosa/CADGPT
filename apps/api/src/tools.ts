@@ -2,7 +2,7 @@ import { existsSync, statSync } from 'node:fs';
 import { basename, dirname, resolve } from 'node:path';
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { Store, DomainError, isValidPathShape, isPathContained } from './store.js';
+import { Store, DomainError, isValidPathShape, isPathContained, type CadKind } from './store.js';
 import { auditProjectStructure, reorganizeProjectStructure } from './workspace.js';
 
 /**
@@ -587,6 +587,27 @@ export const blenderSchemas = {
   export_blender_scene: exportBlenderSceneSchema,
 } as const;
 
+// Civil 3D (AutoCAD Core Console with `/product C3D`): trapezoidal
+// cross-section solid swept along +Y — road embankment, channel, or levee.
+export const extrudeCrossSectionSchema = z
+  .object({
+    deviceId: deviceIdFrag,
+    cadId: cadIdFrag,
+    documentId: documentIdFrag,
+    name: nameFrag,
+    bottom_width: mmFrag,
+    top_width: mmFrag,
+    height: mmFrag,
+    length: mmFrag,
+    position: positionFrag,
+    confirmed: confirmedFrag,
+  })
+  .strict();
+
+export const civil3dSchemas = {
+  extrude_cross_section: extrudeCrossSectionSchema,
+} as const;
+
 type ToolResult = { content: { type: 'text'; text: string }[] };
 const result = (value: unknown): ToolResult => ({
   content: [{ type: 'text', text: JSON.stringify(value) }],
@@ -746,7 +767,7 @@ function enqueueOp(
     documentId = store.createDocument(
       owner,
       device.id,
-      cad.name as 'FreeCAD' | 'AutoCAD' | 'Blender',
+      cad.name as CadKind,
       defaultDocumentName,
     ).id;
   }
@@ -1436,13 +1457,7 @@ export function registerTools(
       const device = store.devices(owner).find((d) => d.id === target.deviceId)!;
       const cad = (device.cads as CadEntry[]).find((c) => c.id === target.cadId)!;
       const docName = name ?? path.split(/[/\\]/).pop() ?? 'ExternalDesign';
-      const doc = store.createDocument(
-        owner,
-        device.id,
-        cad.name as 'FreeCAD' | 'AutoCAD',
-        docName,
-        path,
-      );
+      const doc = store.createDocument(owner, device.id, cad.name as CadKind, docName, path);
       const enqueued = enqueueOp(
         store,
         owner,
@@ -1496,6 +1511,44 @@ export function registerTools(
       const projectDir = resolveProjectDir(store, owner, p);
       const res = await reorganizeProjectStructure(projectDir, true);
       return result(res);
+    },
+  );
+  server.registerTool(
+    'extrude_cross_section',
+    {
+      description:
+        'Civil 3D only: create a trapezoidal cross-section solid (road embankment, channel, levee) with bottom_width, top_width and height in mm, swept length mm along +Y from position. Ask user to confirm dimensions first.',
+      inputSchema: extrudeCrossSectionSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (p) => {
+      await requireWrite();
+      const {
+        deviceId,
+        cadId,
+        documentId,
+        name,
+        bottom_width,
+        top_width,
+        height,
+        length,
+        position,
+      } = p;
+      return result(
+        enqueueOp(
+          store,
+          owner,
+          'extrude_cross_section',
+          { bottom_width, top_width, height, length, position },
+          { deviceId, cadId, documentId },
+          name ?? 'CrossSection',
+        ),
+      );
     },
   );
   server.registerTool(
