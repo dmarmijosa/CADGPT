@@ -495,12 +495,12 @@ class CliDispatchTests(unittest.TestCase):
     def test_version_check_with_newer_prerelease_notifies_upgrade(self):
         from cadgpt_agent.main import main, VERSION
         out = io.StringIO()
-        with patch("sys.stdout", out), patch("cadgpt_agent.main.check_latest_release", return_value="0.2.0-alpha.3"):
+        with patch("sys.stdout", out), patch("cadgpt_agent.main.check_latest_release", return_value="0.2.0-alpha.4"):
             ret = main(["version", "--check"])
         self.assertEqual(ret, 0)
         output = out.getvalue()
         self.assertIn(f"cadengine v{VERSION}", output)
-        self.assertIn(f"An update is available: v0.2.0-alpha.3 (current: v{VERSION}). Run 'cadengine update' to upgrade.", output)
+        self.assertIn(f"An update is available: v0.2.0-alpha.4 (current: v{VERSION}). Run 'cadengine update' to upgrade.", output)
 
     def test_parse_semver_prerelease_precedence(self):
         from cadgpt_agent.main import parse_semver
@@ -870,9 +870,9 @@ class UpdateSubcommandTests(unittest.TestCase):
         from cadgpt_agent.main import main
         with tempfile.TemporaryDirectory() as td:
             binary = Path(td) / "cadengine"
-            binary.write_bytes(b"old-binary-0.2.0-alpha.2")
+            binary.write_bytes(b"old-binary-0.2.0-alpha.3")
 
-            new_bytes = b"brand-new-binary-0.2.0-alpha.3"
+            new_bytes = b"brand-new-binary-0.2.0-alpha.4"
             sha = hashlib.sha256(new_bytes).hexdigest()
             asset_name = "cadengine-darwin" if platform.system() == "Darwin" else ("cadengine-windows.exe" if platform.system() == "Windows" else "cadengine-linux")
             sums_content = f"{sha}  {asset_name}\n".encode()
@@ -885,7 +885,7 @@ class UpdateSubcommandTests(unittest.TestCase):
                     "assets": []
                 },
                 {
-                    "tag_name": "v0.2.0-alpha.3",
+                    "tag_name": "v0.2.0-alpha.4",
                     "draft": False,
                     "prerelease": True,
                     "assets": [
@@ -915,8 +915,8 @@ class UpdateSubcommandTests(unittest.TestCase):
                 self.assertEqual(binary.read_bytes(), new_bytes)
                 mock_restart.assert_called_once()
                 output = out.getvalue()
-                self.assertIn("Found new release v0.2.0-alpha.3", output)
-                self.assertIn("Successfully updated to v0.2.0-alpha.3", output)
+                self.assertIn("Found new release v0.2.0-alpha.4", output)
+                self.assertIn("Successfully updated to v0.2.0-alpha.4", output)
 
     def test_update_all_drafts_reports_error(self):
         from cadgpt_agent.main import main

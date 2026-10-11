@@ -12,7 +12,7 @@ const EN_TRANSLATIONS = {
   'nav.sign_in': 'Sign in',
   'nav.sign_out': 'Sign out',
   'nav.daemon_online': 'Daemon Online',
-  'nav.version_tag': 'v0.2.0-alpha.2',
+  'nav.version_tag': 'v0.2.0-alpha.3',
 
   // Footer
   'footer.brand': 'CAD Engine',
@@ -539,7 +539,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, TranslationDictionary> = {
     'nav.sign_in': 'Iniciar sesión',
     'nav.sign_out': 'Cerrar sesión',
     'nav.daemon_online': 'Demonio en Línea',
-    'nav.version_tag': 'v0.2.0-alpha.2',
+    'nav.version_tag': 'v0.2.0-alpha.3',
 
     // Footer
     'footer.brand': 'CAD Engine',

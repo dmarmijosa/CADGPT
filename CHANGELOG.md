@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.0-alpha.3] - 2026-10-11
 
 ### Added
 - **AutoCAD / Civil 3D 2D drafting**: `draw_polyline`, `draw_circle` (optional layer and elevation) and `delete_object`. `read_scene` now lists model-space lines, polylines, circles, arcs, text and points as well as 3D solids, with handle, layer and a DXF-derived bounding box, so the existing transforms can move, rotate and scale 2D entities in existing drawings.

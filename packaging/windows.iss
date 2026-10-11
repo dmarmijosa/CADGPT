@@ -1,7 +1,7 @@
 [Setup]
 AppId=CADEngine
 AppName=CAD Engine
-AppVersion=0.2.0-alpha.2
+AppVersion=0.2.0-alpha.3
 DefaultDirName={autopf}\CAD Engine
 DefaultGroupName=CAD Engine
 PrivilegesRequired=admin

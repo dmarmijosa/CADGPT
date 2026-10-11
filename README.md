@@ -8,15 +8,15 @@
 
 ## Download
 
-Latest prerelease: **[v0.2.0-alpha.2 →](https://github.com/dmarmijosa/CADGPT/releases/tag/v0.2.0-alpha.2)** (unsigned alpha). [All releases](https://github.com/dmarmijosa/CADGPT/releases).
+Latest prerelease: **[v0.2.0-alpha.3 →](https://github.com/dmarmijosa/CADGPT/releases/tag/v0.2.0-alpha.3)** (unsigned alpha). [All releases](https://github.com/dmarmijosa/CADGPT/releases).
 
 | Computer | Download | Format |
 |---|---|---|
-| Windows x64 | [`CADEngine-Setup-windows-x64.exe`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.2/CADEngine-Setup-windows-x64.exe) | Inno Setup machine-wide installer, Python included |
-| MacBook / Mac with Apple Silicon | [`CADEngine-macos-arm64.dmg`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.2/CADEngine-macos-arm64.dmg) | Disk image containing CAD Engine app, Python included |
-| MacBook / Mac with Intel | [`CADEngine-macos-x64.dmg`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.2/CADEngine-macos-x64.dmg) | Disk image containing CAD Engine app, Python included |
-| Linux x64 | [`cadengine-linux-x64.tar.gz`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.2/cadengine-linux-x64.tar.gz) | Portable application archive, Python included |
-| All | [`SHA256SUMS.txt`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.2/SHA256SUMS.txt) | Integrity checksums |
+| Windows x64 | [`CADEngine-Setup-windows-x64.exe`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.3/CADEngine-Setup-windows-x64.exe) | Inno Setup machine-wide installer, Python included |
+| MacBook / Mac with Apple Silicon | [`CADEngine-macos-arm64.dmg`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.3/CADEngine-macos-arm64.dmg) | Disk image containing CAD Engine app, Python included |
+| MacBook / Mac with Intel | [`CADEngine-macos-x64.dmg`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.3/CADEngine-macos-x64.dmg) | Disk image containing CAD Engine app, Python included |
+| Linux x64 | [`cadengine-linux-x64.tar.gz`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.3/cadengine-linux-x64.tar.gz) | Portable application archive, Python included |
+| All | [`SHA256SUMS.txt`](https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.3/SHA256SUMS.txt) | Integrity checksums |
 
 Verify a download against `SHA256SUMS.txt` before running it (the builds are unsigned). Newer releases, when published, appear at the releases page above. CAD Engine does **not** install AutoCAD, Civil 3D, FreeCAD, SOLIDWORKS, or Blender, and does not modify your existing Python installation.
 
@@ -35,7 +35,7 @@ CAD Engine includes a native, lightweight (<2 MB) cross-platform Onboarding Wiza
 4. **Step 3 — Blender 3D Organic Modeling Tool**: Probes for Blender installations. If detected, it enables organic modeling tools. If not detected, you can specify your Blender path (stored safely without UAC administrator elevation) or choose **Continue without Blender**.
 5. **Step 4 — Zero-URL Pairing HUD & Auto-Enrollment**: Automatically connects to the production server (`https://cadengine.danny-armijos.com`) without manual URL entry, displays a prominent 12-character ephemeral pairing code (with offline fallback code generation), provides one-click **Copy Code** and **Open Dashboard** buttons, and upon approval, saves credentials securely to OS keyring (`keyring`) while automatically registering the native background daemon (`schtasks` on Windows, `systemd` user service on Linux, `launchd` on macOS).
 6. **System Tray Daemon (`pystray`)**: Once paired, CAD Engine minimizes to the system tray with a 3D isometric cube icon (macOS Menu Bar Extra / Windows Notification Area):
-   - **Status Header**: Displays connection state and version (`v0.2.0-alpha.2`).
+   - **Status Header**: Displays connection state and version (`v0.2.0-alpha.3`).
    - **View Pairing Code**: Look up active code or device ID.
    - **View Connection Status**: Real-time HUD showing Server URL, Device ID, Active Engines (FreeCAD, AutoCAD, Civil 3D, SOLIDWORKS, Blender), and Ping Latency.
    - **Open Web Dashboard**: Quick shortcut to the web application.
@@ -95,7 +95,7 @@ For a headless server, install the portable build to a fixed location first:
 
 ```bash
 cd /tmp
-wget https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.2/cadengine-linux-x64.tar.gz
+wget https://github.com/dmarmijosa/CADGPT/releases/download/v0.2.0-alpha.3/cadengine-linux-x64.tar.gz
 # Verify against the release SHA256SUMS.txt (replace the hash with the published one):
 echo "<sha256>  cadengine-linux-x64.tar.gz" | sha256sum -c -
 sudo mkdir -p /opt/cadengine

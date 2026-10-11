@@ -72,7 +72,7 @@ if platform.system() == "Windows":
 else:
     winreg = None
 
-VERSION = "0.2.0-alpha.2"
+VERSION = "0.2.0-alpha.3"
 SERVICE = "CADGPT"
 DEFAULT_SERVER = "https://cadengine.danny-armijos.com"
 
