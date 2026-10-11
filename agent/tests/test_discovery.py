@@ -170,7 +170,7 @@ class AutoCadRegistryDetectionTests(unittest.TestCase):
             # even for a confirmed full-edition console.
             self.assertFalse(cad["capabilities"]["execute"])
             self.assertFalse(cad["executable"])
-            self.assertEqual(cad["capabilities"]["ops"], discovery.AUTOCAD_OPS)
+            self.assertEqual(cad["capabilities"]["ops"], [*discovery.AUTOCAD_OPS, *discovery.AUTOCAD_2D_OPS])
             # Slice 14: STL preview is proven on full editions via `_STLOUT`.
             self.assertTrue(cad["capabilities"]["mesh"])
 

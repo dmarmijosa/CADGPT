@@ -14,16 +14,26 @@ job/doc-dir-derived paths. The worker reads that plan and nothing else: no
 caller free text ever reaches PowerShell, and the argv is fixed.
 """
 import json
+import math
 import os
+import re
 from pathlib import Path
 
 from .base import Artifacts
-from ..freecad_worker import _EXTRUDE_BOX_ARGS, _mm, _position
+from ..freecad_worker import _EXTRUDE_BOX_ARGS, _bounded, _coord, _mm, _position
 
 _WORKER = Path(__file__).resolve().parent.parent / "solidworks" / "solidworks_worker.ps1"
 
-SOLIDWORKS_OPS = ("create_box", "create_cylinder", "extrude_rect", "export_design")
+_CREATE_OPS = ("create_box", "create_cylinder", "extrude_rect")
+# Ops that change an existing part's bodies. Bodies are addressed as
+# `Body<N>`: the 1-based position in `IPartDoc.GetBodies2`, the same names
+# `read_scene` reports (SOLIDWORKS' own body names contain characters the
+# MCP object-name schema rejects).
+_EDIT_OPS = ("translate_object", "rotate_object", "boolean_cut", "boolean_union", "boolean_intersect")
+SOLIDWORKS_OPS = (*_CREATE_OPS, "export_design", "read_scene", *_EDIT_OPS)
 _EXPORT_FORMATS = ("step", "stl")
+_BODY_RE = re.compile(r"^Body[1-9][0-9]{0,3}$")
+_BOOLEAN_KINDS = {"boolean_cut": "cut", "boolean_union": "union", "boolean_intersect": "intersect"}
 
 
 def _m(value_mm):
@@ -66,6 +76,38 @@ def build_feature(op, data):
     raise ValueError("Unsupported SOLIDWORKS operation: " + str(op))
 
 
+def _body(value, name):
+    if not isinstance(value, str) or not _BODY_RE.match(value):
+        raise ValueError(f"{name} must be a SOLIDWORKS body reference like Body1 (from read_scene)")
+    return value
+
+
+def build_edit(op, data):
+    """Return the validated edit description for an op on existing bodies."""
+    if op == "translate_object":
+        return {"kind": "translate", "body": _body(data.get("object"), "object"),
+                "dx": _m(_coord(data.get("dx"), "dx")), "dy": _m(_coord(data.get("dy"), "dy")),
+                "dz": _m(_coord(data.get("dz"), "dz"))}
+    if op == "rotate_object":
+        axis = data.get("axis")
+        if axis not in ("X", "Y", "Z"):
+            raise ValueError("axis must be one of X, Y, Z")
+        degrees = _bounded(data.get("degrees"), "degrees", -360, 360)
+        center = data.get("center") or {}
+        return {"kind": "rotate", "body": _body(data.get("object"), "object"), "axis": axis,
+                "radians": math.radians(degrees),
+                "cx": _m(_coord(center.get("x", 0), "center.x")),
+                "cy": _m(_coord(center.get("y", 0), "center.y")),
+                "cz": _m(_coord(center.get("z", 0), "center.z"))}
+    if op in _BOOLEAN_KINDS:
+        base = _body(data.get("base"), "base")
+        tool = _body(data.get("tool"), "tool")
+        if base == tool:
+            raise ValueError("base and tool must be different bodies")
+        return {"kind": _BOOLEAN_KINDS[op], "base": base, "tool": tool}
+    raise ValueError("Unsupported SOLIDWORKS operation: " + str(op))
+
+
 def _powershell():
     # Absolute path under %SystemRoot% so a PATH entry can never shadow it.
     system_root = os.environ.get("SystemRoot", r"C:\Windows")
@@ -94,13 +136,19 @@ class SolidWorksStrategy:
             "stl": str(job_dir / "preview.stl"),
             "export": None,
             "feature": None,
+            "edit": None,
+            "scene": None,
         }
-        if op == "export_design":
+        if op in ("export_design", "read_scene", *_EDIT_OPS) and not plan["open_existing"]:
+            raise ValueError(f"{op} needs an existing SOLIDWORKS part")
+        if op == "read_scene":
+            plan["scene"] = str(job_dir / "scene.json")
+        elif op in _EDIT_OPS:
+            plan["edit"] = build_edit(op, request)
+        elif op == "export_design":
             fmt = request.get("format")
             if fmt not in _EXPORT_FORMATS:
                 raise ValueError(f"format must be one of {', '.join(_EXPORT_FORMATS)}")
-            if not plan["open_existing"]:
-                raise ValueError("export_design needs an existing SOLIDWORKS part")
             plan["export"] = str((doc_dir if doc_dir is not None else job_dir) / f"export.{fmt}")
         else:
             plan["feature"] = build_feature(op, request)
@@ -135,5 +183,5 @@ class SolidWorksStrategy:
         return {
             "native": self._native(request, job_dir, doc_dir),
             "mesh": job_dir / "preview.stl",
-            "scene": None,
+            "scene": job_dir / "scene.json" if op == "read_scene" else None,
         }

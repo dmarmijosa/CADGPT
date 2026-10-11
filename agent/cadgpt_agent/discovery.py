@@ -46,13 +46,22 @@ AUTOCAD_OPS = [
     "read_scene", "export_design",
 ]
 
+# 2D drafting on the same Core Console (`strategies.autocad`): polylines,
+# circles and deletion by handle. Kept apart from AUTOCAD_OPS, which mirrors
+# the shared 3D allowlist fixture. The transform ops in AUTOCAD_OPS already
+# accept 2D handles too.
+AUTOCAD_2D_OPS = ["draw_polyline", "draw_circle", "delete_object"]
+
 # Civil 3D runs on the same accoreconsole.exe (`/product C3D`), so it
-# inherits every proven AutoCAD op plus its own civil cross-section solid
+# inherits every AutoCAD op plus its own civil cross-section solid
 # (`strategies.civil3d`).
-CIVIL3D_OPS = [*AUTOCAD_OPS, "extrude_cross_section"]
+CIVIL3D_OPS = [*AUTOCAD_OPS, *AUTOCAD_2D_OPS, "extrude_cross_section"]
 
 # Kept in lockstep with `strategies.solidworks.SOLIDWORKS_OPS`.
-SOLIDWORKS_OPS = ["create_box", "create_cylinder", "extrude_rect", "export_design"]
+SOLIDWORKS_OPS = [
+    "create_box", "create_cylinder", "extrude_rect", "export_design", "read_scene",
+    "translate_object", "rotate_object", "boolean_cut", "boolean_union", "boolean_intersect",
+]
 
 BLENDER_OPS = [
     "create_blender_mesh",
@@ -268,7 +277,9 @@ def discover(manual=None, enable_autocad=False, blender_path=None, enable_solidw
             # so LT never advertises mesh regardless of the `--enable-autocad`
             # flag or `execute`.
             mesh = edition == "full"
-            capabilities = dict(execute=executable, edition=edition, console=console, ops=AUTOCAD_OPS, mesh=mesh)
+            # LT never executes, so it advertises the 3D set only.
+            ops = [*AUTOCAD_OPS, *AUTOCAD_2D_OPS] if edition == "full" else AUTOCAD_OPS
+            capabilities = dict(execute=executable, edition=edition, console=console, ops=ops, mesh=mesh)
         result[identity] = dict(id=identity, name=name, path=p, version="Not verified", executable=executable, capabilities=capabilities)
         if name == "AutoCAD" and is_console and str(path) in civil3d_consoles:
             # The same console also runs Civil 3D (`/product C3D`): report it

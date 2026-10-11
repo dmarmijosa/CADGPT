@@ -135,10 +135,102 @@
   )
 )
 
+;; 2D drafting: layer selection, polylines, circles, deletion. Every
+;; argument is a number, a validated layer name ([A-Za-z0-9_-]) or a
+;; validated hex handle, rendered by `strategies/autocad.py`.
+(defun cadgpt-set-layer (layer)
+  (if layer
+    (command "_.-LAYER" "_M" layer "")
+  )
+)
+
+;; Polyline through `pts` (a list of (x y) pairs) at elevation `elev`;
+;; `closed` is 1 to close it, 0 to leave it open.
+(defun cadgpt-draw-polyline (pts closed elev layer)
+  (cadgpt-set-layer layer)
+  (command "_.PLINE")
+  (foreach p pts
+    (command (cadgpt-pt (car p) (cadr p) elev))
+  )
+  (if (= closed 1)
+    (command "_C")
+    (command "")
+  )
+)
+
+(defun cadgpt-draw-circle (r x y elev layer)
+  (cadgpt-set-layer layer)
+  (command "_.CIRCLE" (cadgpt-pt x y elev) (rtos r 2 8))
+)
+
+(defun cadgpt-delete (h)
+  (setq e (handent h))
+  (if e
+    (command "_.ERASE" e "")
+  )
+)
+
+;; JSON helpers for the scene dump. Layer names are user data, so quotes,
+;; backslashes and control characters are escaped. Escaping stops before the
+;; output would pass `limit` characters, so a cap never splits an escape
+;; sequence (the server rejects entries whose label exceeds 64).
+(defun cadgpt-json-escape (str limit / out i c piece)
+  (setq out "" i 1)
+  (while (<= i (strlen str))
+    (setq c (substr str i 1))
+    (setq piece
+      (cond
+        ((= c "\"") "\\\"")
+        ((= c "\\") "\\\\")
+        ((< (ascii c) 32) " ")
+        (t c)
+      )
+    )
+    (if (> (+ (strlen out) (strlen piece)) limit)
+      (setq i (1+ (strlen str)))
+      (setq out (strcat out piece) i (1+ i))
+    )
+  )
+  out
+)
+
+(defun cadgpt-num (n) (rtos n 2 6))
+
+(defun cadgpt-bbox-json (x1 y1 z1 x2 y2 z2)
+  (strcat "[" (cadgpt-num (min x1 x2)) ", " (cadgpt-num (min y1 y2)) ", " (cadgpt-num (min z1 z2))
+          ", " (cadgpt-num (max x1 x2)) ", " (cadgpt-num (max y1 y2)) ", " (cadgpt-num (max z1 z2)) "]")
+)
+
+;; Bounding box from DXF data only (no ActiveX). 3D solids keep a zero box:
+;; their extents are not exposed through `entget`.
+(defun cadgpt-entity-bbox (d tname / p q r xs ys elev)
+  (cond
+    ((= tname "LINE")
+     (setq p (cdr (assoc 10 d)) q (cdr (assoc 11 d)))
+     (cadgpt-bbox-json (car p) (cadr p) (caddr p) (car q) (cadr q) (caddr q)))
+    ((or (= tname "CIRCLE") (= tname "ARC"))
+     (setq p (cdr (assoc 10 d)) r (cdr (assoc 40 d)))
+     (cadgpt-bbox-json (- (car p) r) (- (cadr p) r) (caddr p) (+ (car p) r) (+ (cadr p) r) (caddr p)))
+    ((= tname "LWPOLYLINE")
+     (setq elev (cond ((cdr (assoc 38 d))) (0.0)))
+     (foreach g d
+       (if (= (car g) 10)
+         (setq xs (cons (cadr g) xs) ys (cons (caddr g) ys))
+       )
+     )
+     (cadgpt-bbox-json (apply 'min xs) (apply 'min ys) elev (apply 'max xs) (apply 'max ys) elev))
+    ((or (= tname "TEXT") (= tname "MTEXT") (= tname "POINT"))
+     (setq p (cdr (assoc 10 d)))
+     (cadgpt-bbox-json (car p) (cadr p) (caddr p) (car p) (cadr p) (caddr p)))
+    (t "[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]")
+  )
+)
+
 ;; Scene read: pure AutoLISP object enumeration (no ActiveX/vlax-*).
-;; Iterates 3DSOLID entities, extracts hex handles, and dumps JSON to out-path.
-(defun cadgpt-read-scene (out-path)
-  (setq ss (ssget "_X" '((0 . "3DSOLID"))))
+;; Lists model-space 3D solids and 2D entities with their hex handle (the
+;; address every edit op uses), layer, type and DXF-derived bounding box.
+(defun cadgpt-read-scene (out-path / ss f i n ent d h tname layer comma)
+  (setq ss (ssget "_X" '((0 . "3DSOLID,LINE,LWPOLYLINE,CIRCLE,ARC,TEXT,MTEXT,POINT") (410 . "Model"))))
   (setq f (open out-path "w"))
   (if f
     (progn
@@ -152,8 +244,10 @@
             (setq d (entget ent))
             (setq h (cdr (assoc 5 d)))
             (setq tname (cdr (assoc 0 d)))
+            (setq layer (cadgpt-json-escape (cdr (assoc 8 d)) 60))
             (setq comma (if (< i (1- n)) "," ""))
-            (write-line (strcat "  {\"name\": \"" h "\", \"label\": \"" h "\", \"type\": \"" tname "\", \"bbox\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], \"volume\": 0.0}" comma) f)
+            (write-line (strcat "  {\"name\": \"" h "\", \"label\": \"" layer "\", \"type\": \"" tname
+                                "\", \"bbox\": " (cadgpt-entity-bbox d tname) ", \"volume\": 0.0}" comma) f)
             (setq i (1+ i))
           )
         )
@@ -163,5 +257,3 @@
     )
   )
 )
-
-

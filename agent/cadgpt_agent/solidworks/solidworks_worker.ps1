@@ -11,6 +11,9 @@
 # Geometry convention: every feature is sketched on the part's first
 # reference plane (Front, the world XY plane) and extruded along +Z. Planes
 # are found by feature type, not by name, so localized templates work too.
+#
+# Existing bodies are addressed as Body<N>: the 1-based position in
+# GetBodies2, which is also how read_scene names them.
 
 param([Parameter(Mandatory = $true)][string]$PlanPath)
 
@@ -25,6 +28,11 @@ $swSaveAsOptions_Copy = 2
 $swEndCondBlind = 0
 $swStartSketchPlane = 0
 $swStartOffset = 3
+$swSolidBody = 0
+$SWBODYINTERSECT = 15901
+$SWBODYCUT = 15902
+$SWBODYADD = 15903
+$Utf8NoBom = New-Object System.Text.UTF8Encoding $false
 
 $plan = Get-Content -LiteralPath $PlanPath -Raw -Encoding UTF8 | ConvertFrom-Json
 
@@ -73,6 +81,82 @@ function Add-Feature($model, $f) {
     if ($null -eq $feature) { throw 'SOLIDWORKS rejected the extrusion.' }
 }
 
+function Get-SolidBodies($model) {
+    $bodies = $model.GetBodies2($swSolidBody, $false)
+    if ($null -eq $bodies) { return @() }
+    return @($bodies)
+}
+
+function Resolve-Body($model, [string]$reference) {
+    $bodies = Get-SolidBodies $model
+    $index = [int]$reference.Substring(4) - 1
+    if ($index -lt 0 -or $index -ge $bodies.Count) {
+        throw "Body $reference does not exist (the part has $($bodies.Count) solid bodies)."
+    }
+    return $bodies[$index]
+}
+
+function Select-Body($model, $body, [int]$mark) {
+    $data = $model.SelectionManager.CreateSelectData()
+    $data.Mark = $mark
+    if (-not $body.Select2($true, $data)) { throw 'Could not select the body.' }
+}
+
+function Invoke-Edit($model, $e) {
+    $model.ClearSelection2($true) | Out-Null
+    $features = $model.FeatureManager
+    switch ($e.kind) {
+        'translate' {
+            Select-Body $model (Resolve-Body $model $e.body) 1
+            $feature = $features.InsertMoveCopyBody2($e.dx, $e.dy, $e.dz, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, $false, 1)
+        }
+        'rotate' {
+            Select-Body $model (Resolve-Body $model $e.body) 1
+            $ax = if ($e.axis -eq 'X') { $e.radians } else { 0.0 }
+            $ay = if ($e.axis -eq 'Y') { $e.radians } else { 0.0 }
+            $az = if ($e.axis -eq 'Z') { $e.radians } else { 0.0 }
+            $feature = $features.InsertMoveCopyBody2(0.0, 0.0, 0.0, 0.0, $e.cx, $e.cy, $e.cz, $ax, $ay, $az, $false, 1)
+        }
+        'cut' {
+            $base = Resolve-Body $model $e.base
+            $tool = Resolve-Body $model $e.tool
+            $feature = $features.InsertCombineFeature($SWBODYCUT, $base, [object[]]@($tool))
+        }
+        'union' {
+            $bodies = [object[]]@((Resolve-Body $model $e.base), (Resolve-Body $model $e.tool))
+            $feature = $features.InsertCombineFeature($SWBODYADD, $null, $bodies)
+        }
+        'intersect' {
+            $bodies = [object[]]@((Resolve-Body $model $e.base), (Resolve-Body $model $e.tool))
+            $feature = $features.InsertCombineFeature($SWBODYINTERSECT, $null, $bodies)
+        }
+        default { throw "Unsupported edit kind: $($e.kind)" }
+    }
+    if ($null -eq $feature) { throw "SOLIDWORKS rejected the $($e.kind) edit." }
+}
+
+function Write-Scene($model, [string]$path) {
+    $entries = @()
+    $i = 0
+    foreach ($body in (Get-SolidBodies $model)) {
+        $i++
+        $box = $body.GetBodyBox()
+        $mass = $body.GetMassProperties(1.0)
+        $label = [string]$body.Name
+        if ($label.Length -gt 60) { $label = $label.Substring(0, 60) }
+        $entries += [ordered]@{
+            name   = "Body$i"
+            label  = $label
+            type   = 'SolidBody'
+            bbox   = @($box | ForEach-Object { [double]$_ * 1000.0 })
+            volume = [double]$mass[3] * 1e9
+        }
+    }
+    # No BOM: the agent parses this file as strict UTF-8 JSON.
+    $json = ConvertTo-Json -InputObject @($entries) -Depth 4
+    [System.IO.File]::WriteAllText($path, $json, $Utf8NoBom)
+}
+
 function Save-As($model, [string]$path, [int]$options) {
     $errors = $model.SaveAs3($path, $swSaveAsCurrentVersion, $options)
     if ($errors -ne 0 -or -not (Test-Path -LiteralPath $path)) {
@@ -95,11 +179,13 @@ try {
         if ($null -eq $model) { throw 'SOLIDWORKS could not create a part from the default template.' }
     }
 
-    if ($null -ne $plan.feature) {
-        Add-Feature $model $plan.feature
+    if ($null -ne $plan.feature) { Add-Feature $model $plan.feature }
+    if ($null -ne $plan.edit) { Invoke-Edit $model $plan.edit }
+    if ($null -ne $plan.feature -or $null -ne $plan.edit) {
         $model.ForceRebuild3($false) | Out-Null
         Save-As $model $plan.native $swSaveAsOptions_Silent
     }
+    if ($null -ne $plan.scene) { Write-Scene $model $plan.scene }
     if ($null -ne $plan.export) {
         Save-As $model $plan.export ($swSaveAsOptions_Silent + $swSaveAsOptions_Copy)
     }

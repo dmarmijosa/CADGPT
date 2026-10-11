@@ -93,6 +93,11 @@ def _extrude_rect_call(data):
 
 
 _HANDLE_RE = re.compile(r"^[0-9a-zA-Z]{1,32}$")
+# Layer names reach the script as a quoted LISP string, so only a strict
+# subset of AutoCAD's allowed characters is accepted (no quotes, spaces,
+# backslashes or wildcards).
+_LAYER_RE = re.compile(r"^[A-Za-z0-9_-]{1,31}$")
+MAX_POLYLINE_POINTS = 500
 
 
 def _handle(val, name):
@@ -119,6 +124,53 @@ def _boolean_intersect_call(data):
     return f'(cadgpt-boolean-intersect "{base}" "{tool}")'
 
 
+def _layer(data):
+    layer = data.get("layer")
+    if layer is None:
+        return "nil"
+    if not isinstance(layer, str) or not _LAYER_RE.match(layer):
+        raise ValueError("layer must be 1-31 characters from A-Z, a-z, 0-9, _ and -")
+    return '"' + layer + '"'
+
+
+def _elevation(data):
+    return _coord(data.get("elevation", 0), "elevation")
+
+
+def _draw_polyline_call(data):
+    points = data.get("points")
+    if not isinstance(points, list) or not 2 <= len(points) <= MAX_POLYLINE_POINTS:
+        raise ValueError(f"points must be a list of 2-{MAX_POLYLINE_POINTS} points")
+    rendered = []
+    for i, point in enumerate(points):
+        if not isinstance(point, dict):
+            raise ValueError(f"points[{i}] must be an object with x and y")
+        x = _coord(point.get("x"), f"points[{i}].x")
+        y = _coord(point.get("y"), f"points[{i}].y")
+        rendered.append("(" + _num(x) + " " + _num(y) + ")")
+    closed = data.get("closed", False)
+    if not isinstance(closed, bool):
+        raise ValueError("closed must be a boolean")
+    if closed and len(points) < 3:
+        raise ValueError("a closed polyline needs at least 3 points")
+    return ("(cadgpt-draw-polyline '(" + " ".join(rendered) + ") " + ("1" if closed else "0")
+            + " " + _num(_elevation(data)) + " " + _layer(data) + ")")
+
+
+def _draw_circle_call(data):
+    radius = _mm(data.get("radius"), "radius")
+    center = data.get("center") or {}
+    x = _coord(center.get("x", 0), "center.x")
+    y = _coord(center.get("y", 0), "center.y")
+    return ("(cadgpt-draw-circle " + _num(radius) + " " + _num(x) + " " + _num(y) + " "
+            + _num(_elevation(data)) + " " + _layer(data) + ")")
+
+
+def _delete_object_call(data):
+    handle = _handle(data.get("object") or data.get("handle"), "object")
+    return f'(cadgpt-delete "{handle}")'
+
+
 # Create-only subset of `discovery.AUTOCAD_OPS`; booleans/transforms land in
 # slice 13b once their `.lsp`/`.scr` mapping exists.
 _CREATE_OPS = {
@@ -127,6 +179,9 @@ _CREATE_OPS = {
     "create_sphere": _create_sphere_call,
     "create_cone": _create_cone_call,
     "extrude_rect": _extrude_rect_call,
+    # 2D drafting (`discovery.AUTOCAD_2D_OPS`).
+    "draw_polyline": _draw_polyline_call,
+    "draw_circle": _draw_circle_call,
 }
 
 _BOOLEAN_OPS = {
@@ -167,6 +222,11 @@ def _scale_object_call(data):
     return f'(cadgpt-scale "{handle}" {_num(factor)} {_num(cx)} {_num(cy)} {_num(cz)})'
 
 
+# Edits that address any entity (3D solid or 2D) by handle.
+_EDIT_OPS = {
+    "delete_object": _delete_object_call,
+}
+
 _TRANSFORM_OPS = {
     "translate_object": _translate_object_call,
     "translate": _translate_object_call,
@@ -204,8 +264,8 @@ def render_script(op, data, lisp_path, design_path, stl_path, scene_path=None, e
         save_block = ["_SAVEAS", "2018", design_path.as_posix()]
         stl_block = ["_STLOUT", "_ALL", "", "_Y", stl_path.as_posix()]
         action_lines = [call, *stl_block, *save_block]
-    elif op in _BOOLEAN_OPS or op in _TRANSFORM_OPS:
-        builder = _BOOLEAN_OPS[op] if op in _BOOLEAN_OPS else _TRANSFORM_OPS[op]
+    elif op in _BOOLEAN_OPS or op in _TRANSFORM_OPS or op in _EDIT_OPS:
+        builder = _BOOLEAN_OPS.get(op) or _TRANSFORM_OPS.get(op) or _EDIT_OPS[op]
         call = builder(data)
         save_block = ["_QSAVE"]
         stl_block = ["_STLOUT", "_ALL", "", "_Y", stl_path.as_posix()]
@@ -262,6 +322,7 @@ class AutoCadStrategy:
             op in self.create_ops
             or op in _BOOLEAN_OPS
             or op in _TRANSFORM_OPS
+            or op in _EDIT_OPS
             or op in ("read_scene", "export_design", "export")
         )
 

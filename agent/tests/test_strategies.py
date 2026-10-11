@@ -368,7 +368,11 @@ class AutoCadScriptGoldenTests(unittest.TestCase):
         code_only = "\n".join(code_lines).lower()
         self.assertNotIn("vlax-", code_only)
         self.assertNotIn("vla-", code_only)
-        self.assertIn('(ssget "_x" \'((0 . "3dsolid")))', code_only)
+        # 3D solids plus the 2D entity types, model space only.
+        self.assertIn(
+            '(ssget "_x" \'((0 . "3dsolid,line,lwpolyline,circle,arc,text,mtext,point") (410 . "model")))',
+            code_only,
+        )
 
 
 
