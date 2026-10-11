@@ -1,5 +1,5 @@
 import { existsSync, statSync } from 'node:fs';
-import { basename, dirname, resolve } from 'node:path';
+import { basename, dirname, extname, resolve } from 'node:path';
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { Store, DomainError, isValidPathShape, isPathContained, type CadKind } from './store.js';
@@ -607,6 +607,68 @@ export const extrudeCrossSectionSchema = z
 export const civil3dSchemas = {
   extrude_cross_section: extrudeCrossSectionSchema,
 } as const;
+
+// AutoCAD / Civil 3D 2D drafting. A layer name reaches the agent's LISP
+// script as a quoted string, so only a strict character subset is allowed.
+const layerFrag = z
+  .string()
+  .regex(/^[A-Za-z0-9_-]{1,31}$/)
+  .optional();
+const point2dFrag = z.object({ x: coordFrag, y: coordFrag }).strict();
+
+export const drawPolylineSchema = z
+  .object({
+    deviceId: deviceIdFrag,
+    cadId: cadIdFrag,
+    documentId: documentIdFrag,
+    name: nameFrag,
+    points: z.array(point2dFrag).min(2).max(500),
+    closed: z.boolean().optional(),
+    elevation: coordFrag.optional(),
+    layer: layerFrag,
+    confirmed: confirmedFrag,
+  })
+  .strict()
+  .refine((p) => !p.closed || p.points.length >= 3, {
+    message: 'A closed polyline needs at least 3 points.',
+    path: ['points'],
+  });
+
+export const drawCircleSchema = z
+  .object({
+    deviceId: deviceIdFrag,
+    cadId: cadIdFrag,
+    documentId: documentIdFrag,
+    name: nameFrag,
+    radius: mmFrag,
+    center: point2dFrag.optional(),
+    elevation: coordFrag.optional(),
+    layer: layerFrag,
+    confirmed: confirmedFrag,
+  })
+  .strict();
+
+export const deleteObjectSchema = z
+  .object({
+    ...transformBaseShape,
+    confirmed: confirmedFrag,
+  })
+  .strict();
+
+export const drafting2dSchemas = {
+  draw_polyline: drawPolylineSchema,
+  draw_circle: drawCircleSchema,
+  delete_object: deleteObjectSchema,
+} as const;
+
+/** Native file extension each CAD kind opens (`open_external_design`). */
+export const NATIVE_EXTENSIONS: Record<CadKind, readonly string[]> = {
+  FreeCAD: ['.fcstd'],
+  AutoCAD: ['.dwg'],
+  Civil3D: ['.dwg'],
+  Blender: ['.blend'],
+  SolidWorks: ['.sldprt'],
+};
 
 type ToolResult = { content: { type: 'text'; text: string }[] };
 const result = (value: unknown): ToolResult => ({
@@ -1448,25 +1510,56 @@ export function registerTools(
     async (p) => {
       await requireWrite();
       const { deviceId, cadId, path, name } = p;
-      const target = resolveCad(store, owner, deviceId, cadId);
-      if ('selection_required' in target) return result(target);
+      const extension = extname(path).toLowerCase();
+      const opens = (kind: string) =>
+        (NATIVE_EXTENSIONS[kind as CadKind] ?? []).includes(extension);
+      let target = resolveCad(store, owner, deviceId, cadId);
+      if ('selection_required' in target) {
+        // Several CADs are online: keep only those that open this file type.
+        const fitting = target.candidates.filter((c) => opens(c.cadName));
+        if (fitting.length !== 1) {
+          return result({ selection_required: true, candidates: fitting });
+        }
+        target = fitting[0];
+      }
+      if (!opens(target.cadName)) {
+        throw new DomainError(
+          400,
+          `${target.cadName} cannot open ${extension || 'this file'}; expected ${(NATIVE_EXTENSIONS[target.cadName as CadKind] ?? []).join(', ')}.`,
+        );
+      }
       const roots = store.listRoots(owner, target.deviceId);
       if (!roots.some((r) => isPathContained(path, r.path))) {
         throw new DomainError(400, 'Path outside allowed roots.');
       }
       const device = store.devices(owner).find((d) => d.id === target.deviceId)!;
       const cad = (device.cads as CadEntry[]).find((c) => c.id === target.cadId)!;
-      const docName = name ?? path.split(/[/\\]/).pop() ?? 'ExternalDesign';
+      // Check the capability before registering anything, so an unsupported
+      // CAD never leaves an orphaned document behind.
+      const ops: readonly string[] = cad.capabilities?.ops ?? FREECAD_OPS;
+      if (!ops.includes('read_scene')) {
+        throw new DomainError(400, `The selected CAD (${cad.name}) cannot open existing files.`);
+      }
+      const docName = name ?? basename(path) ?? 'ExternalDesign';
       const doc = store.createDocument(owner, device.id, cad.name as CadKind, docName, path);
-      const enqueued = enqueueOp(
-        store,
-        owner,
-        'read_scene',
-        { native_path: path, path },
-        { deviceId: device.id, cadId: cad.id, documentId: doc.id },
-        docName,
-      );
-      if ('selection_required' in enqueued) return result(enqueued);
+      let enqueued: ReturnType<typeof enqueueOp>;
+      try {
+        enqueued = enqueueOp(
+          store,
+          owner,
+          'read_scene',
+          { native_path: path, path },
+          { deviceId: device.id, cadId: cad.id, documentId: doc.id },
+          docName,
+        );
+      } catch (error) {
+        store.deleteDocument(doc.id, owner);
+        throw error;
+      }
+      if ('selection_required' in enqueued) {
+        store.deleteDocument(doc.id, owner);
+        return result(enqueued);
+      }
       return result({
         jobId: enqueued.jobId,
         documentId: doc.id,
@@ -1511,6 +1604,90 @@ export function registerTools(
       const projectDir = resolveProjectDir(store, owner, p);
       const res = await reorganizeProjectStructure(projectDir, true);
       return result(res);
+    },
+  );
+  server.registerTool(
+    'draw_polyline',
+    {
+      description:
+        'AutoCAD / Civil 3D: draw a 2D polyline (open or closed) through 2-500 XY points in mm, at an optional elevation and on an optional layer. Returns a new drawing or appends to documentId. Ask the user to confirm the geometry first.',
+      inputSchema: drawPolylineSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (p) => {
+      await requireWrite();
+      const { deviceId, cadId, documentId, name, points, closed, elevation, layer } = p;
+      return result(
+        enqueueOp(
+          store,
+          owner,
+          'draw_polyline',
+          { points, closed, elevation, layer },
+          { deviceId, cadId, documentId },
+          name ?? 'Polyline',
+        ),
+      );
+    },
+  );
+  server.registerTool(
+    'draw_circle',
+    {
+      description:
+        'AutoCAD / Civil 3D: draw a 2D circle with radius in mm around an XY center, at an optional elevation and on an optional layer. Ask the user to confirm the geometry first.',
+      inputSchema: drawCircleSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (p) => {
+      await requireWrite();
+      const { deviceId, cadId, documentId, name, radius, center, elevation, layer } = p;
+      return result(
+        enqueueOp(
+          store,
+          owner,
+          'draw_circle',
+          { radius, center, elevation, layer },
+          { deviceId, cadId, documentId },
+          name ?? 'Circle',
+        ),
+      );
+    },
+  );
+  server.registerTool(
+    'delete_object',
+    {
+      description:
+        'AutoCAD / Civil 3D: erase one entity (2D or 3D) from an existing drawing by the handle read_scene reports. Destructive: always ask the user to confirm which object first.',
+      inputSchema: deleteObjectSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (p) => {
+      await requireWrite();
+      const { deviceId, cadId, documentId, object, path } = p;
+      return result(
+        enqueueOp(
+          store,
+          owner,
+          'delete_object',
+          { object, path },
+          { deviceId, cadId, documentId },
+          'Design',
+        ),
+      );
     },
   );
   server.registerTool(

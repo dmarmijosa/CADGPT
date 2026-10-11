@@ -467,6 +467,10 @@ export class Store {
       .run(id, owner, deviceId, cadKind, name, nativePath ?? null, created, created);
     return { id };
   }
+  /** Removes a document row that no job ever ran against (rollback helper). */
+  deleteDocument(id: string, owner: string) {
+    this.db.prepare('DELETE FROM documents WHERE id=? AND owner=?').run(id, owner);
+  }
   getDocument(id: string, owner: string) {
     const row = this.db.prepare('SELECT * FROM documents WHERE id=? AND owner=?').get(id, owner) as
       Row | undefined;

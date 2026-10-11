@@ -123,13 +123,15 @@ CAD Engine supports five modeling engines: AutoCAD, Civil 3D, FreeCAD, SOLIDWORK
 ## AutoCAD
 - Recommended for: 2D and 3D architectural drafting, building permit drawings, architectural floor plans, standard DWG layering, and coordinate-aligned line work.
 - Geometric paradigm: Coordinate-aligned drafting, 2D boundary extraction, 2.5D and 3D architectural extrusions.
-- Suggested tools: create_box, extrude_rect, boolean_cut, read_scene, export_design.
+- Suggested tools: draw_polyline, draw_circle, delete_object, create_box, extrude_rect, boolean_cut, translate_object, read_scene, export_design.
+- Existing drawings: open_external_design opens a .dwg; read_scene lists model-space 3D solids and 2D entities (lines, polylines, circles, arcs, text, points) with their handle, layer and bounding box; translate_object, rotate_object, scale_object and delete_object then address any of them by handle.
 - Deliverables: DWG construction documentation and coordinate-aligned layout plans.
 
 ## Civil 3D
 - Recommended for: Civil and infrastructure work — road embankments, channels, levees, earthworks, and corridor-style solids that must live in DWG alongside survey data.
 - Geometric paradigm: AutoCAD Core Console launched as Civil 3D (/product C3D); every AutoCAD operation plus trapezoidal cross-section solids swept along an axis.
-- Suggested tools: extrude_cross_section, create_box, extrude_rect, boolean_cut, boolean_union, read_scene, export_design.
+- Suggested tools: extrude_cross_section, draw_polyline, draw_circle, delete_object, create_box, extrude_rect, boolean_cut, boolean_union, read_scene, export_design.
+- Existing drawings: same as AutoCAD (2D and 3D entities by handle). Native Civil 3D objects (alignments, surfaces, corridors) are not listed or edited.
 - Deliverables: Civil 3D-compatible DWG drawings, DXF/SAT exchange files, and binary STL previews.
 
 ## FreeCAD
@@ -141,7 +143,8 @@ CAD Engine supports five modeling engines: AutoCAD, Civil 3D, FreeCAD, SOLIDWORK
 ## SOLIDWORKS
 - Recommended for: Industrial and product design teams that already standardize on SOLIDWORKS parts (.SLDPRT) for manufacturing hand-off.
 - Geometric paradigm: Feature-based parametric solids (sketch + boss extrude) driven through the SOLIDWORKS COM API on Windows.
-- Suggested tools: create_box, create_cylinder, extrude_rect, export_design (step or stl).
+- Suggested tools: create_box, create_cylinder, extrude_rect, read_scene, translate_object, rotate_object, boolean_cut, boolean_union, boolean_intersect, export_design (step or stl).
+- Existing parts: open_external_design opens a .SLDPRT; read_scene lists its solid bodies as Body1, Body2, ... and the edit tools address them by those names. Existing feature dimensions are not edited.
 - Deliverables: Native SLDPRT part files, STEP exchange files, and binary STL meshes.
 
 ## Blender
