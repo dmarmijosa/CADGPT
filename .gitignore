@@ -20,3 +20,6 @@ data/
 # Local AI tooling (Gemini CLI / gentle-ai, Guardian Angel) — not part of the repo
 .gemini/
 .gga
+
+# Local Claude Code preview config
+.claude/
